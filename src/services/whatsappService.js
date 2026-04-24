@@ -24,8 +24,8 @@ export const sendWhatsAppQuote = async (formData, pacotes) => {
     text += `❄️ *Excelente escolha!* Como você optou pela Experiência Frozen, já adicionamos a Máquina (+ R$ 250) aos valores abaixo para garantir que o seu Laboratório seja inesquecível!\n\n`
   }
 
-  // Ignorar o pacote combo antigo
-  const pacotesValidos = pacotes.filter(p => p.id !== 'standard-frozen');
+  // Usar todos os pacotes disponíveis
+  const pacotesValidos = pacotes;
 
   pacotesValidos.forEach(p => {
     // Calcular o preço final

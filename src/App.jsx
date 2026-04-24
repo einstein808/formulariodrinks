@@ -197,7 +197,7 @@ export default function App() {
         return (
           <div className="step-enter" key="step-0">
             <div className="packages-grid">
-              {pacotes.filter(p => p.id !== 'standard-frozen').map(p => (
+              {pacotes.map(p => (
                 <button
                   key={p.id}
                   type="button"
@@ -358,7 +358,8 @@ export default function App() {
           <div className="step-enter" key="step-4">
             <div className="upsell-container" style={{display:'flex', flexDirection:'column', gap:24}}>
               
-              {/* Highlighted Frozen Upsell */}
+              {/* Highlighted Frozen Upsell - Hidden for premium and standard */}
+              {formData.pacote !== 'premium' && formData.pacote !== 'standard' && formData.pacote !== 'standard-frozen' && (
               <div style={{
                 background: 'linear-gradient(145deg, #1A237E, #311B92)',
                 borderRadius: 'var(--radius-lg)',
@@ -417,6 +418,7 @@ export default function App() {
                   </button>
                 </div>
               </div>
+              )}
 
               {/* Secondary Upsell - Chopp */}
               <button
