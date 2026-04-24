@@ -18,10 +18,12 @@ export const sendWhatsAppQuote = async (formData, pacotes) => {
   let text = `Olá, *${formData.nome}*! Tudo bem? 😊\n`
   text += `Agradecemos o interesse no *Laboratório de Drinks*. Para o seu evento com *${convidados} convidados*, preparamos os seguintes orçamentos baseados nos nossos pacotes para facilitar sua decisão:\n\n`
 
-  const frozenAddon = formData.upsellFrozen ? 250 : 0;
-
   if (formData.upsellFrozen) {
-    text += `❄️ *Excelente escolha!* Como você optou pela Experiência Frozen, já adicionamos a Máquina (+ R$ 250) aos valores abaixo para garantir que o seu Laboratório seja inesquecível!\n\n`
+    if (formData.pacote === 'mao-de-obra') {
+      text += `❄️ *Excelente escolha!* Como você optou pela Experiência Frozen, já adicionamos a Máquina (+ R$ 250) aos valores abaixo para garantir que o seu Laboratório seja inesquecível!\n\n`
+    } else {
+      text += `❄️ *Excelente escolha!* Como você optou pela Experiência Frozen, já adicionamos a Máquina (+ R$ 10 por convidado) aos valores abaixo para garantir que o seu Laboratório seja inesquecível!\n\n`
+    }
   }
 
   // Usar todos os pacotes disponíveis
@@ -36,7 +38,13 @@ export const sendWhatsAppQuote = async (formData, pacotes) => {
       finalPrice = numericPrice * convidados;
     }
 
-    finalPrice += frozenAddon;
+    if (formData.upsellFrozen) {
+      if (p.id === 'mao-de-obra') {
+        finalPrice += 250;
+      } else if (p.id !== 'standard-frozen') {
+        finalPrice += (10 * convidados);
+      }
+    }
     
     text += `*${p.emoji || ''} Pacote ${p.name}*\n`
     text += `💵 *Valor Total:* R$ ${finalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`
@@ -55,6 +63,21 @@ export const sendWhatsAppQuote = async (formData, pacotes) => {
     text += `*Turbinamos o seu evento com:*\n`
     text += `🍺 Máquina de Chopp a Gelo (Valor sob consulta de barril)\n`
     text += `\n`
+  }
+
+  // Taxa de Deslocamento
+  const city = formData.cidade || '';
+  if (city) {
+    const normalizeString = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const isLocalCity = ['juiz de fora', 'matias barbosa', 'simao pereira'].some(
+      c => normalizeString(city) === c
+    );
+
+    if (isLocalCity) {
+      text += `🚗 *Deslocamento:* Já incluso para ${city}!\n\n`
+    } else {
+      text += `🚗 *Deslocamento para ${city}:* Frete a consultar.\n\n`
+    }
   }
 
   text += `Qualquer dúvida ou quando quiser fechar um pacote, é só me responder aqui! 🥂`

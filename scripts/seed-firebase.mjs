@@ -16,7 +16,7 @@ const DB_URL = 'https://formsbar-default-rtdb.firebaseio.com'
 const config = {
   pacotes: {
     'mao-de-obra': {
-      order: 0,
+      order: 4,
       name: 'Mão de Obra',
       emoji: '🍹',
       price: 'R$ 350',
@@ -50,7 +50,7 @@ const config = {
       order: 2,
       name: 'Standard + Frozen',
       emoji: '❄️',
-      price: 'R$ 42',
+      price: 'R$ 40',
       priceLabel: 'por pessoa',
       popular: true,
       features: [
@@ -67,7 +67,7 @@ const config = {
       order: 3,
       name: 'Premium',
       emoji: '🍸✨',
-      price: 'R$ 40',
+      price: 'R$ 42',
       priceLabel: 'por pessoa',
       popular: false,
       features: [
@@ -125,11 +125,11 @@ const config = {
     'old-fashioned': { order: 19, name: 'Old Fashioned', emoji: '🎩', image: '/drinks/old-fashioned.jpg' },
   },
 
-  cidades: [
-    'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Brasília',
-    'Curitiba', 'Porto Alegre', 'Salvador', 'Recife',
-    'Fortaleza', 'Goiânia', 'Campinas', 'Manaus', 'Outra',
-  ],
+  cidades: {
+    juizdefora: { name: 'Juiz de Fora', count: 999 },
+    matiasbarbosa: { name: 'Matias Barbosa', count: 998 },
+    simaopereira: { name: 'Simão Pereira', count: 997 }
+  },
 
   maxDrinks: 5,
 }

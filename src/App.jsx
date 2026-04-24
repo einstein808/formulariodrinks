@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { ref, push, get, serverTimestamp } from 'firebase/database'
+import { ref, push, get, set, update, serverTimestamp } from 'firebase/database'
 import { db } from './firebase'
 import {
   FiChevronRight, FiChevronLeft, FiCheck, FiUser,
@@ -53,7 +53,26 @@ export default function App() {
         if (d.tiposEvento) setTiposEvento(firebaseObjToArray(d.tiposEvento))
         if (d.tiposDrinks) setTiposDrinks(firebaseObjToArray(d.tiposDrinks))
         if (d.drinksMenu) setDrinksMenu(firebaseObjToArray(d.drinksMenu))
-        if (d.cidades) setCidades(d.cidades)
+        if (d.cidades) {
+          const cidadesArray = Object.values(d.cidades);
+          cidadesArray.sort((a, b) => (b.count || 0) - (a.count || 0));
+          
+          const topCities = ['Juiz de Fora', 'Matias Barbosa', 'Simão Pereira'];
+          const topList = [];
+          const othersList = [];
+          
+          topCities.forEach(tc => {
+            topList.push(tc);
+          });
+
+          cidadesArray.forEach(c => {
+            if (!topCities.some(tc => tc.toLowerCase() === c.name.toLowerCase()) && c.name.toLowerCase() !== 'outra cidade...') {
+              othersList.push(c.name);
+            }
+          });
+
+          setCidades([...topList, ...othersList, 'Outra cidade...']);
+        }
         if (d.maxDrinks) setMaxDrinks(d.maxDrinks)
       })
       .catch((err) => console.error('Erro ao carregar config:', err))
@@ -66,6 +85,7 @@ export default function App() {
     sobrenome: '',
     telefone: '',
     cidade: '',
+    novaCidade: '',
     convidados: 30,
     dataEvento: '',
     tipoEvento: '',
@@ -135,6 +155,9 @@ export default function App() {
         if (!formData.telefone || formData.telefone.replace(/\D/g, '').length < 10)
           e.telefone = 'Insira um número válido'
         if (!formData.cidade) e.cidade = 'Selecione uma cidade'
+        else if (formData.cidade === 'Outra cidade...' && !formData.novaCidade.trim()) {
+          e.novaCidade = 'Digite o nome da cidade'
+        }
         break
     }
     setErrors(e)
@@ -157,14 +180,39 @@ export default function App() {
 
     setIsSubmitting(true)
     try {
-      await push(ref(db, 'leads'), {
+      let finalCity = formData.cidade;
+      
+      if (formData.cidade === 'Outra cidade...') {
+        finalCity = formData.novaCidade.trim();
+      }
+
+      // Incrementar a contagem da cidade no Firebase
+      if (finalCity) {
+        const normalizeString = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+        const cityKey = normalizeString(finalCity);
+        const cityRef = ref(db, `config/cidades/${cityKey}`);
+        
+        get(cityRef).then(snap => {
+          if (snap.exists()) {
+            update(cityRef, { count: (snap.val().count || 0) + 1 }).catch(console.error);
+          } else {
+            set(cityRef, { name: finalCity, count: 1 }).catch(console.error);
+          }
+        }).catch(console.error);
+      }
+
+      const leadDataToSave = {
         ...formData,
+        cidade: finalCity,
         criadoEm: serverTimestamp(),
         status: 'novo',
-      })
+      }
+      delete leadDataToSave.novaCidade;
+
+      await push(ref(db, 'leads'), leadDataToSave)
       
       // Enviar mensagem via WhatsApp com resumo dos pacotes
-      await sendWhatsAppQuote(formData, pacotes)
+      await sendWhatsAppQuote(leadDataToSave, pacotes)
 
       setIsSuccess(true)
     } catch (err) {
@@ -173,11 +221,11 @@ export default function App() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [formData, currentStep, validateStep, pacotes])
+  }, [formData, currentStep, validateStep, pacotes, cidades])
 
   const resetForm = useCallback(() => {
     setFormData({
-      pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '',
+      pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '', novaCidade: '',
       convidados: 30, dataEvento: '', tipoEvento: '',
       tiposDrinks: [], drinksEscolhidos: [],
       upsellChopp: false, upsellFrozen: false,
@@ -202,10 +250,11 @@ export default function App() {
                   key={p.id}
                   type="button"
                   id={`pacote-${p.id}`}
-                  className={`package-card ${formData.pacote === p.id ? 'package-card--selected' : ''} ${p.popular ? 'package-card--popular' : ''}`}
+                  className={`package-card ${formData.pacote === p.id ? 'package-card--selected' : ''} ${p.popular && p.id !== 'standard-frozen' ? 'package-card--popular' : ''} ${p.id === 'standard-frozen' ? 'package-card--frozen' : ''}`}
                   onClick={() => updateField('pacote', p.id)}
                 >
-                  {p.popular && <span className="package-card__badge">🔥 Mais contratado</span>}
+                  {p.popular && p.id !== 'standard-frozen' && <span className="package-card__badge">🔥 Mais contratado</span>}
+                  {p.id === 'standard-frozen' && <span className="package-card__badge package-card__badge--frozen">❄️ Mais Pedido</span>}
                   <span className="package-card__emoji">{p.emoji}</span>
                   <h3 className="package-card__name">{p.name}</h3>
                   <div className="package-card__price">
@@ -358,8 +407,8 @@ export default function App() {
           <div className="step-enter" key="step-4">
             <div className="upsell-container" style={{display:'flex', flexDirection:'column', gap:24}}>
               
-              {/* Highlighted Frozen Upsell - Hidden for premium and standard */}
-              {formData.pacote !== 'premium' && formData.pacote !== 'standard' && formData.pacote !== 'standard-frozen' && (
+              {/* Highlighted Frozen Upsell - Hidden only for standard-frozen */}
+              {formData.pacote !== 'standard-frozen' && (
               <div style={{
                 background: 'linear-gradient(145deg, #1A237E, #311B92)',
                 borderRadius: 'var(--radius-lg)',
@@ -392,7 +441,11 @@ export default function App() {
                         A experiência visual definitiva para o seu evento. Máquina de drinks congelados tipo raspadinha com fumaça e cores vibrantes.
                       </p>
                       <div style={{ marginTop: 8, fontWeight: 'bold', color: '#00E5FF', fontSize: '1.1rem' }}>
-                        + R$ 250,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Adicional Fixo)</span>
+                        {formData.pacote === 'mao-de-obra' ? (
+                          <>+ R$ 250,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Adicional Fixo)</span></>
+                        ) : (
+                          <>+ R$ 10,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Por Convidado)</span></>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -518,6 +571,21 @@ export default function App() {
               </select>
               {errors.cidade && <span className="form-error">{errors.cidade}</span>}
             </div>
+
+            {formData.cidade === 'Outra cidade...' && (
+              <div className="form-group" style={{ marginTop: 16 }}>
+                <label htmlFor="novaCidade" className="form-label">Qual cidade?</label>
+                <input
+                  id="novaCidade"
+                  type="text"
+                  className={`form-input ${errors.novaCidade ? 'form-input--error' : ''}`}
+                  placeholder="Digite o nome da sua cidade"
+                  value={formData.novaCidade}
+                  onChange={e => updateField('novaCidade', e.target.value)}
+                />
+                {errors.novaCidade && <span className="form-error">{errors.novaCidade}</span>}
+              </div>
+            )}
           </div>
         )
       default:
