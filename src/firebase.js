@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAYcz9RiHMRHfBfzCIgzLxH8k0_7lyWp7U",
@@ -16,9 +16,16 @@ const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = getAuth(app);
 
-// Login anônimo automático — o usuário não percebe
-signInAnonymously(auth).catch((err) => {
-  console.error('Erro no login anônimo:', err);
-});
+// Só faz login anônimo se não estiver na área de admin
+if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin')) {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      signInAnonymously(auth).catch((err) => {
+        console.error('Erro no login anônimo:', err);
+      });
+    }
+    unsubscribe();
+  });
+}
 
 export default app;
