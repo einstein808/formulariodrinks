@@ -26,6 +26,7 @@ export default function ConfigsEditor() {
   
   const [drinks, setDrinks] = useState([]);
   const [pacotes, setPacotes] = useState([]);
+  const [general, setGeneral] = useState({ siteUrl: '' });
   const [evolutionApi, setEvolutionApi] = useState({ url: '', instance: '', apikey: '' });
   const [scripts, setScripts] = useState({
     autoridade: { text: '', image: '' },
@@ -40,6 +41,7 @@ export default function ConfigsEditor() {
         const data = snapshot.val();
         if (data.drinksMenu) setDrinks(firebaseObjToArray(data.drinksMenu));
         if (data.pacotes) setPacotes(firebaseObjToArray(data.pacotes));
+        if (data.general) setGeneral(data.general);
         if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
       }
@@ -59,6 +61,7 @@ export default function ConfigsEditor() {
         const sorted = pacotes.map((p, i) => ({ ...p, order: i }));
         await set(ref(db, 'config/pacotes'), arrayToFirebaseObj(sorted));
       } else if (activeTab === 'scripts') {
+        await set(ref(db, 'config/general'), general);
         await set(ref(db, 'config/evolutionApi'), evolutionApi);
         await set(ref(db, 'config/scripts'), scripts);
       }
@@ -277,6 +280,19 @@ export default function ConfigsEditor() {
 
       {activeTab === 'scripts' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* Configurações Gerais do Site */}
+          <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--primary)' }}>Configurações Gerais</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
+              Defina a URL base do seu site. Isso é importante para gerar links corretos (como o link de descadastro/opt-out) caso este painel admin esteja hospedado em um subdomínio diferente do site principal.
+            </p>
+            <div>
+              <label className="form-label">URL Global do Site (ex: https://meulaboratorio.com.br)</label>
+              <input type="text" className="form-input" value={general.siteUrl || ''} onChange={(e) => setGeneral({ ...general, siteUrl: e.target.value })} placeholder="Deixe em branco para usar a URL atual do navegador" />
+            </div>
+          </div>
+
           {/* Evolution API Configs */}
           <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <h3 style={{ margin: '0 0 16px 0', color: 'var(--primary)' }}>Credenciais da Evolution API v2</h3>
@@ -341,7 +357,7 @@ export default function ConfigsEditor() {
             </div>
 
             {/* Pós Evento */}
-            <div>
+            <div style={{ marginBottom: '32px' }}>
               <h4 style={{ color: '#FFF', marginBottom: '12px' }}>⭐ 3. Pós-Evento (NPS)</h4>
               <textarea 
                 className="form-input" 
@@ -352,6 +368,42 @@ export default function ConfigsEditor() {
               />
               <label className="form-label">URL da Imagem/Foto (opcional)</label>
               <input type="text" className="form-input" value={scripts.posEvento?.image || ''} onChange={(e) => setScripts({ ...scripts, posEvento: { ...scripts.posEvento, image: e.target.value } })} placeholder="https://..." />
+            </div>
+
+            <hr style={{ borderColor: 'var(--border-color)', margin: '32px 0' }} />
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--primary)' }}>Retargeting Automático (Falta 30 e 15 dias)</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
+              Textos que serão enviados via "Fake Cron" para clientes não fechados quando o evento estiver se aproximando.
+            </p>
+
+            {/* Retarget 30 */}
+            <div style={{ marginBottom: '32px' }}>
+              <h4 style={{ color: '#FFF', marginBottom: '12px' }}>⏰ Faltam 30 Dias</h4>
+              <textarea 
+                className="form-input" 
+                rows={4} 
+                value={scripts.retarget30?.text || ''} 
+                onChange={(e) => setScripts({ ...scripts, retarget30: { ...scripts.retarget30, text: e.target.value } })} 
+                style={{ resize: 'vertical', marginBottom: '12px' }}
+                placeholder={`Ex: Oi {{nome}}! Falta 1 mês para o seu evento. Já fechou os drinks?`}
+              />
+              <label className="form-label">URL da Imagem/Foto (opcional)</label>
+              <input type="text" className="form-input" value={scripts.retarget30?.image || ''} onChange={(e) => setScripts({ ...scripts, retarget30: { ...scripts.retarget30, image: e.target.value } })} placeholder="https://..." />
+            </div>
+
+            {/* Retarget 15 */}
+            <div>
+              <h4 style={{ color: '#FFF', marginBottom: '12px' }}>⏰ Faltam 15 Dias (Urgência)</h4>
+              <textarea 
+                className="form-input" 
+                rows={4} 
+                value={scripts.retarget15?.text || ''} 
+                onChange={(e) => setScripts({ ...scripts, retarget15: { ...scripts.retarget15, text: e.target.value } })} 
+                style={{ resize: 'vertical', marginBottom: '12px' }}
+                placeholder={`Ex: Oi {{nome}}! Seu evento é daqui a 15 dias! Corre que ainda dá tempo de fechar o bar com desconto!`}
+              />
+              <label className="form-label">URL da Imagem/Foto (opcional)</label>
+              <input type="text" className="form-input" value={scripts.retarget15?.image || ''} onChange={(e) => setScripts({ ...scripts, retarget15: { ...scripts.retarget15, image: e.target.value } })} placeholder="https://..." />
             </div>
 
           </div>

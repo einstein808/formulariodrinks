@@ -6,6 +6,7 @@ import { FiLogOut, FiUsers, FiSettings, FiMenu, FiX, FiPieChart } from 'react-ic
 import LeadsKanban from './components/LeadsKanban';
 import ConfigsEditor from './components/ConfigsEditor';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import RetargetAlert from './components/RetargetAlert';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('leads');
@@ -110,6 +111,9 @@ export default function AdminDashboard() {
           `}
         </style>
         
+        {/* Fake Cron Alert */}
+        <RetargetAlert />
+
         {activeTab === 'leads' && <LeadsKanban />}
         {activeTab === 'analytics' && <AnalyticsDashboard />}
         {activeTab === 'configs' && <ConfigsEditor />}
