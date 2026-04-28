@@ -56,10 +56,7 @@ export default function AdminDashboard() {
         transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform 0.3s ease',
         zIndex: 90,
-        height: '100vh',
-        ...(!menuOpen && {
-          '@media (min-width: 768px)': { transform: 'translateX(0)' }
-        })
+        height: '100vh'
       }}
       className={menuOpen ? '' : 'sidebar-hidden'}
       >
@@ -101,7 +98,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, height: '100vh', overflowY: 'auto', padding: '24px', background: '#0a0a0a' }}>
+      <main className="admin-main" style={{ flex: 1, height: '100vh', overflowY: 'auto', padding: '24px', background: '#0a0a0a' }}>
         <style>
           {`
             @media (min-width: 768px) {

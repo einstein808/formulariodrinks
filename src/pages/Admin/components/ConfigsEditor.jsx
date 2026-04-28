@@ -130,7 +130,7 @@ export default function ConfigsEditor() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Configurações</h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Gerencie o cardápio e os pacotes disponíveis.</p>
@@ -145,7 +145,7 @@ export default function ConfigsEditor() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+      <div className="admin-config-tabs" style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
         <button
           onClick={() => setActiveTab('drinks')}
           style={{
@@ -186,7 +186,7 @@ export default function ConfigsEditor() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {drinks.map((drink) => (
-              <div key={drink.id} style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <div key={drink.id} className="admin-config-row" style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <div style={{ width: '60px' }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>Emoji</label>
                   <input type="text" className="form-input" value={drink.emoji || ''} onChange={(e) => updateDrink(drink.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
@@ -224,7 +224,7 @@ export default function ConfigsEditor() {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', marginBottom: '16px' }}>
+                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', marginBottom: '16px' }}>
                   <div>
                     <label className="form-label">ID (identificador único)</label>
                     <input type="text" className="form-input" value={pacote.id} readOnly style={{ opacity: 0.7 }} />
@@ -235,7 +235,7 @@ export default function ConfigsEditor() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>
                     <label className="form-label">Emoji</label>
                     <input type="text" className="form-input" value={pacote.emoji || ''} onChange={(e) => updatePacote(pacote.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
@@ -299,7 +299,7 @@ export default function ConfigsEditor() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
               Configure a API para permitir o envio automático de mensagens e fotos pelo painel Kanban.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
                 <label className="form-label">URL da Evolution API (ex: https://sua-api.com)</label>
                 <input type="text" className="form-input" value={evolutionApi.url || ''} onChange={(e) => setEvolutionApi({ ...evolutionApi, url: e.target.value })} />

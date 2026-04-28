@@ -90,14 +90,14 @@ export default function AnalyticsDashboard() {
         <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Visualize a distribuição de pacotes e a sazonalidade de eventos fechados.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '24px' }}>
         
         {/* Gráfico 1: Captação de Leads (Linha) */}
-        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
+        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0 }}>
           <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Volume de Captação (Novos Orçamentos por Mês)</h3>
           {lineData.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="99%" height={300}>
                 <LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                   <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888' }} />
@@ -117,11 +117,11 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Gráfico 2: Pacotes mais vendidos */}
-        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
           <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Distribuição de Pacotes (Todos os Leads)</h3>
           {pieData.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="99%" height={300}>
                 <PieChart>
                   <Pie
                     data={pieData}
@@ -152,11 +152,11 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Gráfico 3: Eventos por Mês */}
-        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
           <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Sazonalidade (Eventos Fechados por Mês)</h3>
           {barData.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="99%" height={300}>
                 <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                   <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888' }} />

@@ -1015,3 +1015,64 @@ body {
     flex-direction: column-reverse;
   }
 }
+
+/* ============================
+   Admin Responsive
+   ============================ */
+@media (max-width: 768px) {
+  .admin-main {
+    padding: 16px !important;
+  }
+  .admin-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  .admin-stats {
+    width: 100% !important;
+    justify-content: space-between !important;
+    padding: 12px !important;
+  }
+  .admin-kanban-container {
+    padding-bottom: 30px !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+  }
+  .admin-kanban-col {
+    min-width: 100% !important;
+    margin-bottom: 16px !important;
+  }
+  .admin-modal-actions {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: flex-start !important;
+  }
+  .admin-modal-actions > div {
+    width: 100% !important;
+  }
+  .admin-modal-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-config-tabs {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .admin-config-tabs button {
+    flex: 1 1 calc(50% - 8px) !important;
+    text-align: center !important;
+  }
+  .admin-config-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .admin-config-row > div {
+    width: 100% !important;
+  }
+  .admin-config-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-full-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}

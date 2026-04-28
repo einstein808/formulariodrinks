@@ -161,7 +161,7 @@ export default function RetargetAlert() {
       <button 
         onClick={handleSendAll}
         disabled={sending}
-        className="btn btn--primary" 
+        className="btn btn--primary admin-full-btn" 
         style={{ width: 'auto', background: '#FFD54F', color: '#000', borderColor: '#FFD54F', display: 'flex', gap: '8px', alignItems: 'center' }}
       >
         {sending ? <div className="btn__spinner" style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }} /> : <FiSend />}

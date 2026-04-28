@@ -155,14 +155,14 @@ export default function LeadsKanban() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Gestão de Leads</h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Acompanhe os orçamentos solicitados.</p>
         </div>
         
         {/* Simplified Analytics Bar */}
-        <div style={{ display: 'flex', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        <div className="admin-stats" style={{ display: 'flex', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF' }}>{totalLeads}</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Leads</div>
@@ -180,7 +180,7 @@ export default function LeadsKanban() {
         </div>
       </div>
 
-      <div style={{ 
+      <div className="admin-kanban-container" style={{ 
         display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', minHeight: 'calc(100vh - 150px)' 
       }}>
         {COLUMNS.map(col => {
@@ -203,6 +203,7 @@ export default function LeadsKanban() {
                   handleStatusChange(leadId, col.id);
                 }
               }}
+              className="admin-kanban-col"
               style={{ 
                 minWidth: '300px', flex: 1, background: '#1A1A1A', borderRadius: '12px', padding: '16px',
                 display: 'flex', flexDirection: 'column', borderTop: `4px solid ${col.color}`,
@@ -302,7 +303,7 @@ export default function LeadsKanban() {
             </div>
             
             <div style={{ padding: '20px', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+              <div className="admin-modal-actions" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Status do Lead</label>
                   <select 
@@ -368,7 +369,7 @@ export default function LeadsKanban() {
 
               <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
                 <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Dados do Cliente</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
+                <div className="admin-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
                   <div><strong style={{ color: 'var(--text-secondary)' }}>Nome:</strong> {selectedLead.nome} {selectedLead.sobrenome}</div>
                   <div><strong style={{ color: 'var(--text-secondary)' }}>Telefone:</strong> {selectedLead.telefone}</div>
                   <div><strong style={{ color: 'var(--text-secondary)' }}>Cidade:</strong> {selectedLead.cidade}</div>
@@ -377,7 +378,7 @@ export default function LeadsKanban() {
 
               <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
                 <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Dados do Evento</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
+                <div className="admin-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
                   <div><strong style={{ color: 'var(--text-secondary)' }}>Data:</strong> {selectedLead.dataEvento}</div>
                   <div><strong style={{ color: 'var(--text-secondary)' }}>Convidados:</strong> {selectedLead.convidados}</div>
                   <div><strong style={{ color: 'var(--text-secondary)' }}>Tipo:</strong> {selectedLead.tipoEvento}</div>
