@@ -19,6 +19,12 @@ function firebaseObjToArray(obj) {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
+const GOOGLE_REVIEWS = [
+  { id: 1, name: "Mariana Costa", text: "Os drinks foram a atração principal do meu casamento! Equipe nota 1000.", stars: 5, date: "há 2 semanas" },
+  { id: 2, name: "Carlos Eduardo", text: "O Laboratório Frozen foi surreal. Todos os convidados ficaram maravilhados com a fumaça e as cores.", stars: 5, date: "há 1 mês" },
+  { id: 3, name: "Fernanda Lima", text: "Atendimento impecável desde o primeiro contato até o final da festa. Recomendo muito!", stars: 5, date: "há 2 meses" },
+]
+
 const STEPS = [
   { title: 'Escolha seu Pacote', desc: 'Selecione o pacote ideal para seu evento' },
   { title: 'Detalhes do Evento', desc: 'Informações sobre seu evento' },
@@ -43,6 +49,17 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  
+  const [reviewIndex, setReviewIndex] = useState(0)
+
+  useEffect(() => {
+    if (currentStep === 5) {
+      const interval = setInterval(() => {
+        setReviewIndex(prev => (prev + 1) % GOOGLE_REVIEWS.length)
+      }, 4000)
+      return () => clearInterval(interval)
+    }
+  }, [currentStep])
 
   useEffect(() => {
     get(ref(db, 'config'))
@@ -315,6 +332,21 @@ export default function App() {
                 min={new Date().toISOString().split('T')[0]}
               />
               {errors.dataEvento && <span className="form-error">{errors.dataEvento}</span>}
+              
+              {/* Scarcity Alert */}
+              {formData.dataEvento && (
+                <div style={{ 
+                  marginTop: 12, padding: 12, background: 'rgba(255, 152, 0, 0.1)', 
+                  border: '1px solid rgba(255, 152, 0, 0.3)', borderRadius: 'var(--radius-md)', 
+                  color: '#FFB74D', fontSize: '0.85rem', display: 'flex', gap: 8, alignItems: 'flex-start',
+                  animation: 'fadeIn 0.5s ease'
+                }}>
+                  <span style={{ fontSize: '1.2rem' }}>🔥</span>
+                  <span>
+                    <strong>Atenção:</strong> {new Date(formData.dataEvento + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long' })} é um mês muito concorrido! Temos apenas <strong>mais 2 vagas</strong> na nossa agenda para este período.
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -586,6 +618,51 @@ export default function App() {
                 {errors.novaCidade && <span className="form-error">{errors.novaCidade}</span>}
               </div>
             )}
+
+            {/* Google Reviews Carousel */}
+            <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', padding: '6px 12px', borderRadius: 20 }}>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 16, height: 16 }} />
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Avaliações no Google</span>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    {[1,2,3,4,5].map(s => <span key={s} style={{ color: '#FFC107', fontSize: '0.8rem' }}>★</span>)}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ position: 'relative', height: 100, overflow: 'hidden' }}>
+                {GOOGLE_REVIEWS.map((review, i) => (
+                  <div key={review.id} style={{ 
+                    position: 'absolute', top: 0, left: 0, width: '100%', 
+                    opacity: i === reviewIndex ? 1 : 0, 
+                    transform: i === reviewIndex ? 'translateY(0)' : 'translateY(10px)',
+                    transition: 'all 0.5s ease', textAlign: 'center', pointerEvents: 'none'
+                  }}>
+                    <p style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--text-primary)', margin: '0 0 8px 0', lineHeight: 1.4 }}>
+                      "{review.text}"
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <div style={{ width: 24, height: 24, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                        {review.name.charAt(0)}
+                      </div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{review.name}</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>• {review.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+                {GOOGLE_REVIEWS.map((_, i) => (
+                  <div key={i} style={{ 
+                    width: 6, height: 6, borderRadius: '50%', 
+                    background: i === reviewIndex ? 'var(--primary)' : 'var(--border-color)',
+                    transition: 'background 0.3s ease'
+                  }} />
+                ))}
+              </div>
+            </div>
           </div>
         )
       default:
