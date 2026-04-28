@@ -26,13 +26,14 @@ export default function ConfigsEditor() {
   
   const [drinks, setDrinks] = useState([]);
   const [pacotes, setPacotes] = useState([]);
-  const [general, setGeneral] = useState({ siteUrl: '' });
+  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '' });
   const [evolutionApi, setEvolutionApi] = useState({ url: '', instance: '', apikey: '' });
   const [scripts, setScripts] = useState({
     autoridade: { text: '', image: '' },
     escassez: { text: '', image: '' },
     posEvento: { text: '', image: '' }
   });
+  const [galeria, setGaleria] = useState([]);
 
   useEffect(() => {
     const configRef = ref(db, 'config');
@@ -44,6 +45,7 @@ export default function ConfigsEditor() {
         if (data.general) setGeneral(data.general);
         if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
+        if (data.galeriaEventos) setGaleria(firebaseObjToArray(data.galeriaEventos));
       }
       setLoading(false);
     });
@@ -64,6 +66,9 @@ export default function ConfigsEditor() {
         await set(ref(db, 'config/general'), general);
         await set(ref(db, 'config/evolutionApi'), evolutionApi);
         await set(ref(db, 'config/scripts'), scripts);
+      } else if (activeTab === 'galeria') {
+        const sorted = galeria.map((e, i) => ({ ...e, order: i }));
+        await set(ref(db, 'config/galeriaEventos'), arrayToFirebaseObj(sorted));
       }
       alert('Configurações salvas com sucesso!');
     } catch (err) {
@@ -124,6 +129,42 @@ export default function ConfigsEditor() {
     }));
   };
 
+  /* Galeria Handlers */
+  const addEvento = () => {
+    const newId = `evento-${Date.now()}`;
+    setGaleria([...galeria, { id: newId, titulo: 'Novo Evento', data: '', cidade: '', capa: '', midias: [] }]);
+  };
+  const updateEvento = (id, field, value) => {
+    setGaleria(galeria.map(e => e.id === id ? { ...e, [field]: value } : e));
+  };
+  const removeEvento = (id) => {
+    if (window.confirm('Remover este evento da galeria?')) {
+      setGaleria(galeria.filter(e => e.id !== id));
+    }
+  };
+  const addMidia = (eventoId) => {
+    setGaleria(galeria.map(e => {
+      if (e.id !== eventoId) return e;
+      return { ...e, midias: [...(e.midias || []), { url: '', tipo: 'imagem' }] };
+    }));
+  };
+  const updateMidia = (eventoId, index, field, value) => {
+    setGaleria(galeria.map(e => {
+      if (e.id !== eventoId) return e;
+      const newMidias = [...e.midias];
+      newMidias[index] = { ...newMidias[index], [field]: value };
+      return { ...e, midias: newMidias };
+    }));
+  };
+  const removeMidia = (eventoId, index) => {
+    setGaleria(galeria.map(e => {
+      if (e.id !== eventoId) return e;
+      const newMidias = [...e.midias];
+      newMidias.splice(index, 1);
+      return { ...e, midias: newMidias };
+    }));
+  };
+
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>;
   }
@@ -175,6 +216,16 @@ export default function ConfigsEditor() {
           }}
         >
           Scripts de Vendas (WhatsApp)
+        </button>
+        <button
+          onClick={() => setActiveTab('galeria')}
+          style={{
+            background: activeTab === 'galeria' ? 'var(--primary)' : 'transparent',
+            color: activeTab === 'galeria' ? '#000' : '#FFF',
+            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
+          }}
+        >
+          🎥 Galeria de Eventos
         </button>
       </div>
 
@@ -291,6 +342,10 @@ export default function ConfigsEditor() {
               <label className="form-label">URL Global do Site (ex: https://meulaboratorio.com.br)</label>
               <input type="text" className="form-input" value={general.siteUrl || ''} onChange={(e) => setGeneral({ ...general, siteUrl: e.target.value })} placeholder="Deixe em branco para usar a URL atual do navegador" />
             </div>
+            <div style={{ marginTop: '16px' }}>
+              <label className="form-label">Link de Avaliação do Google Meu Negócio</label>
+              <input type="text" className="form-input" value={general.googleReviewLink || ''} onChange={(e) => setGeneral({ ...general, googleReviewLink: e.target.value })} placeholder="Ex: https://g.page/r/.../review" />
+            </div>
           </div>
 
           {/* Evolution API Configs */}
@@ -322,8 +377,8 @@ export default function ConfigsEditor() {
               <p style={{ margin: 0, fontSize: '0.9rem', color: '#FFF' }}>
                 <strong>Variáveis Mágicas:</strong> Você pode usar as tags abaixo no meio do texto e o sistema vai substituir pelos dados do cliente automaticamente:
               </p>
-              <code style={{ display: 'block', marginTop: '8px', color: '#00E5FF', fontSize: '0.85rem' }}>
-                {`{{nome}}`} | {`{{pacote}}`} | {`{{dataEvento}}`} | {`{{cidade}}`}
+              <code style={{ display: 'block', marginTop: '8px', color: '#00E5FF', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                {`{{nome}}`} | {`{{pacote}}`} | {`{{dataEvento}}`} | {`{{mes}}`} | {`{{ano}}`} | {`{{cidade}}`} | {`{{linkAvaliacao}}`}
               </code>
             </div>
 
@@ -338,8 +393,9 @@ export default function ConfigsEditor() {
                 style={{ resize: 'vertical', marginBottom: '12px' }}
                 placeholder={`Ex: Olá {{nome}}, tudo bem? Lembrei do seu evento...`}
               />
-              <label className="form-label">URL da Imagem/Foto (opcional)</label>
+              <label className="form-label">URL da Imagem/Foto ou Link do Instagram (opcional)</label>
               <input type="text" className="form-input" value={scripts.autoridade?.image || ''} onChange={(e) => setScripts({ ...scripts, autoridade: { ...scripts.autoridade, image: e.target.value } })} placeholder="https://..." />
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Se você colocar um link do Instagram/YouTube aqui, o sistema enviará como texto para gerar a miniatura do WhatsApp.</p>
             </div>
 
             {/* Escassez */}
@@ -352,7 +408,7 @@ export default function ConfigsEditor() {
                 onChange={(e) => setScripts({ ...scripts, escassez: { ...scripts.escassez, text: e.target.value } })} 
                 style={{ resize: 'vertical', marginBottom: '12px' }}
               />
-              <label className="form-label">URL da Imagem/Foto (opcional)</label>
+              <label className="form-label">URL da Imagem/Foto ou Link (opcional)</label>
               <input type="text" className="form-input" value={scripts.escassez?.image || ''} onChange={(e) => setScripts({ ...scripts, escassez: { ...scripts.escassez, image: e.target.value } })} placeholder="https://..." />
             </div>
 
@@ -366,7 +422,7 @@ export default function ConfigsEditor() {
                 onChange={(e) => setScripts({ ...scripts, posEvento: { ...scripts.posEvento, text: e.target.value } })} 
                 style={{ resize: 'vertical', marginBottom: '12px' }}
               />
-              <label className="form-label">URL da Imagem/Foto (opcional)</label>
+              <label className="form-label">URL da Imagem/Foto ou Link (opcional)</label>
               <input type="text" className="form-input" value={scripts.posEvento?.image || ''} onChange={(e) => setScripts({ ...scripts, posEvento: { ...scripts.posEvento, image: e.target.value } })} placeholder="https://..." />
             </div>
 
@@ -387,7 +443,7 @@ export default function ConfigsEditor() {
                 style={{ resize: 'vertical', marginBottom: '12px' }}
                 placeholder={`Ex: Oi {{nome}}! Falta 1 mês para o seu evento. Já fechou os drinks?`}
               />
-              <label className="form-label">URL da Imagem/Foto (opcional)</label>
+              <label className="form-label">URL da Imagem/Foto ou Link (opcional)</label>
               <input type="text" className="form-input" value={scripts.retarget30?.image || ''} onChange={(e) => setScripts({ ...scripts, retarget30: { ...scripts.retarget30, image: e.target.value } })} placeholder="https://..." />
             </div>
 
@@ -402,10 +458,108 @@ export default function ConfigsEditor() {
                 style={{ resize: 'vertical', marginBottom: '12px' }}
                 placeholder={`Ex: Oi {{nome}}! Seu evento é daqui a 15 dias! Corre que ainda dá tempo de fechar o bar com desconto!`}
               />
-              <label className="form-label">URL da Imagem/Foto (opcional)</label>
+              <label className="form-label">URL da Imagem/Foto ou Link (opcional)</label>
               <input type="text" className="form-input" value={scripts.retarget15?.image || ''} onChange={(e) => setScripts({ ...scripts, retarget15: { ...scripts.retarget15, image: e.target.value } })} placeholder="https://..." />
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'galeria' && (
+        <div>
+          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+              Cadastre os eventos realizados. Cole a URL da foto de capa e adicione as mídias de cada evento.
+            </p>
+            <button className="btn btn--outline" onClick={addEvento} style={{ width: 'auto', flexShrink: 0 }}>
+              <FiPlus /> Novo Evento
+            </button>
+          </div>
+
+          {galeria.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', border: '2px dashed var(--border-color)', borderRadius: '12px' }}>
+              Nenhum evento cadastrado ainda. Clique em "Novo Evento" para começar.
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {galeria.map((evento) => (
+              <div key={evento.id} style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                {/* Header do Evento */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, color: 'var(--primary)', fontSize: '1.1rem' }}>
+                    🎉 {evento.titulo || 'Evento sem título'}
+                  </h3>
+                  <button onClick={() => removeEvento(evento.id)} style={{ background: 'rgba(244, 67, 54, 0.1)', color: '#F44336', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                    <FiTrash2 size={14} /> Excluir
+                  </button>
+                </div>
+
+                {/* Dados do Evento */}
+                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label className="form-label">Título do Evento</label>
+                    <input type="text" className="form-input" value={evento.titulo || ''} onChange={(e) => updateEvento(evento.id, 'titulo', e.target.value)} placeholder="Ex: Casamento Silva" />
+                  </div>
+                  <div>
+                    <label className="form-label">Data do Evento</label>
+                    <input type="date" className="form-input" value={evento.data || ''} onChange={(e) => updateEvento(evento.id, 'data', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label">Cidade</label>
+                    <input type="text" className="form-input" value={evento.cidade || ''} onChange={(e) => updateEvento(evento.id, 'cidade', e.target.value)} placeholder="Ex: Juiz de Fora" />
+                  </div>
+                </div>
+
+                {/* Foto de Capa */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label className="form-label">URL da Foto de Capa (exibida no card)</label>
+                  <input type="text" className="form-input" value={evento.capa || ''} onChange={(e) => updateEvento(evento.id, 'capa', e.target.value)} placeholder="https://link-direto-da-imagem.jpg" />
+                </div>
+
+                {/* Mídias do Evento */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <label className="form-label" style={{ margin: 0 }}>Mídias do Carrossel ({(evento.midias || []).length} item(s))</label>
+                    <button onClick={() => addMidia(evento.id)} style={{ background: 'rgba(0, 229, 255, 0.1)', color: '#00E5FF', border: '1px solid rgba(0, 229, 255, 0.3)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FiPlus size={14} /> Adicionar Mídia
+                    </button>
+                  </div>
+
+                  {(evento.midias || []).length === 0 && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Nenhuma mídia. Adicione fotos e vídeos para este evento.</p>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {(evento.midias || []).map((midia, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <select
+                          className="form-select"
+                          value={midia.tipo || 'imagem'}
+                          onChange={(e) => updateMidia(evento.id, idx, 'tipo', e.target.value)}
+                          style={{ width: '120px', flexShrink: 0 }}
+                        >
+                          <option value="imagem">🖼️ Imagem</option>
+                          <option value="video">🎬 Vídeo</option>
+                        </select>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={midia.url || ''}
+                          onChange={(e) => updateMidia(evento.id, idx, 'url', e.target.value)}
+                          placeholder={midia.tipo === 'video' ? 'https://...video.mp4' : 'https://...foto.jpg'}
+                          style={{ flex: 1 }}
+                        />
+                        <button onClick={() => removeMidia(evento.id, idx)} style={{ background: 'none', color: '#F44336', border: 'none', cursor: 'pointer', padding: '8px', flexShrink: 0 }}>
+                          <FiTrash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

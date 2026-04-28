@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /portfolio
+Disallow: /admin/
+Disallow: /sair/
+
+Sitemap: https://seusite.com.br/sitemap.xml

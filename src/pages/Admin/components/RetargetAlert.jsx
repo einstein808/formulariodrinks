@@ -36,28 +36,37 @@ export default function RetargetAlert() {
 
   const pending30Days = [];
   const pending15Days = [];
+  const pendingNPS = [];
 
   leads.forEach(lead => {
-    // Ignorar se já fechou, perdeu ou se descadastrou
-    if (lead.status === 'fechado' || lead.status === 'perdido' || lead.optout) return;
+    // Ignorar se perdeu ou se descadastrou
+    if (lead.status === 'perdido' || lead.optout) return;
     if (!lead.dataEvento) return;
 
     const eventDate = new Date(lead.dataEvento + 'T00:00:00');
     const diffTime = eventDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // Regra: Exatamente ou menos que 30 dias (mas mais de 15) E não enviou o de 30 ainda
-    if (diffDays <= 30 && diffDays > 15 && !lead.retarget30Sent) {
-      pending30Days.push(lead);
+    // Regra NPS: Evento fechado, passou 1 dia ou mais da data, não enviou o NPS ainda
+    if (lead.status === 'fechado' && diffDays <= -1 && !lead.npsSent) {
+      pendingNPS.push(lead);
     }
     
-    // Regra: Exatamente ou menos que 15 dias (mas não passou da data) E não enviou o de 15 ainda
-    if (diffDays <= 15 && diffDays >= 0 && !lead.retarget15Sent) {
-      pending15Days.push(lead);
+    // As regras abaixo são apenas para leads não fechados
+    if (lead.status !== 'fechado') {
+      // Regra: Exatamente ou menos que 30 dias (mas mais de 15) E não enviou o de 30 ainda
+      if (diffDays <= 30 && diffDays > 15 && !lead.retarget30Sent) {
+        pending30Days.push(lead);
+      }
+      
+      // Regra: Exatamente ou menos que 15 dias (mas não passou da data) E não enviou o de 15 ainda
+      if (diffDays <= 15 && diffDays >= 0 && !lead.retarget15Sent) {
+        pending15Days.push(lead);
+      }
     }
   });
 
-  const totalPending = pending30Days.length + pending15Days.length;
+  const totalPending = pending30Days.length + pending15Days.length + pendingNPS.length;
 
   const handleSendAll = async () => {
     if (!configs?.evolutionApi?.url || !configs?.evolutionApi?.instance || !configs?.evolutionApi?.apikey) {
@@ -80,13 +89,32 @@ export default function RetargetAlert() {
         ? (configs.general.siteUrl.endsWith('/') ? configs.general.siteUrl.slice(0, -1) : configs.general.siteUrl)
         : window.location.origin;
 
-      const optoutLink = `\n\nPara não receber mais lembretes automáticos sobre seu evento, clique aqui: ${baseSiteUrl}/sair/${lead.id}`;
+      const optoutLink = `\n\nPara não receber mais mensagens automáticas, clique aqui: ${baseSiteUrl}/sair/${lead.id}`;
+      const linkAvaliacao = `${baseSiteUrl}/avaliacao/${lead.id}`;
       
+      // Extrair mês e ano
+      let mesNome = '';
+      let anoEvento = '';
+      if (lead.dataEvento) {
+        const parts = lead.dataEvento.split('-');
+        if (parts.length >= 2) {
+          anoEvento = parts[0];
+          const monthIndex = parseInt(parts[1], 10) - 1;
+          const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+          if (monthIndex >= 0 && monthIndex < 12) {
+            mesNome = monthNames[monthIndex];
+          }
+        }
+      }
+
       let finalText = scriptObj.text
         .replace(/\{\{nome\}\}/g, lead.nome || '')
         .replace(/\{\{pacote\}\}/g, lead.pacote || '')
         .replace(/\{\{dataEvento\}\}/g, lead.dataEvento || '')
+        .replace(/\{\{mes\}\}/g, mesNome)
+        .replace(/\{\{ano\}\}/g, anoEvento)
         .replace(/\{\{cidade\}\}/g, lead.cidade || '') 
+        .replace(/\{\{linkAvaliacao\}\}/g, linkAvaliacao)
         + optoutLink;
 
       const number = '55' + (lead.telefone || '').replace(/\D/g, '');
@@ -95,8 +123,16 @@ export default function RetargetAlert() {
       let payload = {};
 
       if (scriptObj.image) {
-        endpoint = `${baseUrl}/message/sendMedia/${configs.evolutionApi.instance}`;
-        payload = { number, mediatype: "image", media: scriptObj.image, caption: finalText };
+        const imgStr = scriptObj.image.toLowerCase();
+        const isSocialLink = imgStr.includes('instagram.com') || imgStr.includes('youtube.com') || imgStr.includes('tiktok.com') || imgStr.includes('facebook.com') || imgStr.includes('drive.google.com');
+
+        if (isSocialLink) {
+          endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
+          payload = { number, text: finalText + '\n\n' + scriptObj.image };
+        } else {
+          endpoint = `${baseUrl}/message/sendMedia/${configs.evolutionApi.instance}`;
+          payload = { number, mediatype: "image", media: scriptObj.image, caption: finalText };
+        }
       } else {
         endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
         payload = { number, text: finalText };
@@ -108,9 +144,16 @@ export default function RetargetAlert() {
           headers: { 'Content-Type': 'application/json', 'apikey': configs.evolutionApi.apikey },
           body: JSON.stringify(payload)
         });
-        return response.ok;
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Erro no disparo de ${scriptObj === configs.scripts?.retarget30 ? '30 dias' : 'mensagem'} para ${number}: Status ${response.status} - ${errorText}`);
+          return false;
+        }
+        
+        return true;
       } catch (err) {
-        console.error("Erro no envio individual:", err);
+        console.error("Erro na requisição para Evolution API:", err);
         return false;
       }
     };
@@ -138,6 +181,16 @@ export default function RetargetAlert() {
       await new Promise(r => setTimeout(r, 1000));
     }
 
+    // Disparos de NPS
+    for (const lead of pendingNPS) {
+      const success = await sendMsg(lead, configs.scripts?.posEvento);
+      if (success) {
+        await update(ref(db, `leads/${lead.id}`), { npsSent: true });
+        sentCount++;
+      }
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
     setSending(false);
     alert(`${sentCount} de ${totalPending} mensagens foram enviadas com sucesso!`);
   };
@@ -151,9 +204,9 @@ export default function RetargetAlert() {
           <FiBell size={20} />
         </div>
         <div>
-          <h3 style={{ margin: '0 0 4px 0', color: '#FFD54F', fontSize: '1rem' }}>Alertas de Eventos Próximos</h3>
+          <h3 style={{ margin: '0 0 4px 0', color: '#FFD54F', fontSize: '1rem' }}>Alertas de Eventos e Pós-Eventos</h3>
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Você tem <strong>{pending30Days.length} leads</strong> a menos de 30 dias e <strong>{pending15Days.length} leads</strong> a menos de 15 dias aguardando mensagens automáticas.
+            Você tem <strong>{pending30Days.length} leads</strong> a menos de 30 dias, <strong>{pending15Days.length} leads</strong> a menos de 15 dias e <strong>{pendingNPS.length} avaliações</strong> (NPS) aguardando envio.
           </p>
         </div>
       </div>

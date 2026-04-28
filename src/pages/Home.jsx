@@ -8,6 +8,7 @@ import {
 import { BiDrink, BiParty } from 'react-icons/bi'
 import { MdCelebration } from 'react-icons/md'
 import { sendWhatsAppQuote } from '../services/whatsappService'
+import { Helmet } from 'react-helmet-async'
 
 /* ============================
    Helpers
@@ -113,6 +114,15 @@ export default function App() {
   })
 
   const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pacoteId = params.get('pacote');
+    if (pacoteId) {
+      setFormData(prev => ({ ...prev, pacote: pacoteId }));
+      setCurrentStep(1);
+    }
+  }, []);
 
   /* ---- Handlers ---- */
   const updateField = useCallback((field, value) => {
@@ -675,6 +685,9 @@ export default function App() {
      ============================ */
   return (
     <>
+      <Helmet>
+        <title>Orçamento de Barman para Casamentos e Festas | Juiz de Fora</title>
+      </Helmet>
       {/* Background Effects */}
       <div className="bg-effects">
         <div className="bg-orb bg-orb--1" />

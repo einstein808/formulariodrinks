@@ -17,6 +17,7 @@ export default function LeadsKanban() {
   
   const [evolutionApi, setEvolutionApi] = useState(null);
   const [scripts, setScripts] = useState(null);
+  const [generalConfigs, setGeneralConfigs] = useState(null);
   const [sendingScript, setSendingScript] = useState(false);
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function LeadsKanban() {
         const data = snapshot.val();
         if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
+        if (data.general) setGeneralConfigs(data.general);
       }
     });
 
@@ -90,12 +92,36 @@ export default function LeadsKanban() {
 
     setSendingScript(true);
     try {
+      // Preparar Link de Avaliação
+      const baseSiteUrl = generalConfigs?.siteUrl 
+        ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+        : window.location.origin;
+      const linkAvaliacao = `${baseSiteUrl}/avaliacao/${selectedLead.id}`;
+
+      // Extrair mês e ano
+      let mesNome = '';
+      let anoEvento = '';
+      if (selectedLead.dataEvento) {
+        const parts = selectedLead.dataEvento.split('-');
+        if (parts.length >= 2) {
+          anoEvento = parts[0];
+          const monthIndex = parseInt(parts[1], 10) - 1;
+          const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+          if (monthIndex >= 0 && monthIndex < 12) {
+            mesNome = monthNames[monthIndex];
+          }
+        }
+      }
+
       // Substituir variáveis
       let finalText = scriptConfig.text
         .replace(/\{\{nome\}\}/g, selectedLead.nome || '')
         .replace(/\{\{pacote\}\}/g, selectedLead.pacote || '')
         .replace(/\{\{dataEvento\}\}/g, selectedLead.dataEvento || '')
-        .replace(/\{\{cidade\}\}/g, selectedLead.cidade || '');
+        .replace(/\{\{mes\}\}/g, mesNome)
+        .replace(/\{\{ano\}\}/g, anoEvento)
+        .replace(/\{\{cidade\}\}/g, selectedLead.cidade || '')
+        .replace(/\{\{linkAvaliacao\}\}/g, linkAvaliacao);
 
       const number = '55' + selectedLead.telefone.replace(/\D/g, '');
       const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
@@ -104,13 +130,24 @@ export default function LeadsKanban() {
       let payload = {};
 
       if (scriptConfig.image) {
-        endpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
-        payload = {
-          number: number,
-          mediatype: "image",
-          media: scriptConfig.image,
-          caption: finalText
-        };
+        const imgStr = scriptConfig.image.toLowerCase();
+        const isSocialLink = imgStr.includes('instagram.com') || imgStr.includes('youtube.com') || imgStr.includes('tiktok.com') || imgStr.includes('facebook.com') || imgStr.includes('drive.google.com');
+
+        if (isSocialLink) {
+          endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
+          payload = {
+            number: number,
+            text: finalText + '\n\n' + scriptConfig.image
+          };
+        } else {
+          endpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
+          payload = {
+            number: number,
+            mediatype: "image",
+            media: scriptConfig.image,
+            caption: finalText
+          };
+        }
       } else {
         endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
         payload = {
@@ -129,13 +166,14 @@ export default function LeadsKanban() {
       });
 
       if (!response.ok) {
-        throw new Error(`Erro da API: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`Status ${response.status} - ${errorText}`);
       }
 
       alert("Mensagem enviada com sucesso!");
     } catch (err) {
       console.error("Erro ao enviar mensagem:", err);
-      alert("Erro ao enviar a mensagem. Verifique se a URL, Instância e a API Key estão corretos e se a API está online.");
+      alert("Erro ao enviar. Se você colocou um link na imagem, ele DEVE terminar em .jpg ou .png (ser um link direto da foto). Detalhes do erro: " + err.message);
     } finally {
       setSendingScript(false);
     }
