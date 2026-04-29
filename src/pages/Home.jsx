@@ -111,6 +111,7 @@ export default function App() {
     drinksEscolhidos: [],
     upsellChopp: false,
     upsellFrozen: false,
+    cerimonialista: '',
   })
 
   const [errors, setErrors] = useState({})
@@ -118,10 +119,13 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const pacoteId = params.get('pacote');
-    if (pacoteId) {
-      setFormData(prev => ({ ...prev, pacote: pacoteId }));
-      setCurrentStep(1);
-    }
+    const refSlug = params.get('ref');
+    setFormData(prev => ({
+      ...prev,
+      ...(pacoteId ? { pacote: pacoteId } : {}),
+      ...(refSlug ? { cerimonialista: refSlug } : {}),
+    }));
+    if (pacoteId) setCurrentStep(1);
   }, []);
 
   /* ---- Handlers ---- */

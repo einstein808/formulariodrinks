@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { db } from '../../../firebase';
-import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2 } from 'react-icons/fi';
+import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart } from 'react-icons/fi';
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos Leads', color: '#00E5FF' },
@@ -14,6 +14,7 @@ export default function LeadsKanban() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
+  const [cerimonialistas, setCerimonialistas] = useState({});
   
   const [evolutionApi, setEvolutionApi] = useState(null);
   const [scripts, setScripts] = useState(null);
@@ -41,6 +42,7 @@ export default function LeadsKanban() {
         if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
         if (data.general) setGeneralConfigs(data.general);
+        if (data.cerimonialistas) setCerimonialistas(data.cerimonialistas);
       }
     });
 
@@ -53,12 +55,42 @@ export default function LeadsKanban() {
   const handleStatusChange = async (leadId, newStatus) => {
     try {
       await update(ref(db, `leads/${leadId}`), { status: newStatus });
+
+      // Notificação WhatsApp para cerimonialista ao fechar
+      if (newStatus === 'fechado') {
+        const lead = leads.find(l => l.id === leadId) || selectedLead;
+        if (lead?.cerimonialista && cerimonialistas[lead.cerimonialista]) {
+          const cerim = cerimonialistas[lead.cerimonialista];
+          notificarCerimonialista(lead, cerim);
+        }
+      }
+
       if (selectedLead && selectedLead.id === leadId) {
         setSelectedLead({ ...selectedLead, status: newStatus });
       }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
       alert("Erro ao atualizar o status.");
+    }
+  };
+
+  const notificarCerimonialista = async (lead, cerim) => {
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) return;
+    try {
+      const number = '55' + cerim.whatsapp.replace(/\D/g, '');
+      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+      const nomeCliente = `${lead.nome} ${lead.sobrenome}`.trim();
+      const text =
+        `Olá *${cerim.nome}*! 🎉 Boa notícia!\n\n` +
+        `O cliente *${nomeCliente}* (evento em *${lead.dataEvento || 'data n/inf.'}*) que veio da sua indicação acabou de *fechar o pacote ${lead.pacote || ''}* conosco!\n\n` +
+        `Obrigado pela parceria! 🥂`;
+      await fetch(`${baseUrl}/message/sendText/${evolutionApi.instance}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': evolutionApi.apikey },
+        body: JSON.stringify({ number, text }),
+      });
+    } catch (err) {
+      console.error('Erro ao notificar cerimonialista:', err);
     }
   };
 
@@ -302,6 +334,18 @@ export default function LeadsKanban() {
                           {lead.convidados} conv.
                         </span>
                       </div>
+
+                      {/* Badge cerimonialista */}
+                      {lead.cerimonialista && cerimonialistas[lead.cerimonialista] && (
+                        <div style={{
+                          marginTop: 8, fontSize: '0.75rem', color: '#E91E63',
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          background: 'rgba(233,30,99,0.08)', padding: '2px 6px',
+                          borderRadius: 4, border: '1px solid rgba(233,30,99,0.2)'
+                        }}>
+                          <FiHeart size={10} /> {cerimonialistas[lead.cerimonialista].nome}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -362,6 +406,29 @@ export default function LeadsKanban() {
                   >
                     <FiPhone /> Chamar no WhatsApp
                   </a>
+                </div>
+              </div>
+
+              {/* Campo Cerimonialista */}
+              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <FiHeart size={16} style={{ color: '#E91E63', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Cerimonialista Parceiro</label>
+                  <select
+                    value={selectedLead.cerimonialista || ''}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      await update(ref(db, `leads/${selectedLead.id}`), { cerimonialista: val });
+                      setSelectedLead(prev => ({ ...prev, cerimonialista: val }));
+                    }}
+                    className="form-select"
+                    style={{ marginTop: 0 }}
+                  >
+                    <option value="">— Sem parceiro / Direto —</option>
+                    {Object.entries(cerimonialistas).map(([slug, c]) => (
+                      <option key={slug} value={slug}>{c.nome}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

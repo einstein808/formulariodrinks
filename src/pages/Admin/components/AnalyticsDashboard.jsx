@@ -6,16 +6,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
   LineChart, Line
 } from 'recharts';
+import { FiHeart, FiTrendingUp } from 'react-icons/fi';
 
 const COLORS = ['#00E5FF', '#FFD54F', '#4CAF50', '#F44336', '#9C27B0', '#FF9800'];
 
 export default function AnalyticsDashboard() {
   const [leads, setLeads] = useState([]);
+  const [cerimonialistas, setCerimonialistas] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const leadsRef = ref(db, 'leads');
-    const unsubscribe = onValue(leadsRef, (snapshot) => {
+    const unsubLeads = onValue(leadsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         setLeads(Object.entries(data).map(([id, val]) => ({ id, ...val })));
@@ -24,7 +26,13 @@ export default function AnalyticsDashboard() {
       }
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    const cerimRef = ref(db, 'config/cerimonialistas');
+    const unsubCerim = onValue(cerimRef, (snap) => {
+      setCerimonialistas(snap.exists() ? snap.val() : {});
+    });
+
+    return () => { unsubLeads(); unsubCerim(); };
   }, []);
 
   if (loading) {
@@ -82,6 +90,19 @@ export default function AnalyticsDashboard() {
     const [mesB, anoB] = b.name.split('/');
     return new Date(`${anoA}-${mesA}-01`) - new Date(`${anoB}-${mesB}-01`);
   });
+
+  // --- Ranking de Parceiros ---
+  const rankingParceiros = Object.entries(cerimonialistas).map(([slug, cerim]) => {
+    const leadsDoParc = leads.filter(l => l.cerimonialista === slug);
+    const fechados = leadsDoParc.filter(l => l.status === 'fechado').length;
+    const total = leadsDoParc.length;
+    const conversao = total > 0 ? Math.round((fechados / total) * 100) : 0;
+    return { slug, nome: cerim.nome, total, fechados, conversao };
+  }).sort((a, b) => b.fechados - a.fechados || b.total - a.total);
+
+  // Leads diretos (sem parceiro)
+  const leadsDiretos = leads.filter(l => !l.cerimonialista);
+  const fechadosDiretos = leadsDiretos.filter(l => l.status === 'fechado').length;
 
   return (
     <div style={{ paddingBottom: '40px' }}>
@@ -172,6 +193,70 @@ export default function AnalyticsDashboard() {
           ) : (
             <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               Nenhum evento fechado com data informada.
+            </div>
+          )}
+        </div>
+
+        {/* Ranking de Parceiros */}
+        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0, borderTop: '4px solid #E91E63' }}>
+          <h3 style={{ margin: '0 0 4px 0', color: '#FFF', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FiHeart style={{ color: '#E91E63' }} /> Ranking de Parceiros Cerimonialistas
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Acompanhe quais cerimonialistas trazem mais negócios fechados.</p>
+
+          {rankingParceiros.length === 0 && leadsDiretos.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+              Nenhum dado de parceiros ainda. Cadastre cerimonialistas na aba "Parceiros".
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                    {['#', 'Cerimonialista', 'Total de Leads', 'Fechados', 'Conversão'].map(h => (
+                      <th key={h} style={{ padding: '8px 12px', textAlign: h === '#' || h === 'Cerimonialista' ? 'left' : 'center', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankingParceiros.map((p, i) => (
+                    <tr key={p.slug} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}>
+                      <td style={{ padding: '12px', color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--text-muted)', fontWeight: 'bold', width: 32 }}>
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}
+                      </td>
+                      <td style={{ padding: '12px', color: '#FFF', fontWeight: 500 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(233,30,99,0.15)', border: '1px solid rgba(233,30,99,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E91E63', fontWeight: 'bold', fontSize: '0.8rem', flexShrink: 0 }}>
+                            {p.nome.charAt(0)}
+                          </div>
+                          {p.nome}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#00E5FF', fontWeight: 'bold' }}>{p.total}</td>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#4CAF50', fontWeight: 'bold' }}>{p.fechados}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <span style={{
+                          background: p.conversao >= 50 ? 'rgba(76,175,80,0.15)' : p.conversao >= 25 ? 'rgba(255,213,79,0.15)' : 'rgba(244,67,54,0.15)',
+                          color: p.conversao >= 50 ? '#4CAF50' : p.conversao >= 25 ? '#FFD54F' : '#F44336',
+                          padding: '2px 10px', borderRadius: 12, fontWeight: 'bold', fontSize: '0.85rem'
+                        }}>
+                          {p.conversao}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Linha de Leads Diretos */}
+                  <tr style={{ borderTop: '2px dashed var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                    <td style={{ padding: '12px', color: 'var(--text-muted)' }}>—</td>
+                    <td style={{ padding: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Direto (sem parceiro)</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>{leadsDiretos.length}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>{fechadosDiretos}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      {leadsDiretos.length > 0 ? `${Math.round((fechadosDiretos / leadsDiretos.length) * 100)}%` : '—'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
         </div>

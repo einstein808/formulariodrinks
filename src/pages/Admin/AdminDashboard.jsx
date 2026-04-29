@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
-import { FiLogOut, FiUsers, FiSettings, FiMenu, FiX, FiPieChart } from 'react-icons/fi';
+import { FiLogOut, FiUsers, FiSettings, FiMenu, FiX, FiPieChart, FiHeart } from 'react-icons/fi';
 import LeadsKanban from './components/LeadsKanban';
 import ConfigsEditor from './components/ConfigsEditor';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import RetargetAlert from './components/RetargetAlert';
+import CerimonialstasManager from './components/CerimonialstasManager';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('leads');
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
   const navItems = [
     { id: 'leads', label: 'Gestão de Leads', icon: <FiUsers size={20} /> },
     { id: 'analytics', label: 'Métricas (Gráficos)', icon: <FiPieChart size={20} /> },
+    { id: 'parceiros', label: 'Parceiros', icon: <FiHeart size={20} /> },
     { id: 'configs', label: 'Pacotes & Drinks', icon: <FiSettings size={20} /> }
   ];
 
@@ -115,6 +117,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'leads' && <LeadsKanban />}
         {activeTab === 'analytics' && <AnalyticsDashboard />}
+        {activeTab === 'parceiros' && <CerimonialstasManager />}
         {activeTab === 'configs' && <ConfigsEditor />}
       </main>
     </div>
