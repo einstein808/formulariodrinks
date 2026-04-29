@@ -35,6 +35,9 @@ const STEPS = [
   { title: 'Dados Pessoais', desc: 'Para onde enviamos seu orçamento?' },
 ]
 
+const DRAFT_KEY = 'orcamento_draft'
+const DRAFT_TTL = 24 * 60 * 60 * 1000 // 24 horas
+
 /* ============================
    Component
    ============================ */
@@ -50,6 +53,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [pendingDraft, setPendingDraft] = useState(null) // { formData, step }
   
   const [reviewIndex, setReviewIndex] = useState(0)
 
@@ -119,7 +123,38 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const pacoteId = params.get('pacote');
-    const refSlug = params.get('ref');
+    const refSlug = params.get('ref'); // ?ref= tem prioridade máxima
+
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const { formData: saved, step: savedStep, savedAt } = JSON.parse(raw);
+        if (Date.now() - savedAt < DRAFT_TTL) {
+          // Cerimonialista: URL vence o cache
+          const cerimSlug = refSlug || saved.cerimonialista || '';
+
+          if (pacoteId) {
+            // Veio de link de pacote — restaura sem perguntar
+            setFormData(prev => ({ ...prev, pacote: pacoteId, cerimonialista: cerimSlug }));
+            setCurrentStep(1);
+            return;
+          }
+
+          if (savedStep > 0) {
+            // Aplica cerimonialista imediatamente (independente da escolha do cliente)
+            setFormData(prev => ({ ...prev, cerimonialista: cerimSlug }));
+            // Guarda rascunho para o cliente decidir
+            setPendingDraft({ formData: { ...saved, cerimonialista: cerimSlug }, step: savedStep });
+            return;
+          }
+        }
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    } catch (e) {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+
+    // Sem rascunho — apenas aplicar params da URL
     setFormData(prev => ({
       ...prev,
       ...(pacoteId ? { pacote: pacoteId } : {}),
@@ -127,6 +162,19 @@ export default function App() {
     }));
     if (pacoteId) setCurrentStep(1);
   }, []);
+
+  // Salvar rascunho no localStorage a cada mudança
+  useEffect(() => {
+    if (isSuccess) return;
+    if (currentStep === 0 && !formData.pacote) return; // nada relevante ainda
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        formData,
+        step: currentStep,
+        savedAt: Date.now(),
+      }));
+    } catch (e) {}
+  }, [formData, currentStep, isSuccess]);
 
   /* ---- Handlers ---- */
   const updateField = useCallback((field, value) => {
@@ -246,6 +294,7 @@ export default function App() {
       await sendWhatsAppQuote(leadDataToSave, pacotes)
 
       setIsSuccess(true)
+      try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
     } catch (err) {
       console.error('Erro ao enviar:', err)
       alert('Erro ao enviar formulário. Tente novamente.')
@@ -255,14 +304,17 @@ export default function App() {
   }, [formData, currentStep, validateStep, pacotes, cidades])
 
   const resetForm = useCallback(() => {
+    try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
     setFormData({
       pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '', novaCidade: '',
       convidados: 30, dataEvento: '', tipoEvento: '',
       tiposDrinks: [], drinksEscolhidos: [],
       upsellChopp: false, upsellFrozen: false,
+      cerimonialista: '',
     })
     setCurrentStep(0)
     setIsSuccess(false)
+    setPendingDraft(null)
     setErrors({})
   }, [])
 
@@ -725,6 +777,49 @@ export default function App() {
 
         {!isSuccess ? (
           <>
+            {/* Modal: Rascunho encontrado */}
+            {pendingDraft && (
+              <div style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+                zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '20px', animation: 'fadeIn 0.3s ease'
+              }}>
+                <div style={{
+                  background: 'var(--bg-main)', borderRadius: '16px', padding: '32px',
+                  maxWidth: 400, width: '100%', border: '1px solid var(--border-color)',
+                  borderTop: '4px solid var(--primary)', textAlign: 'center',
+                  boxShadow: '0 24px 64px rgba(0,0,0,0.6)'
+                }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📋</div>
+                  <h3 style={{ margin: '0 0 8px', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>
+                    Rascunho Encontrado!
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: '0 0 24px', lineHeight: 1.5 }}>
+                    Encontramos um preenchimento incompleto. Deseja continuar de onde parou?
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button
+                      className="btn btn--primary"
+                      onClick={() => {
+                        setFormData(pendingDraft.formData);
+                        setCurrentStep(pendingDraft.step);
+                        setPendingDraft(null);
+                      }}
+                    >
+                      ✅ Sim, continuar de onde parei
+                    </button>
+                    <button
+                      className="btn btn--secondary"
+                      onClick={() => setPendingDraft(null)}
+                      style={{ fontSize: '0.9rem' }}
+                    >
+                      🔄 Não, começar do zero
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Progress */}
             <nav className="progress" aria-label="Progresso do formulário">
               {STEPS.map((_, i) => (

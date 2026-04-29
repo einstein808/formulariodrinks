@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { db } from '../../../firebase';
-import { FiPlus, FiTrash2, FiCopy, FiCheck, FiUser, FiPhone, FiLink } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiCopy, FiCheck, FiUser, FiPhone, FiLink, FiAlertCircle } from 'react-icons/fi';
 
 function slugify(text) {
   return text
@@ -29,8 +29,7 @@ export default function CerimonialstasManager() {
   const [saving, setSaving] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState(null);
   const [errors, setErrors] = useState({});
-
-  const siteUrl = window.location.origin;
+  const [siteUrl, setSiteUrl] = useState('');
 
   useEffect(() => {
     const r = ref(db, 'config/cerimonialistas');
@@ -45,7 +44,18 @@ export default function CerimonialstasManager() {
       }
       setLoading(false);
     });
-    return () => unsub();
+
+    const configRef = ref(db, 'config/general');
+    const unsubConfig = onValue(configRef, (snap) => {
+      if (snap.exists() && snap.val().siteUrl) {
+        const url = snap.val().siteUrl;
+        setSiteUrl(url.endsWith('/') ? url.slice(0, -1) : url);
+      } else {
+        setSiteUrl(window.location.origin);
+      }
+    });
+
+    return () => { unsub(); unsubConfig(); };
   }, []);
 
   const validate = () => {
