@@ -210,6 +210,34 @@ export default function ShoppingListClient() {
         convidados: convidadosLocal,
         status: 'fechado' // Força ou garante que continua fechado
       });
+
+      // Envia os dados para o Webhook do n8n (Geração de PDF)
+      const webhookUrl = 'https://n8n.gabryelamaro.com/webhook-test/1e022a86-2a9d-4764-a635-3478b405ef89';
+      
+      const payload = {
+        leadId: leadId,
+        nome: lead.nome || '',
+        telefone: lead.telefone || '',
+        dataEvento: lead.dataEvento || '',
+        cidade: lead.cidade || '',
+        pacote: lead.pacote || '',
+        convidados: convidadosLocal,
+        listaGerada: listaGerada
+      };
+
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (webhookErr) {
+        console.error("Erro ao enviar para webhook n8n:", webhookErr);
+        // Não bloqueia o fluxo principal se o webhook falhar
+      }
+
       setLead(prev => ({ ...prev, shoppingListFinalizada: true, convidados: convidadosLocal }));
       alert("Lista salva com sucesso! Nossa equipe já foi notificada.");
     } catch (err) {
