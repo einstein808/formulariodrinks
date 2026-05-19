@@ -1,7 +1,7 @@
 // src/services/whatsappService.js
 
-const API_URL = 'https://api.gabryelamaro.com/message/sendText/BarmanJF'
-const API_KEY = 'Suapikeyaqui' // Substituir pela chave correta se necessário
+const API_URL = import.meta.env.VITE_WPP_API_URL
+const API_KEY = import.meta.env.VITE_WPP_API_KEY
 
 export const sendWhatsAppQuote = async (formData, pacotes) => {
   // Limpar número (remover tudo que não for dígito)
@@ -12,7 +12,7 @@ export const sendWhatsAppQuote = async (formData, pacotes) => {
     number = `55${number}`
   }
 
-  const convidados = formData.convidados || 30
+  const convidados = Math.max(formData.convidados || 40, 40)
 
   // Construir o texto da mensagem
   let text = `Olá, *${formData.nome}*! Tudo bem? 😊\n`

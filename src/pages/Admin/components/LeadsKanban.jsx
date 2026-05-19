@@ -211,6 +211,52 @@ export default function LeadsKanban() {
     }
   };
 
+  const handleSendShoppingListViaApi = async (lead) => {
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
+      alert("A API Evolution não está configurada corretamente.");
+      return;
+    }
+    
+    if (!window.confirm("Deseja enviar o link da lista de compras automaticamente pelo WhatsApp via API agora?")) {
+      return;
+    }
+
+    setSendingScript(true);
+    try {
+      const baseSiteUrl = generalConfigs?.siteUrl 
+        ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+        : window.location.origin;
+      const linkCompras = `${baseSiteUrl}/lista-compras/${lead.id}`;
+      
+      const text = `Olá ${lead.nome}, acesse este link para escolher os drinks do seu evento e gerar a lista de compras exata do que você precisa comprar:\n\n${linkCompras}`;
+
+      const number = '55' + lead.telefone.replace(/\D/g, '');
+      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+      const endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': evolutionApi.apikey
+        },
+        body: JSON.stringify({ number, text })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Status ${response.status} - ${errorText}`);
+      }
+
+      alert("Link da lista de compras enviado com sucesso via API!");
+    } catch (err) {
+      console.error("Erro ao enviar link da lista:", err);
+      alert("Erro ao enviar. Detalhes: " + err.message);
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
   const getLeadsByStatus = (statusId) => {
     return leads.filter(l => (l.status || 'novo') === statusId);
   };
@@ -399,7 +445,7 @@ export default function LeadsKanban() {
                 </div>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
                   <a 
-                    href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=Olá ${selectedLead.nome}, vi que solicitou um orçamento para o pacote ${selectedLead.pacote}!`}
+                    href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.nome}, vi que solicitou um orçamento para o pacote ${selectedLead.pacote}!`)}`}
                     target="_blank" rel="noopener noreferrer"
                     className="btn btn--primary"
                     style={{ background: '#25D366', borderColor: '#25D366', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}
@@ -430,6 +476,31 @@ export default function LeadsKanban() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Botão Gerar Lista de Compras (Apenas para pacote Mão de Obra ou Genérico) */}
+              <div style={{ background: 'rgba(0, 229, 255, 0.05)', borderRadius: '8px', padding: '16px', marginBottom: '16px', border: '1px solid rgba(0, 229, 255, 0.2)' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#00E5FF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  🛒 Lista de Compras (Insumos)
+                </h4>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 12px 0' }}>
+                  O cliente receberá um link para escolher os drinks e o sistema calculará os insumos.
+                </p>
+                
+                {selectedLead.shoppingListFinalizada ? (
+                  <div style={{ padding: '12px', background: 'rgba(76, 175, 80, 0.1)', border: '1px solid #4CAF50', borderRadius: '6px', color: '#4CAF50', fontSize: '0.9rem' }}>
+                    ✅ <strong>O cliente já finalizou a lista!</strong> Confira a lista gerada no card abaixo.
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => handleSendShoppingListViaApi(selectedLead)}
+                    disabled={sendingScript}
+                    className="btn btn--outline"
+                    style={{ borderColor: '#00E5FF', color: '#00E5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
+                  >
+                    <FiPhone /> Enviar Link via API WhatsApp
+                  </button>
+                )}
               </div>
 
               <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid var(--primary)' }}>
@@ -508,6 +579,41 @@ export default function LeadsKanban() {
                   </div>
                 </div>
               </div>
+
+              {selectedLead.shoppingListFinalizada && selectedLead.shoppingListResult && (
+                <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid #4CAF50' }}>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#4CAF50', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>🛒 Lista de Compras Gerada</h4>
+                  <div style={{ fontSize: '0.9rem' }}>
+                    
+                    {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Insumos e Bebidas:</strong>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#FFF' }}>
+                          {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => (
+                            <li key={insumo} style={{ marginBottom: '4px' }}>
+                              {insumo}: <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
+                      <div>
+                        <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Itens Fixos / Descartáveis:</strong>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#FFF' }}>
+                          {selectedLead.shoppingListResult.fixos.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: '4px' }}>
+                              {item.nome}: <strong style={{ color: 'var(--primary)' }}>{item.quantidade} {item.unidade}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>

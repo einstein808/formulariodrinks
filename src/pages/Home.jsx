@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { ref, push, get, set, update, serverTimestamp } from 'firebase/database'
 import { db } from '../firebase'
 import {
@@ -11,6 +11,34 @@ import { sendWhatsAppQuote } from '../services/whatsappService'
 import { Helmet } from 'react-helmet-async'
 
 /* ============================
+   TrustIndex Widget
+   ============================ */
+function TrustIndexWidget() {
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    // Evita duplicar o script se já foi carregado
+    const SCRIPT_ID = 'trustindex-loader'
+    if (!document.getElementById(SCRIPT_ID)) {
+      const script = document.createElement('script')
+      script.id = SCRIPT_ID
+      script.defer = true
+      script.async = true
+      script.src = 'https://cdn.trustindex.io/loader.js?afe2f8237e8d85830116f94e6ea'
+      document.body.appendChild(script)
+    }
+  }, [])
+
+  return (
+    <div
+      ref={containerRef}
+      id="trustindex-widget-container"
+      style={{ marginTop: 24, width: '100%' }}
+    />
+  )
+}
+
+/* ============================
    Helpers
    ============================ */
 function firebaseObjToArray(obj) {
@@ -20,11 +48,7 @@ function firebaseObjToArray(obj) {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
-const GOOGLE_REVIEWS = [
-  { id: 1, name: "Mariana Costa", text: "Os drinks foram a atração principal do meu casamento! Equipe nota 1000.", stars: 5, date: "há 2 semanas" },
-  { id: 2, name: "Carlos Eduardo", text: "O Laboratório Frozen foi surreal. Todos os convidados ficaram maravilhados com a fumaça e as cores.", stars: 5, date: "há 1 mês" },
-  { id: 3, name: "Fernanda Lima", text: "Atendimento impecável desde o primeiro contato até o final da festa. Recomendo muito!", stars: 5, date: "há 2 meses" },
-]
+// Reviews reais via TrustIndex widget (veja componente TrustIndexWidget)
 
 const STEPS = [
   { title: 'Escolha seu Pacote', desc: 'Selecione o pacote ideal para seu evento' },
@@ -55,16 +79,9 @@ export default function App() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [pendingDraft, setPendingDraft] = useState(null) // { formData, step }
   
-  const [reviewIndex, setReviewIndex] = useState(0)
-
-  useEffect(() => {
-    if (currentStep === 5) {
-      const interval = setInterval(() => {
-        setReviewIndex(prev => (prev + 1) % GOOGLE_REVIEWS.length)
-      }, 4000)
-      return () => clearInterval(interval)
-    }
-  }, [currentStep])
+  const [isPriceUnlocked, setIsPriceUnlocked] = useState(false)
+  const [showUnlockModal, setShowUnlockModal] = useState(false)
+  const [currentLeadId, setCurrentLeadId] = useState(null)
 
   useEffect(() => {
     get(ref(db, 'config'))
@@ -108,7 +125,7 @@ export default function App() {
     telefone: '',
     cidade: '',
     novaCidade: '',
-    convidados: 30,
+    convidados: 40,
     dataEvento: '',
     tipoEvento: '',
     tiposDrinks: [],
@@ -121,6 +138,14 @@ export default function App() {
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
+    try {
+      const unlocked = localStorage.getItem('DRINKS_UNLOCKED');
+      if (unlocked === 'true') setIsPriceUnlocked(true);
+      
+      const savedLeadId = localStorage.getItem('CURRENT_LEAD_ID');
+      if (savedLeadId) setCurrentLeadId(savedLeadId);
+    } catch (e) {}
+
     const params = new URLSearchParams(window.location.search);
     const pacoteId = params.get('pacote');
     const refSlug = params.get('ref'); // ?ref= tem prioridade máxima
@@ -208,6 +233,43 @@ export default function App() {
     updateField('telefone', v)
   }, [updateField])
 
+  const handleUnlockSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.nome.trim() || !formData.sobrenome.trim() || !formData.telefone || formData.telefone.replace(/\D/g, '').length < 10) {
+      alert("Por favor, preencha todos os campos corretamente com um WhatsApp válido.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const leadDataToSave = {
+        nome: formData.nome,
+        sobrenome: formData.sobrenome,
+        telefone: formData.telefone,
+        status: 'novo',
+        criadoEm: serverTimestamp(),
+      };
+      
+      const newLeadRef = push(ref(db, 'leads'));
+      await set(newLeadRef, leadDataToSave);
+      
+      setCurrentLeadId(newLeadRef.key);
+      setIsPriceUnlocked(true);
+      setShowUnlockModal(false);
+      
+      try {
+        localStorage.setItem('DRINKS_UNLOCKED', 'true');
+        localStorage.setItem('CURRENT_LEAD_ID', newLeadRef.key);
+      } catch (err) {}
+      
+    } catch (error) {
+      console.error("Erro ao salvar lead:", error);
+      alert("Erro ao conectar. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   /* ---- Validation ---- */
   const validateStep = useCallback((step) => {
     const e = {}
@@ -283,12 +345,16 @@ export default function App() {
       const leadDataToSave = {
         ...formData,
         cidade: finalCity,
-        criadoEm: serverTimestamp(),
         status: 'novo',
       }
       delete leadDataToSave.novaCidade;
 
-      await push(ref(db, 'leads'), leadDataToSave)
+      if (currentLeadId) {
+        await update(ref(db, `leads/${currentLeadId}`), leadDataToSave);
+      } else {
+        leadDataToSave.criadoEm = serverTimestamp();
+        await push(ref(db, 'leads'), leadDataToSave);
+      }
       
       // Enviar mensagem via WhatsApp com resumo dos pacotes
       await sendWhatsAppQuote(leadDataToSave, pacotes)
@@ -307,7 +373,7 @@ export default function App() {
     try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
     setFormData({
       pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '', novaCidade: '',
-      convidados: 30, dataEvento: '', tipoEvento: '',
+      convidados: 40, dataEvento: '', tipoEvento: '',
       tiposDrinks: [], drinksEscolhidos: [],
       upsellChopp: false, upsellFrozen: false,
       cerimonialista: '',
@@ -334,17 +400,39 @@ export default function App() {
                   type="button"
                   id={`pacote-${p.id}`}
                   className={`package-card ${formData.pacote === p.id ? 'package-card--selected' : ''} ${p.popular && p.id !== 'standard-frozen' ? 'package-card--popular' : ''} ${p.id === 'standard-frozen' ? 'package-card--frozen' : ''}`}
-                  onClick={() => updateField('pacote', p.id)}
+                  onClick={() => {
+                    if (!isPriceUnlocked) {
+                      setShowUnlockModal(true);
+                    } else {
+                      updateField('pacote', p.id);
+                    }
+                  }}
                 >
                   {p.popular && p.id !== 'standard-frozen' && <span className="package-card__badge">🔥 Mais contratado</span>}
                   {p.id === 'standard-frozen' && <span className="package-card__badge package-card__badge--frozen">❄️ Mais Pedido</span>}
                   <span className="package-card__emoji">{p.emoji}</span>
                   <h3 className="package-card__name">{p.name}</h3>
                   <div className="package-card__price">
-                    <span className="package-card__price-value">{p.price}</span>
-                    <span className="package-card__price-label">/{p.priceLabel}</span>
+                    {isPriceUnlocked ? (
+                      <>
+                        <span className="package-card__price-value">{p.price}</span>
+                        <span className="package-card__price-label">/{p.priceLabel}</span>
+                      </>
+                    ) : (
+                      <div style={{ filter: 'blur(5px)', userSelect: 'none', transition: 'filter 0.3s' }}>
+                        <span className="package-card__price-value">R$ 0000</span>
+                        <span className="package-card__price-label">/por pessoa</span>
+                      </div>
+                    )}
                   </div>
-                  <ul className="package-card__features">
+                  {!isPriceUnlocked && (
+                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                      <span className="btn btn--outline" style={{ display: 'inline-flex', padding: '6px 12px', fontSize: '0.85rem', borderColor: 'var(--primary)', color: 'var(--primary)', background: 'transparent' }}>
+                        🔒 Desbloquear Valores
+                      </span>
+                    </div>
+                  )}
+                  <ul className="package-card__features" style={{ marginTop: !isPriceUnlocked ? '16px' : '0' }}>
                     {p.features.map((f, i) => (
                       <li key={i}><FiCheck size={14} /> {f}</li>
                     ))}
@@ -370,17 +458,17 @@ export default function App() {
                   type="range"
                   id="convidados"
                   className="form-slider"
-                  min="10"
+                  min="40"
                   max="500"
                   step="5"
                   value={formData.convidados}
                   onChange={e => updateField('convidados', Number(e.target.value))}
                   style={{
-                    background: `linear-gradient(to right, var(--primary) ${((formData.convidados - 10) / 490) * 100}%, var(--bg-input) ${((formData.convidados - 10) / 490) * 100}%)`
+                    background: `linear-gradient(to right, var(--primary) ${((formData.convidados - 40) / 460) * 100}%, var(--bg-input) ${((formData.convidados - 40) / 460) * 100}%)`
                   }}
                 />
                 <div className="slider-labels">
-                  <span>10</span>
+                  <span>40</span>
                   <span>Número total de convidados</span>
                   <span>500</span>
                 </div>
@@ -399,20 +487,7 @@ export default function App() {
               />
               {errors.dataEvento && <span className="form-error">{errors.dataEvento}</span>}
               
-              {/* Scarcity Alert */}
-              {formData.dataEvento && (
-                <div style={{ 
-                  marginTop: 12, padding: 12, background: 'rgba(255, 152, 0, 0.1)', 
-                  border: '1px solid rgba(255, 152, 0, 0.3)', borderRadius: 'var(--radius-md)', 
-                  color: '#FFB74D', fontSize: '0.85rem', display: 'flex', gap: 8, alignItems: 'flex-start',
-                  animation: 'fadeIn 0.5s ease'
-                }}>
-                  <span style={{ fontSize: '1.2rem' }}>🔥</span>
-                  <span>
-                    <strong>Atenção:</strong> {new Date(formData.dataEvento + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long' })} é um mês muito concorrido! Temos apenas <strong>mais 2 vagas</strong> na nossa agenda para este período.
-                  </span>
-                </div>
-              )}
+
             </div>
 
             <div className="form-group">
@@ -685,49 +760,9 @@ export default function App() {
               </div>
             )}
 
-            {/* Google Reviews Carousel */}
+            {/* TrustIndex Reviews Widget */}
             <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', padding: '6px 12px', borderRadius: 20 }}>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 16, height: 16 }} />
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Avaliações no Google</span>
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    {[1,2,3,4,5].map(s => <span key={s} style={{ color: '#FFC107', fontSize: '0.8rem' }}>★</span>)}
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{ position: 'relative', height: 100, overflow: 'hidden' }}>
-                {GOOGLE_REVIEWS.map((review, i) => (
-                  <div key={review.id} style={{ 
-                    position: 'absolute', top: 0, left: 0, width: '100%', 
-                    opacity: i === reviewIndex ? 1 : 0, 
-                    transform: i === reviewIndex ? 'translateY(0)' : 'translateY(10px)',
-                    transition: 'all 0.5s ease', textAlign: 'center', pointerEvents: 'none'
-                  }}>
-                    <p style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--text-primary)', margin: '0 0 8px 0', lineHeight: 1.4 }}>
-                      "{review.text}"
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      <div style={{ width: 24, height: 24, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                        {review.name.charAt(0)}
-                      </div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{review.name}</span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>• {review.date}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
-                {GOOGLE_REVIEWS.map((_, i) => (
-                  <div key={i} style={{ 
-                    width: 6, height: 6, borderRadius: '50%', 
-                    background: i === reviewIndex ? 'var(--primary)' : 'var(--border-color)',
-                    transition: 'background 0.3s ease'
-                  }} />
-                ))}
-              </div>
+              <TrustIndexWidget />
             </div>
           </div>
         )
@@ -777,6 +812,73 @@ export default function App() {
 
         {!isSuccess ? (
           <>
+            {/* Modal: Desbloqueio de Valores */}
+            {showUnlockModal && (
+              <div style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+                zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '20px', animation: 'fadeIn 0.3s ease'
+              }}>
+                <div style={{
+                  background: 'var(--bg-main)', borderRadius: '16px', padding: '32px',
+                  maxWidth: 400, width: '100%', border: '1px solid var(--primary)',
+                  boxShadow: '0 24px 64px rgba(203, 161, 83, 0.2)'
+                }}>
+                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔓</div>
+                    <h3 style={{ margin: '0 0 8px', fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.5rem' }}>
+                      Desbloquear Valores
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
+                      Para ver a tabela de preços exclusiva dos nossos pacotes, informe seus dados básicos.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleUnlockSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Seu Nome"
+                        value={formData.nome}
+                        onChange={e => updateField('nome', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Seu Sobrenome"
+                        value={formData.sobrenome}
+                        onChange={e => updateField('sobrenome', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <input
+                        type="tel"
+                        className="form-input"
+                        placeholder="WhatsApp: (00) 00000-0000"
+                        value={formData.telefone}
+                        onChange={handlePhoneChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      <button type="button" className="btn btn--secondary" onClick={() => setShowUnlockModal(false)} disabled={isSubmitting}>
+                        Voltar
+                      </button>
+                      <button type="submit" className="btn btn--primary" disabled={isSubmitting} style={{ flex: 1 }}>
+                        {isSubmitting ? 'Liberando...' : 'Liberar Preços'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             {/* Modal: Rascunho encontrado */}
             {pendingDraft && (
               <div style={{
@@ -897,16 +999,16 @@ export default function App() {
               <div className="success-screen__icon">
                 <FiCheck size={40} />
               </div>
-              <h2 className="success-screen__title">Pedido Gerado!</h2>
+              <h2 className="success-screen__title">Pedido Gerado! 🎉</h2>
               <p className="success-screen__text">
-                Obrigado, <strong>{formData.nome}</strong>! Quase tudo pronto para o seu evento.
-                <br /><br />
-                Para receber o seu orçamento agora mesmo, clique no botão abaixo e nos envie uma mensagem no WhatsApp.
+                Obrigado, <strong>{formData.nome}</strong>! Seu orçamento está pronto.
+                <br />
+                Toque no botão para recebê-lo agora mesmo via WhatsApp.
               </p>
               
               <div style={{display:'flex', flexDirection:'column', gap:12, width:'100%', maxWidth:300}}>
                 <a
-                  href={`https://wa.me/5561999999999?text=${encodeURIComponent(`Olá! Acabei de preencher o formulário para o meu evento (Pacote ${formData.pacote}). Meu nome é ${formData.nome} ${formData.sobrenome}.`)}`}
+                  href={`https://wa.me/5532999999999?text=${encodeURIComponent(`Olá! Acabei de preencher o formulário para o meu evento (Pacote ${formData.pacote}). Meu nome é ${formData.nome} ${formData.sobrenome}.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn--primary success-screen__btn"
@@ -924,6 +1026,11 @@ export default function App() {
                 >
                   Fazer novo orçamento
                 </button>
+              </div>
+
+              {/* TrustIndex Reviews — reforça credibilidade pós-conversão */}
+              <div style={{ marginTop: 32, width: '100%' }}>
+                <TrustIndexWidget />
               </div>
             </div>
           </main>

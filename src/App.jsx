@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Optout from './pages/Optout';
 import NPSReview from './pages/NPSReview';
 import Portfolio from './pages/Portfolio';
+import ShoppingListClient from './pages/ShoppingListClient';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/avaliacao/:leadId" element={<NPSReview />} />
           <Route path="/sair/:leadId" element={<Optout />} />
+          <Route path="/lista-compras/:leadId" element={<ShoppingListClient />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route
             path="/admin/*"

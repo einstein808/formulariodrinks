@@ -34,6 +34,13 @@ export default function ConfigsEditor() {
     posEvento: { text: '', image: '' }
   });
   const [galeria, setGaleria] = useState([]);
+  
+  // Shopping List Config
+  const [shoppingConfig, setShoppingConfig] = useState({
+    margemSeguranca: 10,
+    nonAlcoholicPercentage: 15,
+    itensFixos: [] // { id, nome, quantidadePorConvidado, tipoCalc ('fixo' ou 'porConvidado') }
+  });
 
   useEffect(() => {
     const configRef = ref(db, 'config');
@@ -46,6 +53,7 @@ export default function ConfigsEditor() {
         if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
         if (data.galeriaEventos) setGaleria(firebaseObjToArray(data.galeriaEventos));
+        if (data.shoppingConfig) setShoppingConfig(data.shoppingConfig);
       }
       setLoading(false);
     });
@@ -69,6 +77,8 @@ export default function ConfigsEditor() {
       } else if (activeTab === 'galeria') {
         const sorted = galeria.map((e, i) => ({ ...e, order: i }));
         await set(ref(db, 'config/galeriaEventos'), arrayToFirebaseObj(sorted));
+      } else if (activeTab === 'shopping') {
+        await set(ref(db, 'config/shoppingConfig'), shoppingConfig);
       }
       alert('Configurações salvas com sucesso!');
     } catch (err) {
@@ -86,6 +96,28 @@ export default function ConfigsEditor() {
   };
   const updateDrink = (id, field, value) => {
     setDrinks(drinks.map(d => d.id === id ? { ...d, [field]: value } : d));
+  };
+  const updateDrinkRecipe = (id, ingredientIndex, field, value) => {
+    setDrinks(drinks.map(d => {
+      if (d.id !== id) return d;
+      const novaReceita = [...(d.receita || [])];
+      novaReceita[ingredientIndex] = { ...novaReceita[ingredientIndex], [field]: value };
+      return { ...d, receita: novaReceita };
+    }));
+  };
+  const addDrinkRecipeItem = (id) => {
+    setDrinks(drinks.map(d => {
+      if (d.id !== id) return d;
+      return { ...d, receita: [...(d.receita || []), { insumo: '', quantidade: '', unidade: 'ml' }] };
+    }));
+  };
+  const removeDrinkRecipeItem = (id, ingredientIndex) => {
+    setDrinks(drinks.map(d => {
+      if (d.id !== id) return d;
+      const novaReceita = [...(d.receita || [])];
+      novaReceita.splice(ingredientIndex, 1);
+      return { ...d, receita: novaReceita };
+    }));
   };
   const removeDrink = (id) => {
     if (window.confirm('Remover este drink?')) {
@@ -227,6 +259,16 @@ export default function ConfigsEditor() {
         >
           🎥 Galeria de Eventos
         </button>
+        <button
+          onClick={() => setActiveTab('shopping')}
+          style={{
+            background: activeTab === 'shopping' ? 'var(--primary)' : 'transparent',
+            color: activeTab === 'shopping' ? '#000' : '#FFF',
+            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
+          }}
+        >
+          🛒 Lista de Compras
+        </button>
       </div>
 
       {activeTab === 'drinks' && (
@@ -237,22 +279,61 @@ export default function ConfigsEditor() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {drinks.map((drink) => (
-              <div key={drink.id} className="admin-config-row" style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <div style={{ width: '60px' }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Emoji</label>
-                  <input type="text" className="form-input" value={drink.emoji || ''} onChange={(e) => updateDrink(drink.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
+              <div key={drink.id} className="admin-config-row" style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <div style={{ width: '60px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Emoji</label>
+                    <input type="text" className="form-input" value={drink.emoji || ''} onChange={(e) => updateDrink(drink.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Nome do Drink</label>
+                    <input type="text" className="form-input" value={drink.name || ''} onChange={(e) => updateDrink(drink.id, 'name', e.target.value)} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>URL da Imagem (Opcional)</label>
+                    <input type="text" className="form-input" value={drink.image || ''} onChange={(e) => updateDrink(drink.id, 'image', e.target.value)} placeholder="https://..." />
+                  </div>
+                  <div style={{ width: '90px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }} title="Maior peso significa que sai mais na festa">Peso (1-10)</label>
+                    <input type="number" className="form-input" value={drink.popularityWeight || ''} onChange={(e) => updateDrink(drink.id, 'popularityWeight', Number(e.target.value))} min="1" max="10" placeholder="5" />
+                  </div>
+                  <div style={{ width: '90px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Sem Álcool?</label>
+                    <input type="checkbox" checked={drink.isNonAlcoholic || false} onChange={(e) => updateDrink(drink.id, 'isNonAlcoholic', e.target.checked)} style={{ width: '20px', height: '20px', marginTop: '4px', cursor: 'pointer' }} />
+                  </div>
+                  <button onClick={() => removeDrink(drink.id)} style={{ background: 'rgba(244, 67, 54, 0.1)', color: '#F44336', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer', marginTop: '20px' }}>
+                    <FiTrash2 size={18} />
+                  </button>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Nome do Drink</label>
-                  <input type="text" className="form-input" value={drink.name || ''} onChange={(e) => updateDrink(drink.id, 'name', e.target.value)} />
+                
+                {/* Receita do Drink */}
+                <div style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', borderLeft: '3px solid var(--primary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h5 style={{ margin: 0, color: 'var(--text-secondary)' }}>Receita (Base para 1 preparo)</h5>
+                    <button onClick={() => addDrinkRecipeItem(drink.id)} style={{ background: 'none', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                      + Adicionar Insumo
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(drink.receita || []).length === 0 && (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nenhuma receita cadastrada.</span>
+                    )}
+                    {(drink.receita || []).map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input type="text" className="form-input" placeholder="Ex: Vodka" value={item.insumo || ''} onChange={(e) => updateDrinkRecipe(drink.id, idx, 'insumo', e.target.value)} style={{ padding: '6px', fontSize: '0.85rem' }} />
+                        <input type="number" className="form-input" placeholder="Ex: 50" value={item.quantidade || ''} onChange={(e) => updateDrinkRecipe(drink.id, idx, 'quantidade', e.target.value)} style={{ width: '80px', padding: '6px', fontSize: '0.85rem' }} />
+                        <select className="form-select" value={item.unidade || 'ml'} onChange={(e) => updateDrinkRecipe(drink.id, idx, 'unidade', e.target.value)} style={{ width: '80px', padding: '6px', fontSize: '0.85rem' }}>
+                          <option value="ml">ml</option>
+                          <option value="g">g</option>
+                          <option value="un">un</option>
+                          <option value="fatias">fatias</option>
+                        </select>
+                        <button onClick={() => removeDrinkRecipeItem(drink.id, idx)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer' }}><FiTrash2 size={14} /></button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem' }}>URL da Imagem (Opcional)</label>
-                  <input type="text" className="form-input" value={drink.image || ''} onChange={(e) => updateDrink(drink.id, 'image', e.target.value)} placeholder="https://..." />
-                </div>
-                <button onClick={() => removeDrink(drink.id)} style={{ background: 'rgba(244, 67, 54, 0.1)', color: '#F44336', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer', marginTop: '20px' }}>
-                  <FiTrash2 size={18} />
-                </button>
               </div>
             ))}
           </div>
@@ -560,6 +641,135 @@ export default function ConfigsEditor() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'shopping' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* Margem de Segurança */}
+          <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--primary)' }}>Margem de Segurança Global</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '16px' }}>
+              Porcentagem extra adicionada a todos os cálculos de insumos para evitar faltas no evento.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input 
+                type="number" 
+                className="form-input" 
+                style={{ width: '100px' }}
+                value={shoppingConfig.margemSeguranca || 0} 
+                onChange={(e) => setShoppingConfig({ ...shoppingConfig, margemSeguranca: Number(e.target.value) })} 
+              />
+              <span style={{ color: '#FFF' }}>% extra</span>
+            </div>
+            
+            <hr style={{ borderColor: 'var(--border-color)', margin: '24px 0' }} />
+            
+            <h3 style={{ margin: '0 0 16px 0', color: '#00E5FF' }}>Proporção de Drinks Sem Álcool</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '16px' }}>
+              Se o cliente selecionar drinks sem álcool, qual a porcentagem do consumo total da festa que será destinada a eles? (Recomendado: 10% a 20%)
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input 
+                type="number" 
+                className="form-input" 
+                style={{ width: '100px' }}
+                value={shoppingConfig.nonAlcoholicPercentage ?? 15} 
+                onChange={(e) => setShoppingConfig({ ...shoppingConfig, nonAlcoholicPercentage: Number(e.target.value) })} 
+              />
+              <span style={{ color: '#FFF' }}>% do total</span>
+            </div>
+          </div>
+
+          {/* Itens Fixos */}
+          <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 8px 0', color: 'var(--primary)' }}>Itens Fixos (Escaláveis)</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+                  Ex: Gelo, Copos, Guardanapos. Estes sobem conforme o número de convidados.
+                </p>
+              </div>
+              <button 
+                className="btn btn--outline" 
+                style={{ width: 'auto' }}
+                onClick={() => setShoppingConfig({
+                  ...shoppingConfig,
+                  itensFixos: [...(shoppingConfig.itensFixos || []), { id: Date.now().toString(), nome: 'Novo Item', quantidade: 1, unidade: 'un' }]
+                })}
+              >
+                <FiPlus /> Novo Item Fixo
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {(shoppingConfig.itensFixos || []).length === 0 && (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nenhum item fixo cadastrado.</div>
+              )}
+              {(shoppingConfig.itensFixos || []).map((item, idx) => (
+                <div key={item.id} style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Nome do Item</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      value={item.nome || ''} 
+                      placeholder="Ex: Gelo (Saco 5kg)"
+                      onChange={(e) => {
+                        const novos = [...shoppingConfig.itensFixos];
+                        novos[idx].nome = e.target.value;
+                        setShoppingConfig({ ...shoppingConfig, itensFixos: novos });
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Qtd por Convidado</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      style={{ width: '120px' }}
+                      value={item.quantidade || 0} 
+                      step="0.1"
+                      onChange={(e) => {
+                        const novos = [...shoppingConfig.itensFixos];
+                        novos[idx].quantidade = Number(e.target.value);
+                        setShoppingConfig({ ...shoppingConfig, itensFixos: novos });
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Unidade</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      style={{ width: '80px' }}
+                      value={item.unidade || ''} 
+                      placeholder="sacos"
+                      onChange={(e) => {
+                        const novos = [...shoppingConfig.itensFixos];
+                        novos[idx].unidade = e.target.value;
+                        setShoppingConfig({ ...shoppingConfig, itensFixos: novos });
+                      }} 
+                    />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const novos = [...shoppingConfig.itensFixos];
+                      novos.splice(idx, 1);
+                      setShoppingConfig({ ...shoppingConfig, itensFixos: novos });
+                    }} 
+                    style={{ background: 'rgba(244, 67, 54, 0.1)', color: '#F44336', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer', marginTop: '20px' }}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <strong>Dica de cálculo:</strong> Se você usa 1 saco de gelo a cada 10 pessoas, a "Qtd por Convidado" é <strong>0.1</strong>. 
+            </div>
           </div>
         </div>
       )}

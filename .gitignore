@@ -6,13 +6,21 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-./agent*
-./agent/**
-./.agent/**
-.shared/
+
+# Dependencies
 node_modules
+node_modules/
+
+# Build
 dist
 dist-ssr
+
+# Environment variables (keep secrets out of git)
+.env
+.env.local
+.env.production
+
+# Local env files
 *.local
 
 # Editor directories and files
@@ -26,8 +34,11 @@ dist-ssr
 *.sln
 *.sw?
 
-# antigravity-kit
-node_modules/
+# Antigravity Kit
+./agent*
+./agent/**
+./.agent/**
+.shared/
 .temp_ag_kit/
 antigravity-doc
 tests
