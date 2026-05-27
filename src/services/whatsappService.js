@@ -1,4 +1,6 @@
 // src/services/whatsappService.js
+import { ref, get } from 'firebase/database'
+import { db } from '../firebase'
 
 const API_URL = import.meta.env.VITE_WPP_API_URL
 const API_KEY = import.meta.env.VITE_WPP_API_KEY
@@ -82,17 +84,34 @@ export const sendWhatsAppQuote = async (formData, pacotes) => {
 
   text += `Qualquer dúvida ou quando quiser fechar um pacote, é só me responder aqui! 🥂`
 
+  let endpoint = API_URL;
+  let apiKey = API_KEY;
+
+  try {
+    const configSnap = await get(ref(db, 'config/evolutionApi'));
+    if (configSnap.exists()) {
+      const apiInst = configSnap.val();
+      if (apiInst && apiInst.url && apiInst.apikey && apiInst.instance) {
+        const baseUrl = apiInst.url.endsWith('/') ? apiInst.url.slice(0, -1) : apiInst.url;
+        endpoint = `${baseUrl}/message/sendText/${apiInst.instance}`;
+        apiKey = apiInst.apikey;
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao obter configuração do Evolution API no Firebase:', error);
+  }
+
   const payload = {
     number: number,
     text: text
   }
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': API_KEY
+        'apikey': apiKey
       },
       body: JSON.stringify(payload)
     })

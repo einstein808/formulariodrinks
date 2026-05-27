@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { db } from '../../../firebase';
 import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart } from 'react-icons/fi';
+import { sendWhatsAppQuote } from '../../../services/whatsappService';
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos Leads', color: '#00E5FF' },
@@ -10,11 +11,19 @@ const COLUMNS = [
   { id: 'perdido', title: 'Perdido', color: '#F44336' }
 ];
 
+function firebaseObjToArray(obj) {
+  if (!obj) return [];
+  return Object.entries(obj)
+    .map(([id, val]) => ({ id, ...val }))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
 export default function LeadsKanban() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [cerimonialistas, setCerimonialistas] = useState({});
+  const [pacotes, setPacotes] = useState([]);
   
   const [evolutionApi, setEvolutionApi] = useState(null);
   const [scripts, setScripts] = useState(null);
@@ -43,6 +52,7 @@ export default function LeadsKanban() {
         if (data.scripts) setScripts(data.scripts);
         if (data.general) setGeneralConfigs(data.general);
         if (data.cerimonialistas) setCerimonialistas(data.cerimonialistas);
+        if (data.pacotes) setPacotes(firebaseObjToArray(data.pacotes));
       }
     });
 
@@ -252,6 +262,26 @@ export default function LeadsKanban() {
     } catch (err) {
       console.error("Erro ao enviar link da lista:", err);
       alert("Erro ao enviar. Detalhes: " + err.message);
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
+  const handleResendQuote = async (lead) => {
+    if (!window.confirm("Deseja reenviar o orçamento deste lead via WhatsApp?")) {
+      return;
+    }
+    setSendingScript(true);
+    try {
+      const result = await sendWhatsAppQuote(lead, pacotes);
+      if (result) {
+        alert("Orçamento reenviado com sucesso!");
+      } else {
+        alert("Falha ao reenviar o orçamento. Verifique as configurações da API WhatsApp.");
+      }
+    } catch (err) {
+      console.error("Erro ao reenviar orçamento:", err);
+      alert("Erro ao reenviar: " + err.message);
     } finally {
       setSendingScript(false);
     }
@@ -507,6 +537,21 @@ export default function LeadsKanban() {
                 <h4 style={{ margin: '0 0 12px 0', color: '#FFF' }}>Ações Rápidas (Integração WhatsApp API)</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   
+                  {/* Reenviar Orçamento */}
+                  <button 
+                    onClick={() => handleResendQuote(selectedLead)}
+                    disabled={sendingScript}
+                    className="btn btn--primary"
+                    style={{ 
+                      textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
+                      justifyContent: 'flex-start', color: '#000', background: 'var(--primary)', 
+                      borderColor: 'var(--primary)', cursor: sendingScript ? 'not-allowed' : 'pointer', 
+                      fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' 
+                    }}
+                  >
+                    <FiPhone size={16} /> Reenviar Orçamento (Completo)
+                  </button>
+
                   {/* Script 1: Autoridade */}
                   <button 
                     onClick={() => handleSendEvolution('autoridade')}
