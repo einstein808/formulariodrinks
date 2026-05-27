@@ -349,15 +349,17 @@ export default function App() {
       }
       delete leadDataToSave.novaCidade;
 
+      let finalLeadId = currentLeadId;
       if (currentLeadId) {
         await update(ref(db, `leads/${currentLeadId}`), leadDataToSave);
       } else {
         leadDataToSave.criadoEm = serverTimestamp();
-        await push(ref(db, 'leads'), leadDataToSave);
+        const newRef = await push(ref(db, 'leads'), leadDataToSave);
+        finalLeadId = newRef.key;
       }
       
       // Enviar mensagem via WhatsApp com resumo dos pacotes
-      await sendWhatsAppQuote(leadDataToSave, pacotes)
+      await sendWhatsAppQuote(leadDataToSave, pacotes, finalLeadId)
 
       setIsSuccess(true)
       try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}

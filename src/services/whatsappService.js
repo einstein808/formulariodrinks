@@ -1,11 +1,26 @@
 // src/services/whatsappService.js
-import { ref, get } from 'firebase/database'
+import { ref, get, push, serverTimestamp } from 'firebase/database'
 import { db } from '../firebase'
 
 const API_URL = import.meta.env.VITE_WPP_API_URL
 const API_KEY = import.meta.env.VITE_WPP_API_KEY
 
-export const sendWhatsAppQuote = async (formData, pacotes) => {
+export const logMessageToLead = async (leadId, type, number, success, errorMsg = null) => {
+  if (!leadId) return
+  try {
+    await push(ref(db, `leads/${leadId}/messages`), {
+      type,
+      number,
+      success,
+      error: errorMsg,
+      sentAt: serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Erro ao registrar log de mensagem:', err)
+  }
+}
+
+export const sendWhatsAppQuote = async (formData, pacotes, leadId = null) => {
   // Limpar número (remover tudo que não for dígito)
   let number = formData.telefone.replace(/\D/g, '')
   
@@ -119,12 +134,18 @@ export const sendWhatsAppQuote = async (formData, pacotes) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Falha ao enviar mensagem via WhatsApp:', errorText);
+      await logMessageToLead(leadId, 'orcamento', number, false, errorText);
       throw new Error('Falha ao enviar mensagem via WhatsApp');
     }
 
-    return await response.json()
+    const result = await response.json()
+    await logMessageToLead(leadId, 'orcamento', number, true);
+    return result
   } catch (error) {
     console.error('Erro no envio de WhatsApp:', error)
+    if (error.message !== 'Falha ao enviar mensagem via WhatsApp') {
+      await logMessageToLead(leadId, 'orcamento', number, false, error.message);
+    }
     return null
   }
 }

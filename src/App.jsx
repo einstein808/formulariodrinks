@@ -1,14 +1,26 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import Home from './pages/Home';
-import AdminLogin from './pages/Admin/AdminLogin';
-import AdminDashboard from './pages/Admin/AdminDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
-import Optout from './pages/Optout';
-import NPSReview from './pages/NPSReview';
-import Portfolio from './pages/Portfolio';
-import ShoppingListClient from './pages/ShoppingListClient';
+
+const AdminLogin = lazy(() => import('./pages/Admin/AdminLogin'));
+const AdminDashboard = lazy(() => import('./pages/Admin/AdminDashboard'));
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
+const Optout = lazy(() => import('./pages/Optout'));
+const NPSReview = lazy(() => import('./pages/NPSReview'));
+const Portfolio = lazy(() => import('./pages/Portfolio'));
+const ShoppingListClient = lazy(() => import('./pages/ShoppingListClient'));
+
+function PageLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', background: '#0a0a0a',
+    }}>
+      <div className="btn__spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -16,17 +28,19 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/avaliacao/:leadId" element={<NPSReview />} />
-          <Route path="/sair/:leadId" element={<Optout />} />
-          <Route path="/lista-compras/:leadId" element={<ShoppingListClient />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/portfolio" element={<Suspense fallback={<PageLoader />}><Portfolio /></Suspense>} />
+          <Route path="/avaliacao/:leadId" element={<Suspense fallback={<PageLoader />}><NPSReview /></Suspense>} />
+          <Route path="/sair/:leadId" element={<Suspense fallback={<PageLoader />}><Optout /></Suspense>} />
+          <Route path="/lista-compras/:leadId" element={<Suspense fallback={<PageLoader />}><ShoppingListClient /></Suspense>} />
+          <Route path="/admin/login" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
           <Route
             path="/admin/*"
             element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
+              <Suspense fallback={<PageLoader />}>
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              </Suspense>
             }
           />
         </Routes>
@@ -36,3 +50,4 @@ function App() {
 }
 
 export default App;
+

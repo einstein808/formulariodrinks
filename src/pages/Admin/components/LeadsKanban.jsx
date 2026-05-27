@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { db } from '../../../firebase';
 import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart } from 'react-icons/fi';
-import { sendWhatsAppQuote } from '../../../services/whatsappService';
+import { sendWhatsAppQuote, logMessageToLead } from '../../../services/whatsappService';
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos Leads', color: '#00E5FF' },
@@ -94,13 +94,15 @@ export default function LeadsKanban() {
         `Olá *${cerim.nome}*! 🎉 Boa notícia!\n\n` +
         `O cliente *${nomeCliente}* (evento em *${lead.dataEvento || 'data n/inf.'}*) que veio da sua indicação acabou de *fechar o pacote ${lead.pacote || ''}* conosco!\n\n` +
         `Obrigado pela parceria! 🥂`;
-      await fetch(`${baseUrl}/message/sendText/${evolutionApi.instance}`, {
+      const resp = await fetch(`${baseUrl}/message/sendText/${evolutionApi.instance}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': evolutionApi.apikey },
         body: JSON.stringify({ number, text }),
       });
+      await logMessageToLead(lead.id, 'notif_cerimonialista', number, resp.ok, resp.ok ? null : 'Falha HTTP');
     } catch (err) {
       console.error('Erro ao notificar cerimonialista:', err);
+      await logMessageToLead(lead.id, 'notif_cerimonialista', '', false, err.message);
     }
   };
 
@@ -212,9 +214,11 @@ export default function LeadsKanban() {
         throw new Error(`Status ${response.status} - ${errorText}`);
       }
 
+      await logMessageToLead(selectedLead.id, `script_${scriptType}`, number, true);
       alert("Mensagem enviada com sucesso!");
     } catch (err) {
       console.error("Erro ao enviar mensagem:", err);
+      await logMessageToLead(selectedLead.id, `script_${scriptType}`, '55' + selectedLead.telefone.replace(/\D/g, ''), false, err.message);
       alert("Erro ao enviar. Se você colocou um link na imagem, ele DEVE terminar em .jpg ou .png (ser um link direto da foto). Detalhes do erro: " + err.message);
     } finally {
       setSendingScript(false);
@@ -258,9 +262,11 @@ export default function LeadsKanban() {
         throw new Error(`Status ${response.status} - ${errorText}`);
       }
 
+      await logMessageToLead(lead.id, 'lista_compras', number, true);
       alert("Link da lista de compras enviado com sucesso via API!");
     } catch (err) {
       console.error("Erro ao enviar link da lista:", err);
+      await logMessageToLead(lead.id, 'lista_compras', '55' + lead.telefone.replace(/\D/g, ''), false, err.message);
       alert("Erro ao enviar. Detalhes: " + err.message);
     } finally {
       setSendingScript(false);
@@ -273,7 +279,7 @@ export default function LeadsKanban() {
     }
     setSendingScript(true);
     try {
-      const result = await sendWhatsAppQuote(lead, pacotes);
+      const result = await sendWhatsAppQuote(lead, pacotes, lead.id);
       if (result) {
         alert("Orçamento reenviado com sucesso!");
       } else {
@@ -656,6 +662,61 @@ export default function LeadsKanban() {
                       </div>
                     )}
 
+                  </div>
+                </div>
+              )}
+
+              {/* Histórico de Mensagens */}
+              {selectedLead.messages && (
+                <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid #00E5FF' }}>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#00E5FF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>📋 Histórico de Mensagens</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
+                    {Object.entries(selectedLead.messages)
+                      .map(([id, msg]) => ({ id, ...msg }))
+                      .sort((a, b) => {
+                        const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+                        const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+                        return timeB - timeA;
+                      })
+                      .map(msg => {
+                        const typeLabels = {
+                          'orcamento': '💰 Orçamento',
+                          'script_autoridade': '📸 Autoridade',
+                          'script_escassez': '🔥 Escassez',
+                          'script_posEvento': '⭐ Pós-Evento',
+                          'lista_compras': '🛒 Lista de Compras',
+                          'notif_cerimonialista': '💌 Notif. Cerimonialista',
+                        };
+                        const label = typeLabels[msg.type] || msg.type;
+                        const dateStr = msg.sentAt ? new Date(msg.sentAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
+                        return (
+                          <div key={msg.id} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '8px 12px', borderRadius: '6px', fontSize: '0.85rem',
+                            background: msg.success ? 'rgba(76, 175, 80, 0.08)' : 'rgba(244, 67, 54, 0.08)',
+                            border: `1px solid ${msg.success ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)'}`,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ color: msg.success ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
+                                {msg.success ? '✓' : '✗'}
+                              </span>
+                              <span style={{ color: '#FFF' }}>{label}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              {msg.error && (
+                                <span title={msg.error} style={{ fontSize: '0.75rem', color: '#F44336', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {msg.error}
+                                </span>
+                              )}
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                {dateStr}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    }
                   </div>
                 </div>
               )}
