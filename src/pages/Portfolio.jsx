@@ -236,7 +236,7 @@ export default function Portfolio() {
       {/* Header / Hero */}
       <header style={{ position: 'relative', zIndex: 10, padding: '32px 16px 24px', textAlign: 'center', maxWidth: 800, margin: '0 auto' }}>
         <img 
-          src="/logo.png" 
+          src="/logo.webp" 
           alt="Logo" 
           style={{ width: 'clamp(90px, 25vw, 140px)', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
         />
@@ -318,7 +318,7 @@ export default function Portfolio() {
                   </ul>
 
                   <button 
-                    onClick={() => navigate(`/?pacote=${pacote.id}`)}
+                    onClick={() => navigate(`/orcamento?pacote=${pacote.id}`)}
                     className="btn btn--primary"
                     style={{ width: '100%', background: isPopular ? 'var(--primary)' : 'rgba(255,255,255,0.1)', color: isPopular ? '#000' : '#FFF', borderColor: 'transparent' }}
                   >
@@ -445,7 +445,7 @@ export default function Portfolio() {
         zIndex: 100, display: 'flex', justifyContent: 'center' 
       }}>
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/orcamento')}
           className="btn btn--primary"
           style={{ maxWidth: 400, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, boxShadow: '0 4px 20px rgba(203, 161, 83, 0.4)' }}
         >

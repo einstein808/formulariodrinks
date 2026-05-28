@@ -280,7 +280,7 @@ export default function ShoppingListClient() {
 
       <div className="app" style={{ minHeight: '100vh', paddingBottom: '40px' }}>
         <header className="header">
-          <img src="/logo.png" alt="Logo" style={{ width: 140, marginBottom: 24, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} />
+          <img src="/logo.webp" alt="Logo" style={{ width: 140, marginBottom: 24, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} />
           <h1 className="header__title">Lista de Compras</h1>
           <p className="header__subtitle">Vamos preparar a lista exata para o seu evento.</p>
         </header>

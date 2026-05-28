@@ -43,7 +43,7 @@ export default function AdminLogin() {
 
       <div className="form-card" style={{ maxWidth: '400px', width: '100%', position: 'relative', zIndex: 10 }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '120px', marginBottom: '16px' }} />
+          <img src="/logo.webp" alt="Logo" style={{ width: '120px', marginBottom: '16px' }} />
           <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', margin: 0 }}>Acesso Restrito</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '8px 0 0 0' }}>Dashboard Administrativo</p>
         </div>

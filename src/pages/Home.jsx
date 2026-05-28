@@ -799,7 +799,7 @@ export default function App() {
         <>
         <header className="header">
           <img 
-            src="/logo.png" 
+            src="/logo.webp" 
             alt="Logo" 
             style={{ 
               width: 140, 

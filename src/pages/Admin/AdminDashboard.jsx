@@ -66,7 +66,7 @@ export default function AdminDashboard() {
       >
         {/* Custom CSS class added in index.css to handle media query for sidebar */}
         <div style={{ padding: '24px', textAlign: 'center', borderBottom: '1px solid var(--border-color)' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '100px', marginBottom: '8px' }} />
+          <img src="/logo.webp" alt="Logo" style={{ width: '100px', marginBottom: '8px' }} />
           <h2 style={{ margin: 0, fontSize: '1rem', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Admin Dashboard</h2>
         </div>
 

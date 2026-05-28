@@ -105,7 +105,7 @@ export default function NPSReview() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: 'var(--text-primary)', padding: 24 }}>
       <div style={{ maxWidth: 500, width: '100%', background: 'var(--bg-card)', padding: 32, borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', textAlign: 'center' }}>
         
-        <img src="/logo.png" alt="Logo" style={{ width: 120, marginBottom: 24 }} />
+        <img src="/logo.webp" alt="Logo" style={{ width: 120, marginBottom: 24 }} />
 
         {!submitted ? (
           <>

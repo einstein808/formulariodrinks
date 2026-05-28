@@ -1,7 +1,8 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import Home from './pages/Home';
+
+const Home = lazy(() => import('./pages/Home'));
 
 const AdminLogin = lazy(() => import('./pages/Admin/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/Admin/AdminDashboard'));
@@ -27,8 +28,8 @@ function App() {
     <HelmetProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/portfolio" element={<Suspense fallback={<PageLoader />}><Portfolio /></Suspense>} />
+          <Route path="/" element={<Suspense fallback={<PageLoader />}><Portfolio /></Suspense>} />
+          <Route path="/orcamento" element={<Suspense fallback={<PageLoader />}><Home /></Suspense>} />
           <Route path="/avaliacao/:leadId" element={<Suspense fallback={<PageLoader />}><NPSReview /></Suspense>} />
           <Route path="/sair/:leadId" element={<Suspense fallback={<PageLoader />}><Optout /></Suspense>} />
           <Route path="/lista-compras/:leadId" element={<Suspense fallback={<PageLoader />}><ShoppingListClient /></Suspense>} />
