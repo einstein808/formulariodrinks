@@ -212,7 +212,7 @@ export default function ShoppingListClient() {
       });
 
       // Envia os dados para o Webhook do n8n (Geração de PDF)
-      const webhookUrl = 'https://n8n.gabryelamaro.com/webhook-test/1e022a86-2a9d-4764-a635-3478b405ef89';
+      const webhookUrl = 'https://webhook.gabryelamaro.com/webhook/1e022a86-2a9d-4764-a635-3478b405ef89';
       
       const payload = {
         leadId: leadId,
