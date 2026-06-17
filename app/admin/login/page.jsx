@@ -1,7 +1,8 @@
+"use client";
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../firebase';
-import { useNavigate } from 'react-router-dom';
+import { auth } from '../../../lib/firebase';
+import { useRouter } from 'next/navigation';
 import { FiLock, FiMail } from 'react-icons/fi';
 
 export default function AdminLogin() {
@@ -9,7 +10,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -18,7 +19,7 @@ export default function AdminLogin() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/admin');
+      router.push('/admin');
     } catch (err) {
       console.error('Erro no login:', err);
       setError('E-mail ou senha incorretos.');

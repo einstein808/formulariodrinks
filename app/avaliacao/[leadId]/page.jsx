@@ -1,9 +1,9 @@
+"use client";
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 import { ref, get, set, serverTimestamp } from 'firebase/database';
-import { db } from '../firebase';
+import { db } from '../../../lib/firebase';
 import { FiStar, FiCheck, FiSend } from 'react-icons/fi';
-import confetti from 'canvas-confetti';
 
 export default function NPSReview() {
   const { leadId } = useParams();
@@ -43,11 +43,14 @@ export default function NPSReview() {
     
     // Se for 4 ou 5 estrelas, dispara confetes e salva logo
     if (selectedRating >= 4) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#CBA153', '#00E5FF', '#FFFFFF']
+      import('canvas-confetti').then((confettiModule) => {
+        const confetti = confettiModule.default || confettiModule;
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#CBA153', '#00E5FF', '#FFFFFF']
+        });
       });
       
       await saveReview(selectedRating, '');

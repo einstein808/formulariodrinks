@@ -1,14 +1,15 @@
+"use client";
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { ref, push, get, set, update, serverTimestamp } from 'firebase/database'
-import { db } from '../firebase'
+import { db } from '../../lib/firebase'
 import {
   FiChevronRight, FiChevronLeft, FiCheck, FiUser,
   FiPhone, FiMapPin, FiCalendar, FiUsers, FiSend
 } from 'react-icons/fi'
 import { BiDrink, BiParty } from 'react-icons/bi'
 import { MdCelebration } from 'react-icons/md'
-import { sendWhatsAppQuote } from '../services/whatsappService'
-import { Helmet } from 'react-helmet-async'
+import { sendWhatsAppQuote } from '../../lib/whatsappService'
+import BackgroundEffects from '../../components/BackgroundEffects'
 
 /* ============================
    TrustIndex Widget
@@ -778,16 +779,8 @@ export default function App() {
      ============================ */
   return (
     <>
-      <Helmet>
-        <title>Orçamento de Barman para Casamentos e Festas | Juiz de Fora</title>
-      </Helmet>
-      {/* Background Effects */}
-      <div className="bg-effects">
-        <div className="bg-orb bg-orb--1" />
-        <div className="bg-orb bg-orb--2" />
-        <div className="bg-orb bg-orb--3" />
-      </div>
-      <div className="bg-grid" />
+      <BackgroundEffects />
+
 
       <div className="app">
         {configLoading ? (

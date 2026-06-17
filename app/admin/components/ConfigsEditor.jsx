@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, set } from 'firebase/database';
-import { db } from '../../../firebase';
+import { db } from '../../../lib/firebase';
 import { FiSave, FiPlus, FiTrash2 } from 'react-icons/fi';
 
 function firebaseObjToArray(obj) {
@@ -26,7 +26,7 @@ export default function ConfigsEditor() {
   
   const [drinks, setDrinks] = useState([]);
   const [pacotes, setPacotes] = useState([]);
-  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '' });
+  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '', adminPhone: '' });
   const [evolutionApi, setEvolutionApi] = useState({ url: '', instance: '', apikey: '' });
   const [scripts, setScripts] = useState({
     autoridade: { text: '', image: '' },
@@ -426,6 +426,11 @@ export default function ConfigsEditor() {
             <div style={{ marginTop: '16px' }}>
               <label className="form-label">Link de Avaliação do Google Meu Negócio</label>
               <input type="text" className="form-input" value={general.googleReviewLink || ''} onChange={(e) => setGeneral({ ...general, googleReviewLink: e.target.value })} placeholder="Ex: https://g.page/r/.../review" />
+            </div>
+            <div style={{ marginTop: '16px', background: 'rgba(255, 213, 79, 0.1)', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #FFD54F' }}>
+              <label className="form-label" style={{ color: '#FFD54F' }}>Telefone do Admin (Para receber alertas automáticos de festas próximas)</label>
+              <input type="text" className="form-input" value={general.adminPhone || ''} onChange={(e) => setGeneral({ ...general, adminPhone: e.target.value })} placeholder="Ex: 32999999999" />
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Apenas números com DDD. O sistema enviará os avisos de 15, 7 e 3 dias para este número automaticamente.</p>
             </div>
           </div>
 

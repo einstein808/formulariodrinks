@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, update } from 'firebase/database';
-import { db } from '../../../firebase';
+import { db } from '../../../lib/firebase';
 import { FiBell, FiSend } from 'react-icons/fi';
 
 export default function RetargetAlert() {
@@ -37,6 +37,7 @@ export default function RetargetAlert() {
   const pending30Days = [];
   const pending15Days = [];
   const pendingNPS = [];
+  const upcomingEvents = [];
 
   leads.forEach(lead => {
     // Ignorar se perdeu ou se descadastrou
@@ -52,6 +53,11 @@ export default function RetargetAlert() {
       pendingNPS.push(lead);
     }
     
+    // Regras para Eventos Próximos (Notificação pro Admin)
+    if (lead.status === 'fechado' && diffDays >= 0 && diffDays <= 15) {
+      upcomingEvents.push({ ...lead, diffDays });
+    }
+
     // As regras abaixo são apenas para leads não fechados
     if (lead.status !== 'fechado') {
       // Regra: Exatamente ou menos que 30 dias (mas mais de 15) E não enviou o de 30 ainda
@@ -65,6 +71,49 @@ export default function RetargetAlert() {
       }
     }
   });
+
+  upcomingEvents.sort((a, b) => a.diffDays - b.diffDays);
+
+  // Auto-send para o Admin (15, 7 e 3 dias)
+  useEffect(() => {
+    if (!configs?.general?.adminPhone || !configs?.evolutionApi?.url || upcomingEvents.length === 0) return;
+
+    const baseUrl = configs.evolutionApi.url.endsWith('/') ? configs.evolutionApi.url.slice(0, -1) : configs.evolutionApi.url;
+    const adminPhone = '55' + configs.general.adminPhone.replace(/\D/g, '');
+
+    upcomingEvents.forEach(async (lead) => {
+      let shouldAlert = false;
+      let updateField = '';
+      let daysStr = '';
+
+      if (lead.diffDays <= 3 && !lead.adminAlert3Sent) {
+        shouldAlert = true; updateField = 'adminAlert3Sent'; daysStr = lead.diffDays === 0 ? 'HOJE' : (lead.diffDays === 1 ? 'Amanhã' : '3 dias');
+      } else if (lead.diffDays <= 7 && lead.diffDays > 3 && !lead.adminAlert7Sent) {
+        shouldAlert = true; updateField = 'adminAlert7Sent'; daysStr = '7 dias';
+      } else if (lead.diffDays <= 15 && lead.diffDays > 7 && !lead.adminAlert15Sent) {
+        shouldAlert = true; updateField = 'adminAlert15Sent'; daysStr = '15 dias';
+      }
+
+      if (shouldAlert) {
+        const text = `🚨 *Alerta de Evento Próximo!* 🚨\n\nO evento de *${lead.nome}* (${lead.tipoEvento || 'Festa'}) com o pacote *${lead.pacote || 'Não inf.'}* será em *${daysStr}* (Data: ${lead.dataEvento}).\n\nVerifique se o estoque e os parceiros já estão confirmados!`;
+        
+        try {
+          const endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': configs.evolutionApi.apikey },
+            body: JSON.stringify({ number: adminPhone, text })
+          });
+          
+          if (response.ok) {
+            await update(ref(db, `leads/${lead.id}`), { [updateField]: true });
+          }
+        } catch (err) {
+          console.error("Erro ao enviar alerta automático para o admin", err);
+        }
+      }
+    });
+  }, [upcomingEvents, configs]);
 
   const totalPending = pending30Days.length + pending15Days.length + pendingNPS.length;
 
@@ -195,31 +244,59 @@ export default function RetargetAlert() {
     alert(`${sentCount} de ${totalPending} mensagens foram enviadas com sucesso!`);
   };
 
-  if (totalPending === 0) return null;
+  if (totalPending === 0 && upcomingEvents.length === 0) return null;
 
   return (
-    <div style={{ background: 'rgba(255, 213, 79, 0.1)', border: '1px solid #FFD54F', borderRadius: '8px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ background: '#FFD54F', color: '#000', padding: '8px', borderRadius: '50%', display: 'flex' }}>
-          <FiBell size={20} />
+    <>
+      {upcomingEvents.length > 0 && (
+        <div style={{ background: 'rgba(244, 67, 54, 0.1)', border: '1px solid #F44336', borderRadius: '8px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ background: '#F44336', color: '#FFF', padding: '8px', borderRadius: '50%', display: 'flex' }}>
+            <FiBell size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: '0 0 4px 0', color: '#F44336', fontSize: '1rem' }}>🚨 Eventos Próximos ({upcomingEvents.length})</h3>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Você tem eventos confirmados chegando nos próximos 15 dias! Lembre-se de organizar as compras.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+              {upcomingEvents.map(ev => (
+                <span key={ev.id} style={{ fontSize: '0.8rem', background: 'rgba(244, 67, 54, 0.2)', padding: '4px 10px', borderRadius: '6px', color: '#FFF', border: '1px solid rgba(244, 67, 54, 0.5)' }}>
+                  {ev.nome} (em {ev.diffDays} dia{ev.diffDays !== 1 ? 's' : ''})
+                </span>
+              ))}
+            </div>
+            {!configs?.general?.adminPhone && (
+              <p style={{ margin: '8px 0 0 0', color: '#FFD54F', fontSize: '0.85rem' }}>⚠️ Configure seu número de WhatsApp nas configurações (Pacotes & Drinks) para receber alertas automáticos de 15, 7 e 3 dias.</p>
+            )}
+          </div>
         </div>
-        <div>
-          <h3 style={{ margin: '0 0 4px 0', color: '#FFD54F', fontSize: '1rem' }}>Alertas de Eventos e Pós-Eventos</h3>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Você tem <strong>{pending30Days.length} leads</strong> a menos de 30 dias, <strong>{pending15Days.length} leads</strong> a menos de 15 dias e <strong>{pendingNPS.length} avaliações</strong> (NPS) aguardando envio.
-          </p>
+      )}
+
+      {totalPending > 0 && (
+        <div style={{ background: 'rgba(255, 213, 79, 0.1)', border: '1px solid #FFD54F', borderRadius: '8px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: '#FFD54F', color: '#000', padding: '8px', borderRadius: '50%', display: 'flex' }}>
+              <FiBell size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: '0 0 4px 0', color: '#FFD54F', fontSize: '1rem' }}>Alertas de Orçamentos e Pós-Eventos</h3>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                Você tem <strong>{pending30Days.length} leads</strong> a menos de 30 dias, <strong>{pending15Days.length} leads</strong> a menos de 15 dias e <strong>{pendingNPS.length} avaliações</strong> (NPS) aguardando envio.
+              </p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={handleSendAll}
+            disabled={sending}
+            className="btn btn--primary admin-full-btn" 
+            style={{ width: 'auto', background: '#FFD54F', color: '#000', borderColor: '#FFD54F', display: 'flex', gap: '8px', alignItems: 'center' }}
+          >
+            {sending ? <div className="btn__spinner" style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }} /> : <FiSend />}
+            {sending ? 'Enviando...' : 'Disparar Mensagens Agora'}
+          </button>
         </div>
-      </div>
-      
-      <button 
-        onClick={handleSendAll}
-        disabled={sending}
-        className="btn btn--primary admin-full-btn" 
-        style={{ width: 'auto', background: '#FFD54F', color: '#000', borderColor: '#FFD54F', display: 'flex', gap: '8px', alignItems: 'center' }}
-      >
-        {sending ? <div className="btn__spinner" style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }} /> : <FiSend />}
-        {sending ? 'Enviando...' : 'Disparar Mensagens Agora'}
-      </button>
-    </div>
+      )}
+    </>
   );
 }

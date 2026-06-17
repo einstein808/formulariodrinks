@@ -1,0 +1,1466 @@
+import React, { useState, useEffect } from 'react';
+import { ref, onValue, update, remove, push } from 'firebase/database';
+import { db } from '../../../lib/firebase';
+import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck } from 'react-icons/fi';
+import { sendWhatsAppQuote, logMessageToLead } from '../../../lib/whatsappService';
+
+const COLUMNS = [
+  { id: 'novo', title: 'Novos Leads', color: '#00E5FF' },
+  { id: 'negociacao', title: 'Em Negociação', color: '#FFD54F' },
+  { id: 'fechado', title: 'Fechado (Ganho)', color: '#4CAF50' },
+  { id: 'perdido', title: 'Perdido', color: '#F44336' }
+];
+
+function firebaseObjToArray(obj) {
+  if (!obj) return [];
+  return Object.entries(obj)
+    .map(([id, val]) => ({ id, ...val }))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+function formatPhone(value) {
+  let v = value.replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length > 7) return `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+  if (v.length > 2) return `(${v.slice(0, 2)}) ${v.slice(2)}`;
+  if (v.length > 0) return `(${v}`;
+  return v;
+}
+
+export default function LeadsKanban() {
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [cerimonialistas, setCerimonialistas] = useState({});
+  const [drinksMenu, setDrinksMenu] = useState({});
+  const [pacotes, setPacotes] = useState([]);
+  const [ajudantes, setAjudantes] = useState({});
+  
+  const [evolutionApi, setEvolutionApi] = useState(null);
+  const [scripts, setScripts] = useState(null);
+  const [generalConfigs, setGeneralConfigs] = useState(null);
+  const [sendingScript, setSendingScript] = useState(false);
+
+  const [isAddingManual, setIsAddingManual] = useState(false);
+  const [newLeadData, setNewLeadData] = useState({
+    nome: '', sobrenome: '', telefone: '', dataEvento: '', horarioEvento: '', cidade: '',
+    convidados: '', tipoEvento: '', pacote: '', cerimonialista: ''
+  });
+
+  const [isEditingLead, setIsEditingLead] = useState(false);
+  const [editLeadData, setEditLeadData] = useState({});
+
+  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
+  const [itemsPerPage, setItemsPerPage] = useState('20');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    const leadsRef = ref(db, 'leads');
+    const unsubscribeLeads = onValue(leadsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        leadsArray.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
+        setLeads(leadsArray);
+      } else {
+        setLeads([]);
+      }
+      setLoading(false);
+    });
+
+    const configRef = ref(db, 'config');
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
+        if (data.scripts) setScripts(data.scripts);
+        if (data.general) setGeneralConfigs(data.general);
+        if (data.cerimonialistas) setCerimonialistas(data.cerimonialistas);
+        if (data.drinksMenu) setDrinksMenu(data.drinksMenu);
+        if (data.pacotes) setPacotes(firebaseObjToArray(data.pacotes));
+        if (data.ajudantes) setAjudantes(data.ajudantes); else setAjudantes({});
+      }
+    });
+
+    return () => {
+      unsubscribeLeads();
+      unsubscribeConfig();
+    };
+  }, []);
+
+  const handleSaveManualLead = async (e) => {
+    e.preventDefault();
+    if (!newLeadData.nome || !newLeadData.telefone) {
+      alert('Nome e Telefone são obrigatórios.');
+      return;
+    }
+    try {
+      const dataToSave = {
+        ...newLeadData,
+        criadoEm: new Date().toISOString(),
+        status: 'novo',
+        order: Date.now()
+      };
+      await push(ref(db, 'leads'), dataToSave);
+      setIsAddingManual(false);
+      setNewLeadData({
+        nome: '', sobrenome: '', telefone: '', dataEvento: '', horarioEvento: '', cidade: '',
+        convidados: '', tipoEvento: '', pacote: '', cerimonialista: ''
+      });
+      alert('Lead criado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao criar lead:', err);
+      alert('Erro ao criar lead manualmente.');
+    }
+  };
+
+  const handleStatusChange = async (leadId, newStatus) => {
+    try {
+      await update(ref(db, `leads/${leadId}`), { status: newStatus });
+
+      // Notificação WhatsApp para cerimonialista ao fechar
+      if (newStatus === 'fechado') {
+        const lead = leads.find(l => l.id === leadId) || selectedLead;
+        if (lead?.cerimonialista && cerimonialistas[lead.cerimonialista]) {
+          const cerim = cerimonialistas[lead.cerimonialista];
+          notificarCerimonialista(lead, cerim);
+        }
+      }
+
+      if (selectedLead && selectedLead.id === leadId) {
+        setSelectedLead({ ...selectedLead, status: newStatus });
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      alert("Erro ao atualizar o status.");
+    }
+  };
+
+  const notificarCerimonialista = async (lead, cerim) => {
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) return;
+    try {
+      const number = '55' + cerim.whatsapp.replace(/\D/g, '');
+      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+      const nomeCliente = `${lead.nome} ${lead.sobrenome}`.trim();
+      const text =
+        `Olá *${cerim.nome}*! 🎉 Boa notícia!\n\n` +
+        `O cliente *${nomeCliente}* (evento em *${lead.dataEvento || 'data n/inf.'}*) que veio da sua indicação acabou de *fechar o pacote ${lead.pacote || ''}* conosco!\n\n` +
+        `Obrigado pela parceria! 🥂`;
+      const resp = await fetch(`${baseUrl}/message/sendText/${evolutionApi.instance}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': evolutionApi.apikey },
+        body: JSON.stringify({ number, text }),
+      });
+      await logMessageToLead(lead.id, 'notif_cerimonialista', number, resp.ok, resp.ok ? null : 'Falha HTTP');
+    } catch (err) {
+      console.error('Erro ao notificar cerimonialista:', err);
+      await logMessageToLead(lead.id, 'notif_cerimonialista', '', false, err.message);
+    }
+  };
+
+  const handleDeleteLead = async (leadId) => {
+    if (window.confirm("Tem certeza que deseja excluir este lead permanentemente? Essa ação não pode ser desfeita.")) {
+      try {
+        await remove(ref(db, `leads/${leadId}`));
+        setSelectedLead(null);
+      } catch (error) {
+        console.error("Erro ao excluir lead:", error);
+        alert("Erro ao excluir o lead.");
+      }
+    }
+  };
+
+  const startEditingLead = () => {
+    setEditLeadData({
+      nome: selectedLead.nome || '',
+      sobrenome: selectedLead.sobrenome || '',
+      telefone: selectedLead.telefone || '',
+      cidade: selectedLead.cidade || '',
+      dataEvento: selectedLead.dataEvento || '',
+      horarioEvento: selectedLead.horarioEvento || '',
+      convidados: selectedLead.convidados || '',
+      tipoEvento: selectedLead.tipoEvento || '',
+      pacote: selectedLead.pacote || '',
+    });
+    setIsEditingLead(true);
+  };
+
+  const handleSaveEditLead = async () => {
+    try {
+      await update(ref(db, `leads/${selectedLead.id}`), editLeadData);
+      setSelectedLead(prev => ({ ...prev, ...editLeadData }));
+      setIsEditingLead(false);
+    } catch (error) {
+      console.error('Erro ao salvar edição:', error);
+      alert('Erro ao salvar alterações.');
+    }
+  };
+
+  const checkHelperOverlap = (helperSlug) => {
+    if (!selectedLead || !selectedLead.dataEvento) return null;
+    
+    const overlappingLeads = leads.filter(l => 
+      l.id !== selectedLead.id && 
+      l.dataEvento === selectedLead.dataEvento && 
+      l.ajudantes && 
+      l.ajudantes[helperSlug] &&
+      l.status !== 'perdido'
+    );
+    
+    if (overlappingLeads.length > 0) {
+      return overlappingLeads.map(l => {
+        const time = l.horarioEvento ? ` às ${l.horarioEvento}` : '';
+        return `"${l.nome}" (${l.tipoEvento || 'Evento'}${time})`;
+      }).join(', ');
+    }
+    return null;
+  };
+
+  const handleAddHelperToLead = async (helperSlug) => {
+    if (!helperSlug) return;
+    const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
+    await update(ref(db, path), {
+      status: 'pendente',
+      perguntouEm: null,
+      confirmouEm: null
+    });
+    setSelectedLead(prev => ({
+      ...prev,
+      ajudantes: {
+        ...(prev.ajudantes || {}),
+        [helperSlug]: { status: 'pendente', perguntouEm: null, confirmouEm: null }
+      }
+    }));
+  };
+
+  const handleRemoveHelperFromLead = async (helperSlug) => {
+    if (!window.confirm("Remover este ajudante do evento?")) return;
+    const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
+    await remove(ref(db, path));
+    setSelectedLead(prev => {
+      const copy = { ...(prev.ajudantes || {}) };
+      delete copy[helperSlug];
+      return { ...prev, ajudantes: copy };
+    });
+  };
+
+  const handleUpdateHelperStatus = async (helperSlug, status) => {
+    const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
+    const data = { status };
+    if (status === 'confirmado') {
+      data.confirmouEm = new Date().toISOString();
+    } else {
+      data.confirmouEm = null;
+    }
+    await update(ref(db, path), data);
+    setSelectedLead(prev => ({
+      ...prev,
+      ajudantes: {
+        ...(prev.ajudantes || {}),
+        [helperSlug]: { ...(prev.ajudantes?.[helperSlug] || {}), ...data }
+      }
+    }));
+  };
+
+  const handleSendHelperAvailabilityCheck = async (helperSlug, helperInfo) => {
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
+      alert('A API do WhatsApp não está configurada corretamente.');
+      return;
+    }
+    
+    const dataStr = selectedLead.dataEvento ? selectedLead.dataEvento.split('-').reverse().join('/') : '—';
+    const horarioStr = selectedLead.horarioEvento || '—';
+    const cidadeStr = selectedLead.cidade || '—';
+    
+    const baseSiteUrl = generalConfigs?.siteUrl 
+      ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+      : window.location.origin;
+      
+    const linkConfirmacao = `${baseSiteUrl}/escala/${selectedLead.id}?h=${helperSlug}`;
+    
+    const messageText = `Olá ${helperInfo.nome}! Temos um evento dia ${dataStr} às ${horarioStr} em ${cidadeStr}.\n\nVocê tem disponibilidade? Por favor, confirme ou recuse sua participação acessando o link a seguir:\n${linkConfirmacao}`;
+    
+    setSendingScript(true);
+    try {
+      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+      const instance = evolutionApi.instance;
+      const apiKey = evolutionApi.apikey;
+      const phoneFormatted = '55' + helperInfo.telefone.replace(/\D/g, '');
+      
+      const response = await fetch(`${baseUrl}/message/sendText/${instance}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiKey
+        },
+        body: JSON.stringify({
+          number: phoneFormatted,
+          text: messageText
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao enviar mensagem pela API do Evolution');
+      }
+      
+      const now = new Date().toISOString();
+      const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
+      await update(ref(db, path), { perguntouEm: now });
+      
+      setSelectedLead(prev => ({
+        ...prev,
+        ajudantes: {
+          ...(prev.ajudantes || {}),
+          [helperSlug]: { ...(prev.ajudantes?.[helperSlug] || {}), perguntouEm: now }
+        }
+      }));
+      
+      await logMessageToLead(selectedLead.id, `availability_check_${helperSlug}`, phoneFormatted, true);
+      alert(`Mensagem de disponibilidade enviada com sucesso para ${helperInfo.nome}!`);
+    } catch (err) {
+      console.error('Erro ao enviar mensagem para ajudante:', err);
+      alert(`Erro ao enviar mensagem: ${err.message}`);
+      await logMessageToLead(selectedLead.id, `availability_check_${helperSlug}`, '55' + helperInfo.telefone.replace(/\D/g, ''), false, err.message);
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
+  const handleSendHelperFinalConfirmation = async () => {
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
+      alert('A API do WhatsApp não está configurada corretamente.');
+      return;
+    }
+    
+    const assignedHelpers = selectedLead.ajudantes || {};
+    const confirmedHelpersSlugs = Object.entries(assignedHelpers)
+      .filter(([_, value]) => value.status === 'confirmado')
+      .map(([slug, _]) => slug);
+      
+    if (confirmedHelpersSlugs.length === 0) {
+      alert('Nenhum ajudante confirmado para este evento.');
+      return;
+    }
+    
+    if (!window.confirm(`Enviar confirmação final para os ${confirmedHelpersSlugs.length} ajudantes confirmados?`)) {
+      return;
+    }
+    
+    setSendingScript(true);
+    let successCount = 0;
+    
+    const dataStr = selectedLead.dataEvento ? selectedLead.dataEvento.split('-').reverse().join('/') : '—';
+    const horarioStr = selectedLead.horarioEvento || '—';
+    const cidadeStr = selectedLead.cidade || '—';
+    const clientName = `${selectedLead.nome} ${selectedLead.sobrenome || ''}`.trim();
+    
+    const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+    const instance = evolutionApi.instance;
+    const apiKey = evolutionApi.apikey;
+    
+    try {
+      for (const slug of confirmedHelpersSlugs) {
+        const helperInfo = ajudantes[slug];
+        if (!helperInfo) continue;
+        
+        const messageText = `Evento confirmado! 🍹\nCliente: ${clientName}\nData: ${dataStr} às ${horarioStr}\nCidade: ${cidadeStr}\nNos vemos lá!`;
+        const phoneFormatted = '55' + helperInfo.telefone.replace(/\D/g, '');
+        
+        try {
+          const response = await fetch(`${baseUrl}/message/sendText/${instance}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': apiKey
+            },
+            body: JSON.stringify({
+              number: phoneFormatted,
+              text: messageText
+            })
+          });
+          
+          if (response.ok) {
+            successCount++;
+            await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, true);
+          } else {
+            await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, false, 'API HTTP status: ' + response.status);
+          }
+        } catch (err) {
+          await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, false, err.message);
+        }
+      }
+      
+      alert(`Confirmação enviada com sucesso para ${successCount} de ${confirmedHelpersSlugs.length} ajudantes!`);
+    } catch (err) {
+      console.error('Erro na confirmação final:', err);
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
+  const handleSendEvolution = async (scriptType) => {
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
+      alert("A API Evolution não está configurada corretamente. Vá até a aba 'Pacotes & Drinks' > 'Scripts de Vendas' para configurar.");
+      return;
+    }
+    
+    const scriptConfig = scripts?.[scriptType];
+    if (!scriptConfig || !scriptConfig.text) {
+      alert("O texto deste script não está configurado. Vá até as configurações para escrevê-lo.");
+      return;
+    }
+
+    if (!window.confirm("Deseja enviar essa mensagem automaticamente pelo WhatsApp agora?")) {
+      return;
+    }
+
+    setSendingScript(true);
+    try {
+      // Preparar Link de Avaliação
+      const baseSiteUrl = generalConfigs?.siteUrl 
+        ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+        : window.location.origin;
+      const linkAvaliacao = `${baseSiteUrl}/avaliacao/${selectedLead.id}`;
+
+      // Extrair mês e ano
+      let mesNome = '';
+      let anoEvento = '';
+      if (selectedLead.dataEvento) {
+        const parts = selectedLead.dataEvento.split('-');
+        if (parts.length >= 2) {
+          anoEvento = parts[0];
+          const monthIndex = parseInt(parts[1], 10) - 1;
+          const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+          if (monthIndex >= 0 && monthIndex < 12) {
+            mesNome = monthNames[monthIndex];
+          }
+        }
+      }
+
+      // Substituir variáveis
+      let finalText = scriptConfig.text
+        .replace(/\{\{nome\}\}/g, selectedLead.nome || '')
+        .replace(/\{\{pacote\}\}/g, selectedLead.pacote || '')
+        .replace(/\{\{dataEvento\}\}/g, selectedLead.dataEvento || '')
+        .replace(/\{\{mes\}\}/g, mesNome)
+        .replace(/\{\{ano\}\}/g, anoEvento)
+        .replace(/\{\{cidade\}\}/g, selectedLead.cidade || '')
+        .replace(/\{\{linkAvaliacao\}\}/g, linkAvaliacao);
+
+      const number = '55' + selectedLead.telefone.replace(/\D/g, '');
+      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+      
+      let endpoint = '';
+      let payload = {};
+
+      if (scriptConfig.image) {
+        const imgStr = scriptConfig.image.toLowerCase();
+        const isSocialLink = imgStr.includes('instagram.com') || imgStr.includes('youtube.com') || imgStr.includes('tiktok.com') || imgStr.includes('facebook.com') || imgStr.includes('drive.google.com');
+
+        if (isSocialLink) {
+          endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
+          payload = {
+            number: number,
+            text: finalText + '\n\n' + scriptConfig.image
+          };
+        } else {
+          endpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
+          payload = {
+            number: number,
+            mediatype: "image",
+            media: scriptConfig.image,
+            caption: finalText
+          };
+        }
+      } else {
+        endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
+        payload = {
+          number: number,
+          text: finalText
+        };
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': evolutionApi.apikey
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Status ${response.status} - ${errorText}`);
+      }
+
+      await logMessageToLead(selectedLead.id, `script_${scriptType}`, number, true);
+      alert("Mensagem enviada com sucesso!");
+    } catch (err) {
+      console.error("Erro ao enviar mensagem:", err);
+      await logMessageToLead(selectedLead.id, `script_${scriptType}`, '55' + selectedLead.telefone.replace(/\D/g, ''), false, err.message);
+      alert("Erro ao enviar. Se você colocou um link na imagem, ele DEVE terminar em .jpg ou .png (ser um link direto da foto). Detalhes do erro: " + err.message);
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
+  const handleSendShoppingListViaApi = async (lead) => {
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
+      alert("A API Evolution não está configurada corretamente.");
+      return;
+    }
+    
+    if (!window.confirm("Deseja enviar o link da lista de compras automaticamente pelo WhatsApp via API agora?")) {
+      return;
+    }
+
+    setSendingScript(true);
+    try {
+      const baseSiteUrl = generalConfigs?.siteUrl 
+        ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+        : window.location.origin;
+      const linkCompras = `${baseSiteUrl}/lista-compras/${lead.id}`;
+      
+      const text = `Olá ${lead.nome}, acesse este link para escolher os drinks do seu evento e gerar a lista de compras exata do que você precisa comprar:\n\n${linkCompras}`;
+
+      const number = '55' + lead.telefone.replace(/\D/g, '');
+      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+      const endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': evolutionApi.apikey
+        },
+        body: JSON.stringify({ number, text })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Status ${response.status} - ${errorText}`);
+      }
+
+      await logMessageToLead(lead.id, 'lista_compras', number, true);
+      alert("Link da lista de compras enviado com sucesso via API!");
+    } catch (err) {
+      console.error("Erro ao enviar link da lista:", err);
+      await logMessageToLead(lead.id, 'lista_compras', '55' + lead.telefone.replace(/\D/g, ''), false, err.message);
+      alert("Erro ao enviar. Detalhes: " + err.message);
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
+  const handleResendQuote = async (lead) => {
+    if (!window.confirm("Deseja reenviar o orçamento deste lead via WhatsApp?")) {
+      return;
+    }
+    setSendingScript(true);
+    try {
+      const result = await sendWhatsAppQuote(lead, pacotes, lead.id);
+      if (result) {
+        alert("Orçamento reenviado com sucesso!");
+      } else {
+        alert("Falha ao reenviar o orçamento. Verifique as configurações da API WhatsApp.");
+      }
+    } catch (err) {
+      console.error("Erro ao reenviar orçamento:", err);
+      alert("Erro ao reenviar: " + err.message);
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
+  const getLeadsByStatus = (statusId) => {
+    return leads.filter(l => (l.status || 'novo') === statusId);
+  };
+
+  const totalLeads = leads.length;
+  const fechadosCount = getLeadsByStatus('fechado').length;
+  const conversao = totalLeads > 0 ? Math.round((fechadosCount / totalLeads) * 100) : 0;
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>;
+  }
+
+  return (
+    <div>
+      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+        <div>
+          <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Gestão de Leads</h1>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Acompanhe os orçamentos solicitados.</p>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => setViewMode('kanban')}
+              className={`btn ${viewMode === 'kanban' ? 'btn--primary' : 'btn--outline'}`} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', width: 'auto', color: viewMode === 'kanban' ? '#000' : '#FFF' }}
+            >
+              <FiColumns size={16} /> Kanban
+            </button>
+            <button 
+              onClick={() => setViewMode('table')}
+              className={`btn ${viewMode === 'table' ? 'btn--primary' : 'btn--outline'}`} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', width: 'auto', color: viewMode === 'table' ? '#000' : '#FFF' }}
+            >
+              <FiList size={16} /> Tabela
+            </button>
+          </div>
+
+          <button 
+            onClick={() => setIsAddingManual(true)}
+            className="btn btn--primary" 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <FiPlus size={18} /> Novo Lead Manual
+          </button>
+
+          {/* Simplified Analytics Bar */}
+          <div className="admin-stats" style={{ display: 'flex', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF' }}>{totalLeads}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Leads</div>
+          </div>
+          <div style={{ width: '1px', background: 'var(--border-color)' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>{fechadosCount}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fechados</div>
+          </div>
+          <div style={{ width: '1px', background: 'var(--border-color)' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>{conversao}%</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Conversão</div>
+          </div>
+        </div>
+      </div>
+      </div>
+      
+      {viewMode === 'kanban' ? (
+        <div className="admin-kanban-container" style={{ 
+          display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', minHeight: 'calc(100vh - 150px)' 
+        }}>
+          {COLUMNS.map(col => {
+            const colLeads = getLeadsByStatus(col.id);
+            return (
+              <div 
+                key={col.id} 
+                onDragOver={(e) => {
+                  e.preventDefault(); // Necessário para permitir o onDrop
+                  e.currentTarget.style.background = '#222'; // Efeito visual ao arrastar por cima
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.style.background = '#1A1A1A'; // Remove efeito
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.style.background = '#1A1A1A';
+                  const leadId = e.dataTransfer.getData('text/plain');
+                  if (leadId) {
+                    handleStatusChange(leadId, col.id);
+                  }
+                }}
+                className="admin-kanban-col"
+                style={{ 
+                  minWidth: '300px', flex: 1, background: '#1A1A1A', borderRadius: '12px', padding: '16px',
+                  display: 'flex', flexDirection: 'column', borderTop: `4px solid ${col.color}`,
+                  transition: 'background 0.2s'
+                }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#FFF' }}>{col.title}</h3>
+                  <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem' }}>
+                    {colLeads.length}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                  {colLeads.map(lead => {
+                    let isStale = false;
+                    if ((!lead.status || lead.status === 'novo' || lead.status === 'negociacao') && lead.criadoEm) {
+                      const createdTime = new Date(lead.criadoEm).getTime();
+                      // 48 horas = 172800000 ms
+                      if (Date.now() - createdTime > 172800000) {
+                        isStale = true;
+                      }
+                    }
+
+                    return (
+                      <div 
+                        key={lead.id}
+                        draggable="true"
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', lead.id);
+                          e.currentTarget.style.opacity = '0.5'; // Efeito visual no item sendo arrastado
+                        }}
+                        onDragEnd={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                        onClick={() => setSelectedLead(lead)}
+                        style={{
+                          background: 'var(--bg-input)', padding: '16px', borderRadius: '8px',
+                          cursor: 'grab', border: isStale ? '1px solid #F44336' : '1px solid var(--border-color)',
+                          transition: 'border-color 0.2s', ':hover': { borderColor: 'var(--primary)' }
+                        }}
+                      >
+                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '4px', color: '#FFF', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{lead.nome} {lead.sobrenome}</span>
+                          {isStale && <span title="Lead parado há mais de 48h!" style={{ fontSize: '0.8rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>🔥 Esfriando</span>}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                          <FiCalendar /> {lead.dataEvento || 'Data não inf.'}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <FiMapPin /> {lead.cidade}
+                        </div>
+                        
+                        <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.8rem', background: 'rgba(203, 161, 83, 0.2)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px' }}>
+                            {lead.pacote}
+                          </span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {lead.convidados} conv.
+                          </span>
+                        </div>
+
+                        {/* Badge cerimonialista */}
+                        {lead.cerimonialista && cerimonialistas[lead.cerimonialista] && (
+                          <div style={{
+                            marginTop: 8, fontSize: '0.75rem', color: '#E91E63',
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            background: 'rgba(233,30,99,0.08)', padding: '2px 6px',
+                            borderRadius: 4, border: '1px solid rgba(233,30,99,0.2)'
+                          }}>
+                            <FiHeart size={10} /> {cerimonialistas[lead.cerimonialista].nome}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {colLeads.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      Nenhum lead nesta etapa.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="admin-table-container" style={{ background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '20px', minHeight: 'calc(100vh - 150px)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
+            <h2 style={{ margin: 0, color: 'var(--primary)', fontSize: '1.2rem' }}>Lista de Leads</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Status:</label>
+                <select className="form-select" style={{ padding: '6px 12px' }} value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
+                  <option value="all">Todos</option>
+                  {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mostrar:</label>
+                <select className="form-select" style={{ width: '100px', padding: '6px 12px' }} value={itemsPerPage} onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="all">Todos</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Nome</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Telefone</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Data do Evento</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Pacote</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Status</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 'normal', textAlign: 'center' }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  let filteredLeads = leads;
+                  if (statusFilter !== 'all') {
+                    // Trata leads sem status explícito como 'novo'
+                    filteredLeads = leads.filter(l => (l.status || 'novo') === statusFilter);
+                  }
+
+                  const limit = itemsPerPage === 'all' ? filteredLeads.length : parseInt(itemsPerPage, 10);
+                  const totalPages = Math.ceil(filteredLeads.length / limit) || 1;
+                  const startIndex = (currentPage - 1) * limit;
+                  const paginatedLeads = filteredLeads.slice(startIndex, startIndex + limit);
+
+                  if (paginatedLeads.length === 0) {
+                    return <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>;
+                  }
+
+                  return paginatedLeads.map(lead => (
+                    <tr key={lead.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
+                      <td style={{ padding: '12px 16px', color: '#FFF' }}>{lead.nome} {lead.sobrenome}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{lead.telefone}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{lead.dataEvento || '—'}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--primary)' }}>{lead.pacote || '—'}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <select 
+                          value={lead.status || 'novo'} 
+                          onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                          style={{ background: 'rgba(255,255,255,0.1)', color: '#FFF', border: 'none', padding: '6px 8px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+                        >
+                          {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        </select>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <button 
+                          onClick={() => setSelectedLead(lead)}
+                          style={{ background: 'none', border: '1px solid var(--border-color)', color: '#FFF', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}
+                        >
+                          <FiEye size={14} /> Detalhes
+                        </button>
+                      </td>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+          </div>
+
+          {itemsPerPage !== 'all' && (() => {
+            const totalFilteredLeads = statusFilter === 'all' ? leads.length : leads.filter(l => (l.status || 'novo') === statusFilter).length;
+            const limit = parseInt(itemsPerPage, 10);
+            const totalPages = Math.ceil(totalFilteredLeads / limit) || 1;
+            
+            return (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Mostrando página {currentPage} de {totalPages} ({totalFilteredLeads} leads no total)
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="btn btn--outline"
+                  style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', opacity: currentPage === 1 ? 0.5 : 1, width: 'auto' }}
+                >
+                  <FiChevronLeft /> Anterior
+                </button>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="btn btn--outline"
+                  style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', width: 'auto', opacity: currentPage === totalPages || totalPages === 0 ? 0.5 : 1 }}
+                >
+                  Próxima <FiChevronRight />
+                </button>
+              </div>
+            </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Modal de Detalhes do Lead */}
+      {selectedLead && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-main)', width: '100%', maxWidth: '600px',
+            borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif' }}>Detalhes do Lead</h2>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {!isEditingLead ? (
+                  <button onClick={startEditingLead} title="Editar Lead" style={{ background: 'rgba(203,161,83,0.15)', border: '1px solid var(--primary)', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    <FiEdit2 size={16} /> Editar
+                  </button>
+                ) : (
+                  <button onClick={handleSaveEditLead} title="Salvar Alterações" style={{ background: 'var(--primary)', border: 'none', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    <FiSave size={16} /> Salvar
+                  </button>
+                )}
+                <button onClick={() => handleDeleteLead(selectedLead.id)} title="Excluir Lead" style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <FiTrash2 size={20} />
+                </button>
+                <button onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <FiX size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ padding: '20px', overflowY: 'auto' }}>
+              <div className="admin-modal-actions" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Status do Lead</label>
+                  <select 
+                    value={selectedLead.status || 'novo'}
+                    onChange={(e) => handleStatusChange(selectedLead.id, e.target.value)}
+                    className="form-select"
+                    style={{ marginTop: '4px' }}
+                  >
+                    {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
+                </div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
+                  <a 
+                    href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.nome}, vi que solicitou um orçamento para o pacote ${selectedLead.pacote}!`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="btn btn--primary"
+                    style={{ background: '#25D366', borderColor: '#25D366', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}
+                  >
+                    <FiPhone /> Chamar no WhatsApp
+                  </a>
+                </div>
+              </div>
+
+              {/* Campo Cerimonialista */}
+              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <FiHeart size={16} style={{ color: '#E91E63', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Cerimonialista Parceiro</label>
+                  <select
+                    value={selectedLead.cerimonialista || ''}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      await update(ref(db, `leads/${selectedLead.id}`), { cerimonialista: val });
+                      setSelectedLead(prev => ({ ...prev, cerimonialista: val }));
+                    }}
+                    className="form-select"
+                    style={{ marginTop: 0 }}
+                  >
+                    <option value="">— Sem parceiro / Direto —</option>
+                    {Object.entries(cerimonialistas).map(([slug, c]) => (
+                      <option key={slug} value={slug}>{c.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Botão Gerar Lista de Compras (Apenas para pacote Mão de Obra ou Genérico) */}
+              <div style={{ background: 'rgba(0, 229, 255, 0.05)', borderRadius: '8px', padding: '16px', marginBottom: '16px', border: '1px solid rgba(0, 229, 255, 0.2)' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#00E5FF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  🛒 Lista de Compras (Insumos)
+                </h4>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 12px 0' }}>
+                  O cliente receberá um link para escolher os drinks e o sistema calculará os insumos.
+                </p>
+                
+                {selectedLead.shoppingListFinalizada ? (
+                  <div style={{ padding: '12px', background: 'rgba(76, 175, 80, 0.1)', border: '1px solid #4CAF50', borderRadius: '6px', color: '#4CAF50', fontSize: '0.9rem' }}>
+                    ✅ <strong>O cliente já finalizou a lista!</strong> Confira a lista gerada no card abaixo.
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => handleSendShoppingListViaApi(selectedLead)}
+                    disabled={sendingScript}
+                    className="btn btn--outline"
+                    style={{ borderColor: '#00E5FF', color: '#00E5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
+                  >
+                    <FiPhone /> Enviar Link via API WhatsApp
+                  </button>
+                )}
+              </div>
+
+              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid var(--primary)' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#FFF' }}>Ações Rápidas (Integração WhatsApp API)</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  
+                  {/* Reenviar Orçamento */}
+                  <button 
+                    onClick={() => handleResendQuote(selectedLead)}
+                    disabled={sendingScript}
+                    className="btn btn--primary"
+                    style={{ 
+                      textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
+                      justifyContent: 'flex-start', color: '#000', background: 'var(--primary)', 
+                      borderColor: 'var(--primary)', cursor: sendingScript ? 'not-allowed' : 'pointer', 
+                      fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' 
+                    }}
+                  >
+                    <FiPhone size={16} /> Reenviar Orçamento (Completo)
+                  </button>
+
+                  {/* Script 1: Autoridade */}
+                  <button 
+                    onClick={() => handleSendEvolution('autoridade')}
+                    disabled={sendingScript}
+                    className="btn btn--outline"
+                    style={{ textAlign: 'left', fontSize: '0.85rem', padding: '8px 12px', justifyContent: 'flex-start', color: '#FFF', borderColor: 'var(--border-color)', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
+                  >
+                    <span style={{ color: '#00E5FF', marginRight: '8px' }}>📸 1. Mostrar Autoridade:</span>
+                    Disparo automático usando o texto/imagem configurados.
+                  </button>
+
+                  {/* Script 2: Escassez / Resgate */}
+                  <button 
+                    onClick={() => handleSendEvolution('escassez')}
+                    disabled={sendingScript}
+                    className="btn btn--outline"
+                    style={{ textAlign: 'left', fontSize: '0.85rem', padding: '8px 12px', justifyContent: 'flex-start', color: '#FFF', borderColor: 'var(--border-color)', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
+                  >
+                    <span style={{ color: '#F44336', marginRight: '8px' }}>🔥 2. Escassez (Resgate):</span>
+                    Disparo automático usando o texto/imagem configurados.
+                  </button>
+
+                  {/* Script 3: Pós-Evento */}
+                  <button 
+                    onClick={() => handleSendEvolution('posEvento')}
+                    disabled={sendingScript}
+                    className="btn btn--outline"
+                    style={{ textAlign: 'left', fontSize: '0.85rem', padding: '8px 12px', justifyContent: 'flex-start', color: '#FFF', borderColor: 'var(--border-color)', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
+                  >
+                    <span style={{ color: '#4CAF50', marginRight: '8px' }}>⭐ 3. Pós-Evento (NPS):</span>
+                    Disparo automático usando o texto/imagem configurados.
+                  </button>
+
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Dados do Cliente</h4>
+                {isEditingLead ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nome</label>
+                      <input className="form-input" value={editLeadData.nome} onChange={e => setEditLeadData({...editLeadData, nome: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Sobrenome</label>
+                      <input className="form-input" value={editLeadData.sobrenome} onChange={e => setEditLeadData({...editLeadData, sobrenome: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Telefone</label>
+                      <input className="form-input" value={editLeadData.telefone} onChange={e => setEditLeadData({...editLeadData, telefone: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Cidade</label>
+                      <input className="form-input" value={editLeadData.cidade} onChange={e => setEditLeadData({...editLeadData, cidade: e.target.value})} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="admin-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Nome:</strong> {selectedLead.nome} {selectedLead.sobrenome}</div>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Telefone:</strong> {selectedLead.telefone}</div>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Cidade:</strong> {selectedLead.cidade}</div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Dados do Evento</h4>
+                {isEditingLead ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Data do Evento</label>
+                      <input type="date" className="form-input" value={editLeadData.dataEvento} onChange={e => setEditLeadData({...editLeadData, dataEvento: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Horário</label>
+                      <input type="time" className="form-input" value={editLeadData.horarioEvento} onChange={e => setEditLeadData({...editLeadData, horarioEvento: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Convidados</label>
+                      <input type="number" className="form-input" value={editLeadData.convidados} onChange={e => setEditLeadData({...editLeadData, convidados: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tipo de Evento</label>
+                      <input className="form-input" value={editLeadData.tipoEvento} onChange={e => setEditLeadData({...editLeadData, tipoEvento: e.target.value})} />
+                    </div>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Pacote</label>
+                      <select className="form-select" value={editLeadData.pacote} onChange={e => setEditLeadData({...editLeadData, pacote: e.target.value})}>
+                        <option value="">Selecione</option>
+                        {pacotes.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="admin-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Data:</strong> {selectedLead.dataEvento}</div>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Horário:</strong> {selectedLead.horarioEvento || '—'}</div>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Convidados:</strong> {selectedLead.convidados}</div>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Tipo:</strong> {selectedLead.tipoEvento}</div>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Pacote:</strong> <span style={{ color: 'var(--primary)' }}>{selectedLead.pacote}</span></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Seção Equipe do Evento (Ajudantes) */}
+              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid var(--primary)' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>👥 Equipe do Evento</span>
+                  {selectedLead.ajudantes && Object.values(selectedLead.ajudantes).some(a => a.status === 'confirmado') && (
+                    <button
+                      onClick={handleSendHelperFinalConfirmation}
+                      disabled={sendingScript}
+                      className="btn btn--primary"
+                      style={{ padding: '4px 10px', fontSize: '0.75rem', height: 'auto', background: '#4CAF50', borderColor: '#4CAF50', color: '#FFF', fontWeight: 'bold' }}
+                    >
+                      🎉 Confirmar Evento c/ Equipe
+                    </button>
+                  )}
+                </h4>
+
+                {/* Seletor para adicionar ajudante */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <select
+                    id="add-helper-select"
+                    className="form-select"
+                    style={{ marginTop: 0, flex: 1 }}
+                    defaultValue=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) {
+                        const overlap = checkHelperOverlap(val);
+                        if (overlap) {
+                          alert(`Atenção: Este ajudante já está escalado no mesmo dia em: ${overlap}`);
+                        }
+                        handleAddHelperToLead(val);
+                        e.target.value = ""; // reset select
+                      }
+                    }}
+                  >
+                    <option value="">+ Adicionar Ajudante à Equipe</option>
+                    {Object.entries(ajudantes)
+                      .filter(([slug]) => !selectedLead.ajudantes || !selectedLead.ajudantes[slug])
+                      .map(([slug, a]) => {
+                        const overlap = checkHelperOverlap(slug);
+                        return (
+                          <option key={slug} value={slug}>
+                            {a.nome} ({a.especialidade}) {overlap ? '⚠️ (Escalado)' : ''}
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+
+                {/* Lista de Ajudantes Escalados */}
+                {(!selectedLead.ajudantes || Object.keys(selectedLead.ajudantes).length === 0) ? (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                    Nenhum ajudante escalado para este evento.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {Object.entries(selectedLead.ajudantes).map(([slug, data]) => {
+                      const helperInfo = ajudantes[slug] || { nome: slug, telefone: '', especialidade: 'Ajudante' };
+                      const overlap = checkHelperOverlap(slug);
+                      
+                      return (
+                        <div key={slug} style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#FFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {helperInfo.nome}
+                                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'rgba(203,161,83,0.1)', padding: '1px 6px', borderRadius: '4px' }}>
+                                  {helperInfo.especialidade}
+                                </span>
+                              </div>
+                              {helperInfo.telefone && (
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  📞 {formatPhone(helperInfo.telefone)}
+                                </div>
+                              )}
+                              {overlap && (
+                                <div style={{ fontSize: '0.75rem', color: '#FF9800', fontWeight: 'bold', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  ⚠️ Ocupado em: {overlap}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Badges de Status */}
+                            <div>
+                              {data.status === 'confirmado' && (
+                                <span style={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4CAF50', border: '1px solid #4CAF50', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                  ✅ Confirmado
+                                </span>
+                              )}
+                              {data.status === 'indisponivel' && (
+                                <span style={{ background: 'rgba(244, 67, 54, 0.15)', color: '#F44336', border: '1px solid #F44336', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                  ❌ Indisponível
+                                </span>
+                              )}
+                              {data.status === 'pendente' && (
+                                <span style={{ background: 'rgba(255, 213, 79, 0.15)', color: '#FFD54F', border: '1px solid #FFD54F', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                  ⏳ Pendente
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Ações para o ajudante */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                onClick={() => handleSendHelperAvailabilityCheck(slug, helperInfo)}
+                                disabled={sendingScript || !helperInfo.telefone}
+                                className="btn btn--outline"
+                                style={{ padding: '4px 8px', fontSize: '0.7rem', height: 'auto', display: 'flex', alignItems: 'center', gap: '4px', background: 'none' }}
+                                title="Perguntar disponibilidade via WhatsApp"
+                              >
+                                <FiPhone size={10} /> {data.perguntouEm ? 'Reenviar Pergunta' : 'Perguntar'}
+                              </button>
+                              
+                              {data.perguntouEm && (
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                                  Perguntou: {new Date(data.perguntouEm).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <button
+                                onClick={() => handleUpdateHelperStatus(slug, 'confirmado')}
+                                style={{ background: 'none', border: 'none', color: '#4CAF50', cursor: 'pointer', padding: '4px' }}
+                                title="Marcar como Confirmado"
+                              >
+                                <FiCheck size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleUpdateHelperStatus(slug, 'indisponivel')}
+                                style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '4px' }}
+                                title="Marcar como Indisponível"
+                              >
+                                <FiX size={16} />
+                              </button>
+                              <div style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 4px' }} />
+                              <button
+                                onClick={() => handleRemoveHelperFromLead(slug)}
+                                style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '4px' }}
+                                title="Remover da lista"
+                              >
+                                <FiTrash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Escolhas Adicionais</h4>
+                <div style={{ fontSize: '0.9rem' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Drinks Escolhidos:</strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {selectedLead.drinksEscolhidos?.map(d => {
+                        const drinkInfo = drinksMenu[d];
+                        const displayName = drinkInfo ? `${drinkInfo.emoji || ''} ${drinkInfo.name}`.trim() : d;
+                        return (
+                          <span key={d} style={{ background: '#333', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem' }}>{displayName}</span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Upsell Chopp:</strong> {selectedLead.upsellChopp ? 'Sim 🍺' : 'Não'}</div>
+                    <div><strong style={{ color: 'var(--text-secondary)' }}>Upsell Frozen:</strong> {selectedLead.upsellFrozen ? 'Sim ❄️' : 'Não'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {selectedLead.shoppingListFinalizada && selectedLead.shoppingListResult && (
+                <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid #4CAF50' }}>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#4CAF50', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>🛒 Lista de Compras Gerada</h4>
+                  <div style={{ fontSize: '0.9rem' }}>
+                    
+                    {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Insumos e Bebidas:</strong>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#FFF' }}>
+                          {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => (
+                            <li key={insumo} style={{ marginBottom: '4px' }}>
+                              {insumo}: <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
+                      <div>
+                        <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Itens Fixos / Descartáveis:</strong>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#FFF' }}>
+                          {selectedLead.shoppingListResult.fixos.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: '4px' }}>
+                              {item.nome}: <strong style={{ color: 'var(--primary)' }}>{item.quantidade} {item.unidade}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+              )}
+
+              {/* Histórico de Mensagens */}
+              {selectedLead.messages && (
+                <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid #00E5FF' }}>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#00E5FF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>📋 Histórico de Mensagens</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
+                    {Object.entries(selectedLead.messages)
+                      .map(([id, msg]) => ({ id, ...msg }))
+                      .sort((a, b) => {
+                        const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+                        const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+                        return timeB - timeA;
+                      })
+                      .map(msg => {
+                        const typeLabels = {
+                          'orcamento': '💰 Orçamento',
+                          'script_autoridade': '📸 Autoridade',
+                          'script_escassez': '🔥 Escassez',
+                          'script_posEvento': '⭐ Pós-Evento',
+                          'lista_compras': '🛒 Lista de Compras',
+                          'notif_cerimonialista': '💌 Notif. Cerimonialista',
+                        };
+                        const label = typeLabels[msg.type] || msg.type;
+                        const dateStr = msg.sentAt ? new Date(msg.sentAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
+                        return (
+                          <div key={msg.id} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '8px 12px', borderRadius: '6px', fontSize: '0.85rem',
+                            background: msg.success ? 'rgba(76, 175, 80, 0.08)' : 'rgba(244, 67, 54, 0.08)',
+                            border: `1px solid ${msg.success ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)'}`,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ color: msg.success ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
+                                {msg.success ? '✓' : '✗'}
+                              </span>
+                              <span style={{ color: '#FFF' }}>{label}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              {msg.error && (
+                                <span title={msg.error} style={{ fontSize: '0.75rem', color: '#F44336', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {msg.error}
+                                </span>
+                              )}
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                {dateStr}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    }
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Novo Lead Manual */}
+      {isAddingManual && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-main)', width: '100%', maxWidth: '500px',
+            borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif' }}>Novo Lead Manual</h2>
+              <button onClick={() => setIsAddingManual(false)} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                <FiX size={24} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '20px', overflowY: 'auto' }}>
+              <form onSubmit={handleSaveManualLead} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label className="form-label">Nome *</label>
+                    <input type="text" className="form-input" required value={newLeadData.nome} onChange={e => setNewLeadData({...newLeadData, nome: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="form-label">Sobrenome</label>
+                    <input type="text" className="form-input" value={newLeadData.sobrenome} onChange={e => setNewLeadData({...newLeadData, sobrenome: e.target.value})} />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="form-label">Telefone/WhatsApp *</label>
+                  <input type="text" className="form-input" required value={newLeadData.telefone} onChange={e => setNewLeadData({...newLeadData, telefone: e.target.value})} placeholder="Ex: 32999999999" />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label className="form-label">Data do Evento</label>
+                    <input type="date" className="form-input" value={newLeadData.dataEvento} onChange={e => setNewLeadData({...newLeadData, dataEvento: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="form-label">Horário</label>
+                    <input type="time" className="form-input" value={newLeadData.horarioEvento} onChange={e => setNewLeadData({...newLeadData, horarioEvento: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="form-label">Cidade</label>
+                    <input type="text" className="form-input" value={newLeadData.cidade} onChange={e => setNewLeadData({...newLeadData, cidade: e.target.value})} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label className="form-label">Tipo de Evento</label>
+                    <input type="text" className="form-input" value={newLeadData.tipoEvento} onChange={e => setNewLeadData({...newLeadData, tipoEvento: e.target.value})} placeholder="Ex: Casamento" />
+                  </div>
+                  <div>
+                    <label className="form-label">Convidados</label>
+                    <input type="number" className="form-input" value={newLeadData.convidados} onChange={e => setNewLeadData({...newLeadData, convidados: e.target.value})} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label">Pacote de Interesse</label>
+                  <select className="form-select" value={newLeadData.pacote} onChange={e => setNewLeadData({...newLeadData, pacote: e.target.value})}>
+                    <option value="">Selecione um pacote</option>
+                    {pacotes.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label">Cerimonialista Parceiro</label>
+                  <select className="form-select" value={newLeadData.cerimonialista} onChange={e => setNewLeadData({...newLeadData, cerimonialista: e.target.value})}>
+                    <option value="">— Nenhum / Sem parceiro —</option>
+                    {Object.entries(cerimonialistas).map(([slug, c]) => (
+                      <option key={slug} value={slug}>{c.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button type="button" onClick={() => setIsAddingManual(false)} className="btn btn--outline" style={{ color: '#FFF' }}>Cancelar</button>
+                  <button type="submit" className="btn btn--primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiPlus size={18} /> Salvar Lead
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

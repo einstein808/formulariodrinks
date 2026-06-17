@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, set, remove } from 'firebase/database';
-import { db } from '../../../firebase';
+import { db } from '../../../lib/firebase';
 import { FiPlus, FiTrash2, FiCopy, FiCheck, FiUser, FiPhone, FiLink, FiAlertCircle } from 'react-icons/fi';
 
 function slugify(text) {

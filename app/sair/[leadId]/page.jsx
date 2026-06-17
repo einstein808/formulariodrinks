@@ -1,7 +1,8 @@
+"use client";
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 import { ref, update, get } from 'firebase/database';
-import { db } from '../firebase';
+import { db } from '../../../lib/firebase';
 
 export default function Optout() {
   const { leadId } = useParams();

@@ -14,6 +14,9 @@ node_modules/
 # Build
 dist
 dist-ssr
+.next/
+out/
+build/
 
 # Environment variables (keep secrets out of git)
 .env

@@ -1,9 +1,11 @@
+"use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, get } from 'firebase/database';
-import { db } from '../firebase';
-import { useNavigate } from 'react-router-dom';
+import { db } from '../lib/firebase';
+import { useRouter } from 'next/navigation';
 import { FiStar, FiChevronRight, FiCheck, FiX, FiChevronLeft, FiMapPin, FiCalendar, FiPlay } from 'react-icons/fi';
-import { Helmet } from 'react-helmet-async';
+import BackgroundEffects from '../components/BackgroundEffects';
+import PageLoader from '../components/PageLoader';
 
 // Componente de card com slideshow automático + Ken Burns
 function EventoCard({ evento, onOpen, formatDate }) {
@@ -112,7 +114,7 @@ function EventoCard({ evento, onOpen, formatDate }) {
 
       {/* Info do card */}
       <div style={{ padding: '16px 20px' }}>
-        <h3 style={{ margin: '0 0 10px 0', fontSize: '1.05rem', color: '#FFF', fontFamily: 'Cinzel, serif' }}>{evento.titulo}</h3>
+        <h3 style={{ margin: '0 0 10px 0', fontSize: '1.05rem', color: '#FFF', fontFamily: 'var(--font-cinzel), serif' }}>{evento.titulo}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {evento.data && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
@@ -142,7 +144,7 @@ export default function Portfolio() {
   const [midiaAtual, setMidiaAtual] = useState(0);
   const [verTodosEventos, setVerTodosEventos] = useState(false);
   const [verTodosDrinks, setVerTodosDrinks] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -191,11 +193,7 @@ export default function Portfolio() {
   }, []);
 
   if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
-        <div className="btn__spinner" style={{ width: 40, height: 40, borderWidth: 3 }}></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const abrirEvento = (evento) => {
@@ -221,26 +219,16 @@ export default function Portfolio() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 100 }}>
-      {/* Background Effects */}
-      <div className="bg-effects">
-        <div className="bg-orb bg-orb--1" />
-        <div className="bg-orb bg-orb--2" />
-        <div className="bg-orb bg-orb--3" />
-      </div>
-      <div className="bg-grid" />
-
-      <Helmet>
-        <title>Barman Juiz de Fora | Laboratório de Drinks Exclusivos</title>
-      </Helmet>
+      <BackgroundEffects />
 
       {/* Header / Hero */}
       <header style={{ position: 'relative', zIndex: 10, padding: '32px 16px 24px', textAlign: 'center', maxWidth: 800, margin: '0 auto' }}>
         <img 
           src="/logo.webp" 
-          alt="Logo" 
+          alt="Logo Laboratório de Drinks - Barman em Juiz de Fora" 
           style={{ width: 'clamp(90px, 25vw, 140px)', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
         />
-        <h1 style={{ fontFamily: 'Cinzel, serif', fontSize: 'clamp(1.4rem, 6vw, 2.5rem)', color: 'var(--primary)', margin: '0 0 16px 0', textShadow: '0 4px 20px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
+        <h1 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 6vw, 2.5rem)', color: 'var(--primary)', margin: '0 0 16px 0', textShadow: '0 4px 20px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
           Barman em Juiz de Fora: Transforme seu evento com o Laboratório de Drinks
         </h1>
         
@@ -261,9 +249,9 @@ export default function Portfolio() {
       {/* Packages Section */}
       {pacotes.length > 0 && (
         <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'Cinzel, serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
             <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
-            Escolha Sua Experiência
+            Pacotes de Barman para Casamentos e Festas
             <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
           </h2>
 
@@ -296,7 +284,7 @@ export default function Portfolio() {
                     </div>
                   )}
 
-                  <h3 style={{ fontFamily: 'Cinzel, serif', fontSize: '1.5rem', color: isPopular ? 'var(--primary)' : '#FFF', margin: '0 0 8px 0', textAlign: 'center' }}>
+                  <h3 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.5rem', color: isPopular ? 'var(--primary)' : '#FFF', margin: '0 0 8px 0', textAlign: 'center' }}>
                     {pacote.name}
                   </h3>
                   
@@ -318,7 +306,7 @@ export default function Portfolio() {
                   </ul>
 
                   <button 
-                    onClick={() => navigate(`/orcamento?pacote=${pacote.id}`)}
+                    onClick={() => router.push(`/orcamento?pacote=${pacote.id}`)}
                     className="btn btn--primary"
                     style={{ width: '100%', background: isPopular ? 'var(--primary)' : 'rgba(255,255,255,0.1)', color: isPopular ? '#000' : '#FFF', borderColor: 'transparent' }}
                   >
@@ -334,9 +322,9 @@ export default function Portfolio() {
       {/* Galeria de Eventos Realizados */}
       {galeria.length > 0 && (
         <section style={{ position: 'relative', zIndex: 10, padding: '32px 16px', maxWidth: 1200, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'Cinzel, serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
-            Eventos Realizados
+            Eventos Realizados: Barman em Casamentos e Festas em JF
             <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
           </h2>
 
@@ -367,9 +355,9 @@ export default function Portfolio() {
 
       {/* Drinks Gallery */}
       <section style={{ position: 'relative', zIndex: 10, padding: '32px 16px', maxWidth: 1000, margin: '0 auto' }}>
-        <h2 style={{ fontFamily: 'Cinzel, serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
-          Nosso Cardápio
+          Cardápio de Drinks Exclusivos
           <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
         </h2>
 
@@ -407,8 +395,8 @@ export default function Portfolio() {
       {avaliacoes.length > 0 && (
         <section style={{ position: 'relative', zIndex: 10, padding: '60px 24px', background: 'rgba(0,0,0,0.5)', marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
-            <h2 style={{ fontFamily: 'Cinzel, serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 40 }}>
-              O Que Dizem Nossos Clientes
+            <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 40 }}>
+              Avaliações: O Melhor Serviço de Bartender de Juiz de Fora
             </h2>
             <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
               {avaliacoes.map((ava, idx) => (
@@ -445,7 +433,7 @@ export default function Portfolio() {
         zIndex: 100, display: 'flex', justifyContent: 'center' 
       }}>
         <button 
-          onClick={() => navigate('/orcamento')}
+          onClick={() => router.push('/orcamento')}
           className="btn btn--primary"
           style={{ maxWidth: 400, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, boxShadow: '0 4px 20px rgba(203, 161, 83, 0.4)' }}
         >
@@ -453,7 +441,7 @@ export default function Portfolio() {
         </button>
       </div>
       
-      <style>{`
+      <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .galeria-nav-btn:hover { background: rgba(203, 161, 83, 0.3) !important; }
 
@@ -478,12 +466,6 @@ export default function Portfolio() {
           .drinks-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-          }
-          .admin-modal-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .admin-config-grid {
-            grid-template-columns: 1fr !important;
           }
         }
 
@@ -543,7 +525,7 @@ export default function Portfolio() {
             style={{ width: '100%', maxWidth: 900, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexShrink: 0 }}
           >
             <div>
-              <h3 style={{ margin: '0 0 4px 0', color: '#FFF', fontFamily: 'Cinzel, serif', fontSize: '1.3rem' }}>{eventoAberto.titulo}</h3>
+              <h3 style={{ margin: '0 0 4px 0', color: '#FFF', fontFamily: 'var(--font-cinzel), serif', fontSize: '1.3rem' }}>{eventoAberto.titulo}</h3>
               <div style={{ display: 'flex', gap: 16 }}>
                 {eventoAberto.data && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>

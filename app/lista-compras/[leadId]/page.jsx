@@ -1,12 +1,14 @@
+"use client";
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import { ref, get, update } from 'firebase/database';
-import { db } from '../firebase';
-import { Helmet } from 'react-helmet-async';
+import { db } from '../../../lib/firebase';
+
 import { FiCheck, FiShoppingCart, FiChevronRight } from 'react-icons/fi';
 
 export default function ShoppingListClient() {
   const { leadId } = useParams();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -267,9 +269,7 @@ export default function ShoppingListClient() {
 
   return (
     <>
-      <Helmet>
-        <title>Sua Lista de Compras | Laboratório de Drinks</title>
-      </Helmet>
+
       
       <div className="bg-effects">
         <div className="bg-orb bg-orb--1" />

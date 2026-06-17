@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
-import { db } from '../../../firebase';
+import { db } from '../../../lib/firebase';
 import { 
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,

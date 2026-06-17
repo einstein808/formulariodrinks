@@ -1,23 +1,41 @@
-import React, { useState } from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase';
-import { useNavigate } from 'react-router-dom';
-import { FiLogOut, FiUsers, FiSettings, FiMenu, FiX, FiPieChart, FiHeart } from 'react-icons/fi';
+"use client";
+import React, { useState, useEffect } from 'react';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
+import { useRouter } from 'next/navigation';
+import { FiLogOut, FiUsers, FiSettings, FiMenu, FiX, FiPieChart, FiHeart, FiCalendar, FiUserPlus } from 'react-icons/fi';
 import LeadsKanban from './components/LeadsKanban';
 import ConfigsEditor from './components/ConfigsEditor';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import RetargetAlert from './components/RetargetAlert';
 import CerimonialstasManager from './components/CerimonialstasManager';
-
+import AgendaEventos from './components/AgendaEventos';
+import AjudantesManager from './components/AjudantesManager';
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('leads');
   const [menuOpen, setMenuOpen] = useState(false);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push('/admin/login');
+      } else {
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  if (loading) {
+    return <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', alignItems: 'center', justifyContent: 'center' }}><div className="btn__spinner" style={{ width: 40, height: 40, borderWidth: 3 }}></div></div>;
+  }
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate('/admin/login');
+      router.push('/admin/login');
     } catch (err) {
       console.error('Erro ao sair:', err);
     }
@@ -25,8 +43,10 @@ export default function AdminDashboard() {
 
   const navItems = [
     { id: 'leads', label: 'Gestão de Leads', icon: <FiUsers size={20} /> },
+    { id: 'agenda', label: 'Agenda', icon: <FiCalendar size={20} /> },
     { id: 'analytics', label: 'Métricas (Gráficos)', icon: <FiPieChart size={20} /> },
     { id: 'parceiros', label: 'Parceiros', icon: <FiHeart size={20} /> },
+    { id: 'equipe', label: 'Equipe / Staff', icon: <FiUserPlus size={20} /> },
     { id: 'configs', label: 'Pacotes & Drinks', icon: <FiSettings size={20} /> }
   ];
 
@@ -116,8 +136,10 @@ export default function AdminDashboard() {
         <RetargetAlert />
 
         {activeTab === 'leads' && <LeadsKanban />}
+        {activeTab === 'agenda' && <AgendaEventos />}
         {activeTab === 'analytics' && <AnalyticsDashboard />}
         {activeTab === 'parceiros' && <CerimonialstasManager />}
+        {activeTab === 'equipe' && <AjudantesManager />}
         {activeTab === 'configs' && <ConfigsEditor />}
       </main>
     </div>
