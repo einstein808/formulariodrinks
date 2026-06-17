@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, FiPackage } from 'react-icons/fi';
+import { FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, FiPackage, FiX, FiPhone, FiClock, FiUsers, FiHeart, FiUserCheck } from 'react-icons/fi';
 
 export default function AgendaEventos() {
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedEvento, setSelectedEvento] = useState(null);
+  const [cerimonialistas, setCerimonialistas] = useState({});
+  const [ajudantes, setAjudantes] = useState({});
 
   useEffect(() => {
     const leadsRef = ref(db, 'leads');
-    const unsubscribe = onValue(leadsRef, (snapshot) => {
+    const unsubscribeLeads = onValue(leadsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const todosLeads = Object.entries(data).map(([id, val]) => ({ id, ...val }));
@@ -21,13 +24,32 @@ export default function AgendaEventos() {
         );
         
         setEventos(eventosFechados);
+
+        // Se o evento selecionado foi atualizado no DB, atualiza no modal
+        setSelectedEvento(prev => {
+          if (!prev) return null;
+          const updated = eventosFechados.find(ev => ev.id === prev.id);
+          return updated || prev;
+        });
       } else {
         setEventos([]);
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const configRef = ref(db, 'config');
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (data.cerimonialistas) setCerimonialistas(data.cerimonialistas);
+        if (data.ajudantes) setAjudantes(data.ajudantes);
+      }
+    });
+
+    return () => {
+      unsubscribeLeads();
+      unsubscribeConfig();
+    };
   }, []);
 
   // Navegação do calendário
@@ -159,16 +181,30 @@ export default function AgendaEventos() {
                 {/* Lista de eventos do dia */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, overflowY: 'auto' }}>
                   {eventosDoDia.map(evento => (
-                    <div key={evento.id} style={{ 
-                      background: 'rgba(255,255,255,0.05)', 
-                      borderLeft: '3px solid var(--primary)',
-                      padding: '6px 8px', 
-                      borderRadius: '4px',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}>
+                    <div 
+                      key={evento.id} 
+                      onClick={() => setSelectedEvento(evento)}
+                      style={{ 
+                        background: 'rgba(255,255,255,0.05)', 
+                        borderLeft: '3px solid var(--primary)',
+                        padding: '6px 8px', 
+                        borderRadius: '4px',
+                        fontSize: '0.8rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s, background-color 0.15s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                        e.currentTarget.style.transform = 'scale(1.02)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
                       <div style={{ fontWeight: 'bold', color: '#FFF' }}>
                         {evento.nome}
                       </div>
@@ -186,6 +222,149 @@ export default function AgendaEventos() {
           })}
         </div>
       </div>
+      
+      {/* Modal de Detalhes do Evento */}
+      {selectedEvento && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-main)', width: '100%', maxWidth: '540px',
+            borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+            animation: 'fadeInUp 0.3s ease'
+          }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.25rem' }}>Detalhes do Evento</h2>
+              <button 
+                onClick={() => setSelectedEvento(null)} 
+                style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44, justifyContent: 'center' }}
+                aria-label="Fechar"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '20px', overflowY: 'auto' }}>
+              
+              {/* Header Info */}
+              <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF', marginBottom: '4px' }}>
+                  {selectedEvento.nome} {selectedEvento.sobrenome || ''}
+                </div>
+                <span style={{ background: 'rgba(76,175,80,0.15)', color: '#4CAF50', border: '1px solid rgba(76,175,80,0.3)', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', display: 'inline-block', marginTop: '6px' }}>
+                  Evento Confirmado
+                </span>
+              </div>
+
+              {/* Botão de Ação Primária */}
+              <div style={{ marginBottom: '24px' }}>
+                <a 
+                  href={`https://wa.me/55${selectedEvento.telefone ? selectedEvento.telefone.replace(/\D/g, '') : ''}?text=${encodeURIComponent(`Olá ${selectedEvento.nome}, tudo bem? Estou entrando em contato sobre o seu evento do dia ${selectedEvento.dataEvento ? selectedEvento.dataEvento.split('-').reverse().join('/') : ''}.`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="btn btn--primary"
+                  style={{ background: '#25D366', borderColor: '#25D366', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', minHeight: 48, borderRadius: '10px', fontWeight: 'bold' }}
+                >
+                  <FiPhone size={18} /> Chamar no WhatsApp
+                </a>
+              </div>
+
+              {/* Grid de Informações */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiCalendar size={12} /> Data</div>
+                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>
+                    {selectedEvento.dataEvento ? selectedEvento.dataEvento.split('-').reverse().join('/') : '—'}
+                  </div>
+                </div>
+
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiClock size={12} /> Horário</div>
+                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.horarioEvento || '—'}</div>
+                </div>
+
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiMapPin size={12} /> Cidade</div>
+                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.cidade || '—'}</div>
+                </div>
+
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiUsers size={12} /> Convidados</div>
+                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.convidados || '—'}</div>
+                </div>
+
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiPackage size={12} /> Pacote</div>
+                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.pacote || '—'}</div>
+                </div>
+
+                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiHeart size={12} /> Cerimonialista</div>
+                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>
+                    {selectedEvento.cerimonialista && cerimonialistas[selectedEvento.cerimonialista]
+                      ? cerimonialistas[selectedEvento.cerimonialista].nome
+                      : '— Sem parceiro —'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Equipe / Ajudantes Designados */}
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FiUserCheck size={16} /> Equipe Designada
+                </h3>
+                
+                {selectedEvento.ajudantes && Object.keys(selectedEvento.ajudantes).length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {Object.entries(selectedEvento.ajudantes).map(([slug, statusVal]) => {
+                      const helperInfo = ajudantes[slug];
+                      const isConfirmed = statusVal === 'confirmado';
+                      const isRefused = statusVal === 'recusado';
+                      
+                      return (
+                        <div key={slug} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#FFF' }}>{helperInfo?.nome || slug}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{helperInfo?.telefone || ''}</div>
+                          </div>
+                          <span style={{ 
+                            fontSize: '0.75rem', 
+                            fontWeight: 'bold', 
+                            padding: '3px 8px', 
+                            borderRadius: '10px',
+                            background: isConfirmed ? 'rgba(76,175,80,0.15)' : (isRefused ? 'rgba(244,67,54,0.15)' : 'rgba(255,213,79,0.15)'),
+                            color: isConfirmed ? '#4CAF50' : (isRefused ? '#F44336' : '#FFD54F'),
+                            border: `1px solid ${isConfirmed ? 'rgba(76,175,80,0.3)' : (isRefused ? 'rgba(244,67,54,0.3)' : 'rgba(255,213,79,0.3)')}`
+                          }}>
+                            {statusVal === 'confirmado' ? 'Confirmado' : (statusVal === 'recusado' ? 'Recusado' : 'Pendente')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    Nenhum membro da equipe designado para este evento.
+                  </p>
+                )}
+              </div>
+
+            </div>
+            
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.2)' }}>
+              <button 
+                onClick={() => setSelectedEvento(null)} 
+                className="btn btn--outline"
+                style={{ minHeight: 44, borderRadius: '8px' }}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
