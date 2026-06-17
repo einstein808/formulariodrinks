@@ -121,7 +121,7 @@ export default function RetargetAlert() {
           const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'apikey': configs.evolutionApi.apikey },
-            body: JSON.stringify({ number: adminPhone, text })
+            body: JSON.stringify({ number: adminPhone, text, linkPreview: false })
           });
           
           if (response.ok) {
@@ -196,14 +196,14 @@ export default function RetargetAlert() {
 
         if (isSocialLink) {
           endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
-          payload = { number, text: finalText + '\n\n' + scriptObj.image };
+          payload = { number, text: finalText + '\n\n' + scriptObj.image, linkPreview: false };
         } else {
           endpoint = `${baseUrl}/message/sendMedia/${configs.evolutionApi.instance}`;
-          payload = { number, mediatype: "image", media: scriptObj.image, caption: finalText };
+          payload = { number, mediatype: "image", media: scriptObj.image, caption: finalText, linkPreview: false };
         }
       } else {
         endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
-        payload = { number, text: finalText };
+        payload = { number, text: finalText, linkPreview: false };
       }
 
       try {

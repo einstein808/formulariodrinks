@@ -158,7 +158,7 @@ export default function LeadsKanban() {
       const resp = await fetch(`${baseUrl}/message/sendText/${evolutionApi.instance}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': evolutionApi.apikey },
-        body: JSON.stringify({ number, text }),
+        body: JSON.stringify({ number, text, linkPreview: false }),
       });
       await logMessageToLead(lead.id, 'notif_cerimonialista', number, resp.ok, resp.ok ? null : 'Falha HTTP');
     } catch (err) {
@@ -313,7 +313,8 @@ export default function LeadsKanban() {
         },
         body: JSON.stringify({
           number: phoneFormatted,
-          text: messageText
+          text: messageText,
+          linkPreview: false
         })
       });
       
@@ -393,7 +394,8 @@ export default function LeadsKanban() {
             },
             body: JSON.stringify({
               number: phoneFormatted,
-              text: messageText
+              text: messageText,
+              linkPreview: false
             })
           });
           
@@ -479,7 +481,8 @@ export default function LeadsKanban() {
           endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
           payload = {
             number: number,
-            text: finalText + '\n\n' + scriptConfig.image
+            text: finalText + '\n\n' + scriptConfig.image,
+            linkPreview: false
           };
         } else {
           endpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
@@ -487,14 +490,16 @@ export default function LeadsKanban() {
             number: number,
             mediatype: "image",
             media: scriptConfig.image,
-            caption: finalText
+            caption: finalText,
+            linkPreview: false
           };
         }
       } else {
         endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
         payload = {
           number: number,
-          text: finalText
+          text: finalText,
+          linkPreview: false
         };
       }
 
@@ -552,7 +557,7 @@ export default function LeadsKanban() {
           'Content-Type': 'application/json',
           'apikey': evolutionApi.apikey
         },
-        body: JSON.stringify({ number, text })
+        body: JSON.stringify({ number, text, linkPreview: false })
       });
 
       if (!response.ok) {
