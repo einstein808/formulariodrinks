@@ -139,7 +139,7 @@ export default function CerimonialstasManager() {
           Novo Parceiro
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '16px', alignItems: 'flex-end' }}>
+        <div className="admin-team-grid" style={{ alignItems: 'flex-end' }}>
           {/* Nome */}
           <div>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
@@ -210,11 +210,10 @@ export default function CerimonialstasManager() {
             return (
               <div
                 key={p.slug}
+                className="admin-partner-grid"
                 style={{
                   background: 'var(--bg-input)', borderRadius: '10px', padding: '16px 20px',
                   border: '1px solid var(--border-color)',
-                  display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto auto',
-                  gap: '16px', alignItems: 'center',
                   transition: 'border-color 0.2s'
                 }}
               >

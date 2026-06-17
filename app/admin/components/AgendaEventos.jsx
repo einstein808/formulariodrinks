@@ -103,7 +103,7 @@ export default function AgendaEventos() {
         {/* Cabeçalho dos dias da semana */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#1a1a1a', borderBottom: '1px solid var(--border-color)' }}>
           {daysOfWeek.map(day => (
-            <div key={day} style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+            <div key={day} className="admin-calendar-day-label" style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>
               {day}
             </div>
           ))}
@@ -114,7 +114,7 @@ export default function AgendaEventos() {
           
           {/* Espaços vazios do mês anterior */}
           {Array.from({ length: firstDayOfMonth }).map((_, index) => (
-            <div key={`empty-${index}`} style={{ borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }} />
+            <div key={`empty-${index}`} className="admin-calendar-cell" style={{ borderRight: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }} />
           ))}
 
           {/* Dias do mês atual */}
@@ -124,7 +124,7 @@ export default function AgendaEventos() {
             const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
             return (
-              <div key={`day-${day}`} style={{ 
+              <div key={`day-${day}`} className="admin-calendar-cell" style={{ 
                 padding: '8px', 
                 borderRight: '1px solid var(--border-color)', 
                 borderBottom: '1px solid var(--border-color)',

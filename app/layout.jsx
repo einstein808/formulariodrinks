@@ -1,5 +1,7 @@
 import './globals.css';
 import { Inter, Cinzel } from 'next/font/google';
+import SwRegister from '../components/SwRegister';
+import PwaInstallBanner from '../components/PwaInstallBanner';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel' });
@@ -12,6 +14,7 @@ export const metadata = {
   authors: [{ name: 'Laboratório de Drinks' }],
   creator: 'Laboratório de Drinks',
   publisher: 'Laboratório de Drinks',
+  manifest: '/manifest.json',
   robots: {
     index: true,
     follow: true,
@@ -75,9 +78,19 @@ export default function RootLayout({ children }) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
         />
+        {/* PWA Meta Tags */}
+        <meta name="theme-color" content="#CBA153" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="LabDrinks" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body suppressHydrationWarning>
         {children}
+        <SwRegister />
+        <PwaInstallBanner />
       </body>
     </html>
   );

@@ -1076,3 +1076,167 @@ body {
     justify-content: center !important;
   }
 }
+
+/* ============================
+   Admin Layout — Desktop Sidebar
+   ============================ */
+.admin-sidebar {
+  width: 260px;
+  background: #111;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+}
+
+.admin-mobile-header {
+  display: none;
+}
+
+/* ============================
+   Admin — Mobile Bottom Nav
+   ============================ */
+.admin-bottom-nav {
+  display: none;
+}
+
+.admin-bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px 4px;
+  font-size: 0.65rem;
+  font-family: var(--font-inter), sans-serif;
+  transition: color 0.2s;
+  min-height: 56px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-bottom-nav-item span {
+  line-height: 1;
+}
+
+.admin-bottom-nav-item--active {
+  color: var(--primary);
+}
+
+.admin-bottom-nav-item--active svg {
+  filter: drop-shadow(0 0 6px rgba(203, 161, 83, 0.6));
+}
+
+/* ============================
+   Admin — Responsive Partner / Team Grids
+   ============================ */
+.admin-partner-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.admin-team-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.admin-team-list-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+
+/* ============================
+   Admin — Mobile Overrides (<=768px)
+   ============================ */
+@media (max-width: 768px) {
+  .admin-sidebar { display: none; }
+
+  .admin-mobile-header {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: rgba(17, 17, 17, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+    z-index: 100;
+    padding: 0 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .admin-main {
+    padding-top: calc(56px + 16px) !important;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    height: 100vh !important;
+  }
+
+  .admin-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(13, 13, 13, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-color);
+    z-index: 100;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .admin-kanban-container {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 12px !important;
+    padding-bottom: 16px !important;
+    min-height: calc(100vh - 200px) !important;
+  }
+
+  .admin-kanban-col {
+    min-width: 85vw !important;
+    scroll-snap-align: start !important;
+    flex-shrink: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .admin-partner-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .admin-team-grid,
+  .admin-team-list-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .admin-calendar-cell {
+    min-height: 64px !important;
+    padding: 4px !important;
+  }
+
+  .admin-calendar-day-label {
+    font-size: 0.6rem !important;
+    padding: 6px 2px !important;
+  }
+}

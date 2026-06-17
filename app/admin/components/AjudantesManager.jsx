@@ -125,7 +125,7 @@ export default function AjudantesManager() {
           Novo Ajudante
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr auto', gap: '16px', alignItems: 'flex-end' }}>
+        <div className="admin-team-grid">
           {/* Nome */}
           <div>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
@@ -209,11 +209,10 @@ export default function AjudantesManager() {
           {ajudantes.map((a) => (
             <div
               key={a.slug}
+              className="admin-team-list-grid"
               style={{
                 background: 'var(--bg-input)', borderRadius: '10px', padding: '16px 20px',
                 border: '1px solid var(--border-color)',
-                display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr auto',
-                gap: '16px', alignItems: 'center',
                 transition: 'border-color 0.2s'
               }}
             >
