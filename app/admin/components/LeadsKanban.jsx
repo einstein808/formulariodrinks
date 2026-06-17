@@ -254,21 +254,30 @@ export default function LeadsKanban() {
   };
 
   const handleUpdateHelperStatus = async (helperSlug, status) => {
-    const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
-    const data = { status };
-    if (status === 'confirmado') {
-      data.confirmouEm = new Date().toISOString();
-    } else {
-      data.confirmouEm = null;
-    }
-    await update(ref(db, path), data);
-    setSelectedLead(prev => ({
-      ...prev,
-      ajudantes: {
-        ...(prev.ajudantes || {}),
-        [helperSlug]: { ...(prev.ajudantes?.[helperSlug] || {}), ...data }
+    try {
+      const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
+      const data = { status };
+      if (status === 'confirmado') {
+        data.confirmouEm = new Date().toISOString();
+      } else {
+        data.confirmouEm = null;
       }
-    }));
+      await update(ref(db, path), data);
+      setSelectedLead(prev => {
+        const prevHelper = prev.ajudantes?.[helperSlug];
+        const prevHelperObj = typeof prevHelper === 'object' && prevHelper !== null ? prevHelper : { status: prevHelper };
+        return {
+          ...prev,
+          ajudantes: {
+            ...(prev.ajudantes || {}),
+            [helperSlug]: { ...prevHelperObj, ...data }
+          }
+        };
+      });
+    } catch (err) {
+      console.error("Erro ao atualizar status do ajudante:", err);
+      alert("Erro ao atualizar status do ajudante: " + err.message);
+    }
   };
 
   const handleSendHelperAvailabilityCheck = async (helperSlug, helperInfo) => {
@@ -1197,6 +1206,8 @@ export default function LeadsKanban() {
                     {Object.entries(selectedLead.ajudantes).map(([slug, data]) => {
                       const helperInfo = ajudantes[slug] || { nome: slug, telefone: '', especialidade: 'Ajudante' };
                       const overlap = checkHelperOverlap(slug);
+                      const helperData = typeof data === 'object' && data !== null ? data : { status: data };
+                      const helperStatus = helperData.status || 'pendente';
                       
                       return (
                         <div key={slug} style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
@@ -1222,17 +1233,17 @@ export default function LeadsKanban() {
                             
                             {/* Badges de Status */}
                             <div>
-                              {data.status === 'confirmado' && (
+                              {helperStatus === 'confirmado' && (
                                 <span style={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4CAF50', border: '1px solid #4CAF50', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                   ✅ Confirmado
                                 </span>
                               )}
-                              {data.status === 'indisponivel' && (
+                              {(helperStatus === 'indisponivel' || helperStatus === 'recusado') && (
                                 <span style={{ background: 'rgba(244, 67, 54, 0.15)', color: '#F44336', border: '1px solid #F44336', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                  ❌ Indisponível
+                                  ❌ {helperStatus === 'indisponivel' ? 'Indisponível' : 'Recusado'}
                                 </span>
                               )}
-                              {data.status === 'pendente' && (
+                              {helperStatus === 'pendente' && (
                                 <span style={{ background: 'rgba(255, 213, 79, 0.15)', color: '#FFD54F', border: '1px solid #FFD54F', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                   ⏳ Pendente
                                 </span>
@@ -1250,12 +1261,12 @@ export default function LeadsKanban() {
                                 style={{ padding: '4px 8px', fontSize: '0.7rem', height: 'auto', display: 'flex', alignItems: 'center', gap: '4px', background: 'none' }}
                                 title="Perguntar disponibilidade via WhatsApp"
                               >
-                                <FiPhone size={10} /> {data.perguntouEm ? 'Reenviar Pergunta' : 'Perguntar'}
+                                <FiPhone size={10} /> {helperData.perguntouEm ? 'Reenviar Pergunta' : 'Perguntar'}
                               </button>
                               
-                              {data.perguntouEm && (
+                              {helperData.perguntouEm && (
                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                                  Perguntou: {new Date(data.perguntouEm).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                  Perguntou: {new Date(helperData.perguntouEm).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                 </span>
                               )}
                             </div>
@@ -1263,17 +1274,17 @@ export default function LeadsKanban() {
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                               <button
                                 onClick={() => handleUpdateHelperStatus(slug, 'confirmado')}
-                                style={{ background: 'none', border: 'none', color: '#4CAF50', cursor: 'pointer', padding: '4px' }}
+                                style={{ background: helperStatus === 'confirmado' ? 'rgba(76,175,80,0.15)' : 'none', border: '1px solid #4CAF50', color: '#4CAF50', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 'bold', minHeight: 36 }}
                                 title="Marcar como Confirmado"
                               >
-                                <FiCheck size={16} />
+                                <FiCheck size={14} /> OK
                               </button>
                               <button
                                 onClick={() => handleUpdateHelperStatus(slug, 'indisponivel')}
-                                style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '4px' }}
+                                style={{ background: (helperStatus === 'indisponivel' || helperStatus === 'recusado') ? 'rgba(244,67,54,0.15)' : 'none', border: '1px solid #F44336', color: '#F44336', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 'bold', minHeight: 36 }}
                                 title="Marcar como Indisponível"
                               >
-                                <FiX size={16} />
+                                <FiX size={14} /> Não
                               </button>
                               <div style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 4px' }} />
                               <button

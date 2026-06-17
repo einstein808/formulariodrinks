@@ -320,8 +320,11 @@ export default function AgendaEventos() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {Object.entries(selectedEvento.ajudantes).map(([slug, statusVal]) => {
                       const helperInfo = ajudantes[slug];
-                      const isConfirmed = statusVal === 'confirmado';
-                      const isRefused = statusVal === 'recusado';
+                      const helperStatus = typeof statusVal === 'object' && statusVal !== null
+                        ? (statusVal.status || 'pendente')
+                        : (statusVal || 'pendente');
+                      const isConfirmed = helperStatus === 'confirmado';
+                      const isRefused = helperStatus === 'recusado' || helperStatus === 'indisponivel';
                       
                       return (
                         <div key={slug} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
@@ -338,7 +341,7 @@ export default function AgendaEventos() {
                             color: isConfirmed ? '#4CAF50' : (isRefused ? '#F44336' : '#FFD54F'),
                             border: `1px solid ${isConfirmed ? 'rgba(76,175,80,0.3)' : (isRefused ? 'rgba(244,67,54,0.3)' : 'rgba(255,213,79,0.3)')}`
                           }}>
-                            {statusVal === 'confirmado' ? 'Confirmado' : (statusVal === 'recusado' ? 'Recusado' : 'Pendente')}
+                            {isConfirmed ? 'Confirmado' : (isRefused ? 'Recusado/Indisponível' : 'Pendente')}
                           </span>
                         </div>
                       );
