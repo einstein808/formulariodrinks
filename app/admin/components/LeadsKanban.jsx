@@ -54,6 +54,14 @@ export default function LeadsKanban() {
   const [itemsPerPage, setItemsPerPage] = useState('20');
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const leadsRef = ref(db, 'leads');
@@ -691,8 +699,9 @@ export default function LeadsKanban() {
                     return (
                       <div 
                         key={lead.id}
-                        draggable="true"
+                        draggable={!isMobile}
                         onDragStart={(e) => {
+                          if (isMobile) return;
                           e.dataTransfer.setData('text/plain', lead.id);
                           e.currentTarget.style.opacity = '0.5'; // Efeito visual no item sendo arrastado
                         }}
@@ -702,7 +711,7 @@ export default function LeadsKanban() {
                         onClick={() => setSelectedLead(lead)}
                         style={{
                           background: 'var(--bg-input)', padding: '16px', borderRadius: '8px',
-                          cursor: 'grab', border: isStale ? '1px solid #F44336' : '1px solid var(--border-color)',
+                          cursor: isMobile ? 'pointer' : 'grab', border: isStale ? '1px solid #F44336' : '1px solid var(--border-color)',
                           transition: 'border-color 0.2s', ':hover': { borderColor: 'var(--primary)' }
                         }}
                       >
@@ -735,6 +744,38 @@ export default function LeadsKanban() {
                             borderRadius: 4, border: '1px solid rgba(233,30,99,0.2)'
                           }}>
                             <FiHeart size={10} /> {cerimonialistas[lead.cerimonialista].nome}
+                          </div>
+                        )}
+
+                        {/* Seletor rápido de status para celular */}
+                        {isMobile && (
+                          <div 
+                            onClick={(e) => e.stopPropagation()} 
+                            style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                          >
+                            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                              Mover para etapa:
+                            </label>
+                            <select
+                              value={lead.status || 'novo'}
+                              onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                              className="form-select"
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                fontSize: '0.8rem',
+                                background: 'var(--bg-main)',
+                                color: '#FFF',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                minHeight: '36px',
+                                marginTop: '2px'
+                              }}
+                            >
+                              {COLUMNS.map(c => (
+                                <option key={c.id} value={c.id}>{c.title}</option>
+                              ))}
+                            </select>
                           </div>
                         )}
                       </div>
