@@ -1,12 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiBell, FiSend } from 'react-icons/fi';
+import { FiBell, FiSend, FiX } from 'react-icons/fi';
 
 export default function RetargetAlert() {
   const [leads, setLeads] = useState([]);
   const [configs, setConfigs] = useState(null);
   const [sending, setSending] = useState(false);
+  const [dismissedUpcoming, setDismissedUpcoming] = useState(false);
+  const [dismissedPending, setDismissedPending] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDismissedUpcoming(sessionStorage.getItem('dismissed-upcoming') === 'true');
+      setDismissedPending(sessionStorage.getItem('dismissed-pending') === 'true');
+    }
+  }, []);
+
+  const handleDismissUpcoming = () => {
+    setDismissedUpcoming(true);
+    sessionStorage.setItem('dismissed-upcoming', 'true');
+  };
+
+  const handleDismissPending = () => {
+    setDismissedPending(true);
+    sessionStorage.setItem('dismissed-pending', 'true');
+  };
 
   useEffect(() => {
     const leadsRef = ref(db, 'leads');
@@ -244,12 +263,15 @@ export default function RetargetAlert() {
     alert(`${sentCount} de ${totalPending} mensagens foram enviadas com sucesso!`);
   };
 
-  if (totalPending === 0 && upcomingEvents.length === 0) return null;
+  const showUpcoming = upcomingEvents.length > 0 && !dismissedUpcoming;
+  const showPending = totalPending > 0 && !dismissedPending;
+
+  if (!showUpcoming && !showPending) return null;
 
   return (
     <>
-      {upcomingEvents.length > 0 && (
-        <div style={{ background: 'rgba(244, 67, 54, 0.1)', border: '1px solid #F44336', borderRadius: '8px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      {showUpcoming && (
+        <div style={{ background: 'rgba(244, 67, 54, 0.1)', border: '1px solid #F44336', borderRadius: '8px', padding: '16px 48px 16px 16px', marginBottom: '24px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px', position: 'relative' }}>
           <div style={{ background: '#F44336', color: '#FFF', padding: '8px', borderRadius: '50%', display: 'flex' }}>
             <FiBell size={20} />
           </div>
@@ -266,14 +288,35 @@ export default function RetargetAlert() {
               ))}
             </div>
             {!configs?.general?.adminPhone && (
-              <p style={{ margin: '8px 0 0 0', color: '#FFD54F', fontSize: '0.85rem' }}>⚠️ Configure seu número de WhatsApp nas configurações (Pacotes & Drinks) para receber alertas automáticos de 15, 7 e 3 dias.</p>
+              <p style={{ margin: '8px 0 0 0', color: '#FFD54F', fontSize: '0.85rem' }}>⚠️ Configure seu número de WhatsApp nas configurações (Pacotes & Drinks) para receber e-mails/alertas automáticos de 15, 7 e 3 dias.</p>
             )}
           </div>
+          <button
+            onClick={handleDismissUpcoming}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 44,
+              minHeight: 44,
+            }}
+            aria-label="Dispensar alerta"
+          >
+            <FiX size={18} />
+          </button>
         </div>
       )}
 
-      {totalPending > 0 && (
-        <div style={{ background: 'rgba(255, 213, 79, 0.1)', border: '1px solid #FFD54F', borderRadius: '8px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+      {showPending && (
+        <div style={{ background: 'rgba(255, 213, 79, 0.1)', border: '1px solid #FFD54F', borderRadius: '8px', padding: '16px 48px 16px 16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ background: '#FFD54F', color: '#000', padding: '8px', borderRadius: '50%', display: 'flex' }}>
               <FiBell size={20} />
@@ -294,6 +337,28 @@ export default function RetargetAlert() {
           >
             {sending ? <div className="btn__spinner" style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }} /> : <FiSend />}
             {sending ? 'Enviando...' : 'Disparar Mensagens Agora'}
+          </button>
+          
+          <button
+            onClick={handleDismissPending}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 44,
+              minHeight: 44,
+            }}
+            aria-label="Dispensar alerta"
+          >
+            <FiX size={18} />
           </button>
         </div>
       )}
