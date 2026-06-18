@@ -3,6 +3,15 @@ import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, FiPackage, FiX, FiPhone, FiClock, FiUsers, FiHeart, FiUserCheck } from 'react-icons/fi';
 
+function formatPhone(value) {
+  let v = (value || '').replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length > 7) return `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+  if (v.length > 2) return `(${v.slice(0, 2)}) ${v.slice(2)}`;
+  if (v.length > 0) return `(${v}`;
+  return v;
+}
+
 export default function AgendaEventos() {
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -228,33 +237,43 @@ export default function AgendaEventos() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: '20px'
+          alignItems: 'center', justifyContent: 'center', padding: '16px'
         }}>
           <div style={{
-            background: 'var(--bg-main)', width: '100%', maxWidth: '540px',
-            borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)',
+            background: '#0a140d', width: '100%', maxWidth: '560px',
+            borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.25)',
             maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.7)',
             animation: 'fadeInUp 0.3s ease'
           }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.25rem' }}>Detalhes do Evento</h2>
+            <div style={{ padding: '20px', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#070e09' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.25rem', letterSpacing: '0.5px' }}>Detalhes do Evento</h2>
               <button 
                 onClick={() => setSelectedEvento(null)} 
-                style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44, justifyContent: 'center' }}
+                style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 40, minHeight: 40, justifyContent: 'center' }}
                 aria-label="Fechar"
               >
-                <FiX size={24} />
+                <FiX size={22} />
               </button>
             </div>
             
-            <div style={{ padding: '20px', overflowY: 'auto' }}>
+            <div style={{ padding: '24px 20px', overflowY: 'auto' }}>
               
               {/* Header Info */}
               <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF', marginBottom: '4px' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#FFF', marginBottom: '6px' }}>
                   {selectedEvento.nome} {selectedEvento.sobrenome || ''}
                 </div>
-                <span style={{ background: 'rgba(76,175,80,0.15)', color: '#4CAF50', border: '1px solid rgba(76,175,80,0.3)', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', display: 'inline-block', marginTop: '6px' }}>
+                <span style={{ 
+                  background: 'rgba(46, 139, 87, 0.15)', 
+                  color: '#4CAF50', 
+                  border: '1px solid rgba(46, 139, 87, 0.3)', 
+                  padding: '4px 14px', 
+                  borderRadius: '20px', 
+                  fontSize: '0.8rem', 
+                  fontWeight: 'bold', 
+                  display: 'inline-block' 
+                }}>
                   Evento Confirmado
                 </span>
               </div>
@@ -264,55 +283,55 @@ export default function AgendaEventos() {
                 <a 
                   href={`https://wa.me/55${selectedEvento.telefone ? selectedEvento.telefone.replace(/\D/g, '') : ''}?text=${encodeURIComponent(`Olá ${selectedEvento.nome}, tudo bem? Estou entrando em contato sobre o seu evento do dia ${selectedEvento.dataEvento ? selectedEvento.dataEvento.split('-').reverse().join('/') : ''}.`)}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="btn btn--primary"
-                  style={{ background: '#25D366', borderColor: '#25D366', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', minHeight: 48, borderRadius: '10px', fontWeight: 'bold' }}
+                  className="btn"
+                  style={{ background: '#25D366', border: 'none', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', minHeight: 46, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.92rem' }}
                 >
-                  <FiPhone size={18} /> Chamar no WhatsApp
+                  <FiPhone size={16} /> Chamar no WhatsApp
                 </a>
               </div>
 
               {/* Grid de Informações */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiCalendar size={12} /> Data</div>
-                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
+                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiCalendar size={12} /> Data</div>
+                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>
                     {selectedEvento.dataEvento ? selectedEvento.dataEvento.split('-').reverse().join('/') : '—'}
                   </div>
                 </div>
 
-                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiClock size={12} /> Horário</div>
-                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.horarioEvento || '—'}</div>
+                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiClock size={12} /> Horário</div>
+                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.horarioEvento || '—'}</div>
                 </div>
 
-                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiMapPin size={12} /> Cidade</div>
-                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.cidade || '—'}</div>
+                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)', gridColumn: 'span 2' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiMapPin size={12} /> Cidade / Local</div>
+                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.cidade || '—'}</div>
                 </div>
 
-                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiUsers size={12} /> Convidados</div>
-                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.convidados || '—'}</div>
+                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiUsers size={12} /> Convidados</div>
+                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.convidados || '—'}</div>
                 </div>
 
-                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiPackage size={12} /> Pacote</div>
-                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{selectedEvento.pacote || '—'}</div>
+                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiPackage size={12} /> Pacote</div>
+                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.pacote || '—'}</div>
                 </div>
 
-                <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><FiHeart size={12} /> Cerimonialista</div>
-                  <div style={{ fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>
+                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)', gridColumn: 'span 2' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiHeart size={12} /> Cerimonialista Parceiro</div>
+                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>
                     {selectedEvento.cerimonialista && cerimonialistas[selectedEvento.cerimonialista]
                       ? cerimonialistas[selectedEvento.cerimonialista].nome
-                      : '— Sem parceiro —'}
+                      : '— Sem parceiro / Direto —'}
                   </div>
                 </div>
               </div>
 
               {/* Equipe / Ajudantes Designados */}
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ borderTop: '1px solid rgba(203, 161, 83, 0.15)', paddingTop: '20px' }}>
+                <h3 style={{ margin: '0 0 14px 0', fontSize: '0.95rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <FiUserCheck size={16} /> Equipe Designada
                 </h3>
                 
@@ -327,28 +346,28 @@ export default function AgendaEventos() {
                       const isRefused = helperStatus === 'recusado' || helperStatus === 'indisponivel';
                       
                       return (
-                        <div key={slug} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <div key={slug} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
                           <div>
-                            <div style={{ fontWeight: 600, color: '#FFF' }}>{helperInfo?.nome || slug}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{helperInfo?.telefone || ''}</div>
+                            <div style={{ fontWeight: 600, color: '#FFF', fontSize: '0.88rem' }}>{helperInfo?.nome || slug}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{helperInfo?.telefone ? formatPhone(helperInfo.telefone) : ''}</div>
                           </div>
                           <span style={{ 
-                            fontSize: '0.75rem', 
+                            fontSize: '0.72rem', 
                             fontWeight: 'bold', 
                             padding: '3px 8px', 
                             borderRadius: '10px',
-                            background: isConfirmed ? 'rgba(76,175,80,0.15)' : (isRefused ? 'rgba(244,67,54,0.15)' : 'rgba(255,213,79,0.15)'),
-                            color: isConfirmed ? '#4CAF50' : (isRefused ? '#F44336' : '#FFD54F'),
-                            border: `1px solid ${isConfirmed ? 'rgba(76,175,80,0.3)' : (isRefused ? 'rgba(244,67,54,0.3)' : 'rgba(255,213,79,0.3)')}`
+                            background: isConfirmed ? 'rgba(46, 139, 87, 0.12)' : (isRefused ? 'rgba(139, 0, 0, 0.12)' : 'rgba(203, 161, 83, 0.12)'),
+                            color: isConfirmed ? '#2e8b57' : (isRefused ? '#F44336' : '#FFD54F'),
+                            border: `1px solid ${isConfirmed ? 'rgba(46, 139, 87, 0.25)' : (isRefused ? 'rgba(139, 0, 0, 0.25)' : 'rgba(203, 161, 83, 0.25)')}`
                           }}>
-                            {isConfirmed ? 'Confirmado' : (isRefused ? 'Recusado/Indisponível' : 'Pendente')}
+                            {isConfirmed ? 'Confirmado' : (isRefused ? 'Indisponível' : 'Pendente')}
                           </span>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                  <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.85rem', fontStyle: 'italic' }}>
                     Nenhum membro da equipe designado para este evento.
                   </p>
                 )}
@@ -356,11 +375,18 @@ export default function AgendaEventos() {
 
             </div>
             
-            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.2)' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'flex-end', background: '#070e09' }}>
               <button 
                 onClick={() => setSelectedEvento(null)} 
-                className="btn btn--outline"
-                style={{ minHeight: 44, borderRadius: '8px' }}
+                style={{
+                  background: 'none',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#FFF',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
+                }}
               >
                 Fechar
               </button>

@@ -83,33 +83,57 @@ export default function AdminDashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
 
       {/* ── DESKTOP SIDEBAR ─────────────────────────────────── */}
-      <aside className="admin-sidebar">
-        <div style={{ padding: '24px', textAlign: 'center', borderBottom: '1px solid var(--border-color)' }}>
-          <img src="/logo.webp" alt="Logo" style={{ width: '100px', marginBottom: '8px' }} />
-          <h2 style={{ margin: 0, fontSize: '1rem', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>
-            Admin Dashboard
+      <aside className="admin-sidebar" style={{ background: 'linear-gradient(180deg, #0a140d 0%, #050a06 100%)', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', width: '260px', flexShrink: 0 }}>
+        <div style={{ padding: '32px 24px', textAlign: 'center', borderBottom: '1px solid rgba(203, 161, 83, 0.1)' }}>
+          <img src="/logo.webp" alt="Logo" style={{ width: '90px', marginBottom: '12px' }} />
+          <h2 style={{ margin: 0, fontSize: '0.95rem', fontFamily: 'Cinzel, serif', color: 'var(--primary)', letterSpacing: '1px', textTransform: 'uppercase' }}>
+            Painel Admin
           </h2>
         </div>
 
-        <nav style={{ flex: 1, padding: '16px 0' }}>
+        <nav style={{ flex: 1, padding: '24px 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {navItems.map(item => {
             const Icon = item.icon;
+            const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '16px 24px',
-                  background: activeTab === item.id ? 'rgba(203, 161, 83, 0.1)' : 'transparent',
-                  color: activeTab === item.id ? 'var(--primary)' : 'var(--text-secondary)',
+                  width: 'calc(100% - 32px)',
+                  margin: '2px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  background: isActive ? 'rgba(203, 161, 83, 0.08)' : 'transparent',
+                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
                   border: 'none',
-                  borderRight: activeTab === item.id ? '3px solid var(--primary)' : '3px solid transparent',
-                  cursor: 'pointer', textAlign: 'left', fontSize: '1rem', transition: 'all 0.2s',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontSize: '0.92rem',
+                  fontWeight: isActive ? 600 : 'normal',
+                  transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                   minHeight: 48,
+                  position: 'relative',
+                  outline: 'none'
                 }}
+                className={isActive ? 'admin-sidebar-active-btn' : ''}
               >
-                <Icon size={20} />
+                {isActive && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: '12px',
+                    bottom: '12px',
+                    width: '3.5px',
+                    borderRadius: '0 4px 4px 0',
+                    background: 'var(--primary)',
+                    boxShadow: '0 0 10px var(--primary)'
+                  }} />
+                )}
+                <Icon size={18} style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }} />
                 {item.label === 'Leads' ? 'Gestão de Leads' :
                  item.label === 'Métricas' ? 'Métricas (Gráficos)' :
                  item.label === 'Parceiros' ? 'Parceiros' :
@@ -121,13 +145,13 @@ export default function AdminDashboard() {
           })}
         </nav>
 
-        <div style={{ padding: '24px', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '24px', borderTop: '1px solid rgba(203, 161, 83, 0.1)' }}>
           <button
             onClick={handleLogout}
             className="btn btn--outline"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#ff5252', borderColor: '#ff5252' }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#ff5252', borderColor: 'rgba(255, 82, 82, 0.3)', background: 'rgba(255, 82, 82, 0.02)', borderRadius: '10px' }}
           >
-            <FiLogOut size={18} />
+            <FiLogOut size={16} />
             Sair do Painel
           </button>
         </div>

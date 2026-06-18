@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, update, remove, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck } from 'react-icons/fi';
+import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck, FiUsers, FiPackage } from 'react-icons/fi';
 import { sendWhatsAppQuote, logMessageToLead } from '../../../lib/whatsappService';
 
 const COLUMNS = [
@@ -49,12 +49,20 @@ export default function LeadsKanban() {
 
   const [isEditingLead, setIsEditingLead] = useState(false);
   const [editLeadData, setEditLeadData] = useState({});
+  const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts'
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [itemsPerPage, setItemsPerPage] = useState('20');
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
   const [isMobile, setIsMobile] = useState(false);
+
+  // Auto reset tab when selecting a different lead
+  useEffect(() => {
+    if (selectedLead) {
+      setModalTab('info');
+    }
+  }, [selectedLead?.id]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -926,501 +934,742 @@ export default function LeadsKanban() {
       {selectedLead && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: '20px'
+          background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: '16px'
         }}>
           <div style={{
-            background: 'var(--bg-main)', width: '100%', maxWidth: '600px',
-            borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)',
-            maxHeight: '90vh', display: 'flex', flexDirection: 'column'
+            background: '#0a140d', width: '100%', maxWidth: '680px',
+            borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.25)',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.7)',
+            animation: 'fadeInUp 0.3s ease'
           }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif' }}>Detalhes do Lead</h2>
+            {/* HEADER */}
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#070e09' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.2rem' }}>Detalhes do Lead</h2>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 {!isEditingLead ? (
-                  <button onClick={startEditingLead} title="Editar Lead" style={{ background: 'rgba(203,161,83,0.15)', border: '1px solid var(--primary)', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '6px', fontSize: '0.85rem' }}>
-                    <FiEdit2 size={16} /> Editar
+                  <button onClick={startEditingLead} title="Editar Lead" style={{ background: 'rgba(203,161,83,0.15)', border: '1px solid var(--primary)', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '6px', fontSize: '0.82rem' }}>
+                    <FiEdit2 size={14} /> Editar
                   </button>
                 ) : (
-                  <button onClick={handleSaveEditLead} title="Salvar Alterações" style={{ background: 'var(--primary)', border: 'none', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                    <FiSave size={16} /> Salvar
+                  <button onClick={handleSaveEditLead} title="Salvar Alterações" style={{ background: 'var(--primary)', border: 'none', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 'bold' }}>
+                    <FiSave size={14} /> Salvar
                   </button>
                 )}
-                <button onClick={() => handleDeleteLead(selectedLead.id)} title="Excluir Lead" style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                  <FiTrash2 size={20} />
+                <button onClick={() => handleDeleteLead(selectedLead.id)} title="Excluir Lead" style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 36, justifyContent: 'center' }}>
+                  <FiTrash2 size={18} />
                 </button>
-                <button onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                  <FiX size={24} />
+                <button onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 36, justifyContent: 'center' }}>
+                  <FiX size={22} />
                 </button>
               </div>
             </div>
             
-            <div style={{ padding: '20px', overflowY: 'auto' }}>
-              <div className="admin-modal-actions" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Status do Lead</label>
-                  <select 
-                    value={selectedLead.status || 'novo'}
-                    onChange={(e) => handleStatusChange(selectedLead.id, e.target.value)}
-                    className="form-select"
-                    style={{ marginTop: '4px' }}
-                  >
-                    {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                  <a 
-                    href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.nome}, vi que solicitou um orçamento para o pacote ${selectedLead.pacote}!`)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="btn btn--primary"
-                    style={{ background: '#25D366', borderColor: '#25D366', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}
-                  >
-                    <FiPhone /> Chamar no WhatsApp
-                  </a>
-                </div>
-              </div>
-
-              {/* Campo Cerimonialista */}
-              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <FiHeart size={16} style={{ color: '#E91E63', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Cerimonialista Parceiro</label>
-                  <select
-                    value={selectedLead.cerimonialista || ''}
-                    onChange={async (e) => {
-                      const val = e.target.value;
-                      await update(ref(db, `leads/${selectedLead.id}`), { cerimonialista: val });
-                      setSelectedLead(prev => ({ ...prev, cerimonialista: val }));
+            {/* TABS SELECTOR */}
+            <div style={{ 
+              display: 'flex', 
+              background: '#070e09', 
+              borderBottom: '1px solid rgba(203, 161, 83, 0.12)',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap'
+            }}>
+              {[
+                { id: 'info', label: 'Cadastro', icon: FiList },
+                { id: 'equipe', label: 'Equipe / Escala', icon: FiUsers },
+                { id: 'drinks', label: 'Bebidas & Lista', icon: FiPackage },
+                { id: 'scripts', label: 'Ações WhatsApp', icon: FiPhone }
+              ].map(tab => {
+                const TabIcon = tab.icon;
+                const isActive = modalTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setModalTab(tab.id)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '14px 16px',
+                      background: isActive ? 'rgba(203, 161, 83, 0.05)' : 'transparent',
+                      color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                      border: 'none',
+                      borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: isActive ? 'bold' : 'normal',
+                      transition: 'all 0.2s',
+                      outline: 'none',
+                      minWidth: '120px'
                     }}
-                    className="form-select"
-                    style={{ marginTop: 0 }}
                   >
-                    <option value="">— Sem parceiro / Direto —</option>
-                    {Object.entries(cerimonialistas).map(([slug, c]) => (
-                      <option key={slug} value={slug}>{c.nome}</option>
-                    ))}
-                  </select>
+                    <TabIcon size={14} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* MODAL CONTENT BODY */}
+            <div style={{ padding: '24px 20px', overflowY: 'auto', flex: 1 }}>
+              
+              {/* Quick info header */}
+              <div style={{ 
+                background: '#070e09', 
+                borderRadius: '10px', 
+                padding: '12px 16px', 
+                marginBottom: '20px', 
+                border: '1px solid rgba(203, 161, 83, 0.15)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFF' }}>
+                    {selectedLead.nome} {selectedLead.sobrenome || ''}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                    Telefone: {formatPhone(selectedLead.telefone)}
+                  </div>
                 </div>
-              </div>
-
-              {/* Botão Gerar Lista de Compras (Apenas para pacote Mão de Obra ou Genérico) */}
-              <div style={{ background: 'rgba(0, 229, 255, 0.05)', borderRadius: '8px', padding: '16px', marginBottom: '16px', border: '1px solid rgba(0, 229, 255, 0.2)' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#00E5FF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  🛒 Lista de Compras (Insumos)
-                </h4>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 12px 0' }}>
-                  O cliente receberá um link para escolher os drinks e o sistema calculará os insumos.
-                </p>
                 
-                {selectedLead.shoppingListFinalizada ? (
-                  <div style={{ padding: '12px', background: 'rgba(76, 175, 80, 0.1)', border: '1px solid #4CAF50', borderRadius: '6px', color: '#4CAF50', fontSize: '0.9rem' }}>
-                    ✅ <strong>O cliente já finalizou a lista!</strong> Confira a lista gerada no card abaixo.
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Status</label>
+                    <select 
+                      value={selectedLead.status || 'novo'}
+                      onChange={(e) => handleStatusChange(selectedLead.id, e.target.value)}
+                      className="form-select"
+                      style={{ 
+                        marginTop: 0, 
+                        padding: '4px 10px', 
+                        fontSize: '0.8rem', 
+                        borderRadius: '6px', 
+                        background: '#050a06', 
+                        borderColor: 'rgba(203, 161, 83, 0.3)',
+                        color: 'var(--primary)',
+                        fontWeight: 'bold',
+                        height: '32px',
+                        width: '140px'
+                      }}
+                    >
+                      {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                    </select>
                   </div>
-                ) : (
-                  <button 
-                    onClick={() => handleSendShoppingListViaApi(selectedLead)}
-                    disabled={sendingScript}
-                    className="btn btn--outline"
-                    style={{ borderColor: '#00E5FF', color: '#00E5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
-                  >
-                    <FiPhone /> Enviar Link via API WhatsApp
-                  </button>
-                )}
-              </div>
-
-              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid var(--primary)' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#FFF' }}>Ações Rápidas (Integração WhatsApp API)</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  
-                  {/* Reenviar Orçamento */}
-                  <button 
-                    onClick={() => handleResendQuote(selectedLead)}
-                    disabled={sendingScript}
-                    className="btn btn--primary"
-                    style={{ 
-                      textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
-                      justifyContent: 'flex-start', color: '#000', background: 'var(--primary)', 
-                      borderColor: 'var(--primary)', cursor: sendingScript ? 'not-allowed' : 'pointer', 
-                      fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' 
-                    }}
-                  >
-                    <FiPhone size={16} /> Reenviar Orçamento (Completo)
-                  </button>
-
-                  {/* Script 1: Autoridade */}
-                  <button 
-                    onClick={() => handleSendEvolution('autoridade')}
-                    disabled={sendingScript}
-                    className="btn btn--outline"
-                    style={{ textAlign: 'left', fontSize: '0.85rem', padding: '8px 12px', justifyContent: 'flex-start', color: '#FFF', borderColor: 'var(--border-color)', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
-                  >
-                    <span style={{ color: '#00E5FF', marginRight: '8px' }}>📸 1. Mostrar Autoridade:</span>
-                    Disparo automático usando o texto/imagem configurados.
-                  </button>
-
-                  {/* Script 2: Escassez / Resgate */}
-                  <button 
-                    onClick={() => handleSendEvolution('escassez')}
-                    disabled={sendingScript}
-                    className="btn btn--outline"
-                    style={{ textAlign: 'left', fontSize: '0.85rem', padding: '8px 12px', justifyContent: 'flex-start', color: '#FFF', borderColor: 'var(--border-color)', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
-                  >
-                    <span style={{ color: '#F44336', marginRight: '8px' }}>🔥 2. Escassez (Resgate):</span>
-                    Disparo automático usando o texto/imagem configurados.
-                  </button>
-
-                  {/* Script 3: Pós-Evento */}
-                  <button 
-                    onClick={() => handleSendEvolution('posEvento')}
-                    disabled={sendingScript}
-                    className="btn btn--outline"
-                    style={{ textAlign: 'left', fontSize: '0.85rem', padding: '8px 12px', justifyContent: 'flex-start', color: '#FFF', borderColor: 'var(--border-color)', background: 'none', cursor: sendingScript ? 'not-allowed' : 'pointer' }}
-                  >
-                    <span style={{ color: '#4CAF50', marginRight: '8px' }}>⭐ 3. Pós-Evento (NPS):</span>
-                    Disparo automático usando o texto/imagem configurados.
-                  </button>
-
                 </div>
               </div>
 
-              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Dados do Cliente</h4>
-                {isEditingLead ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nome</label>
-                      <input className="form-input" value={editLeadData.nome} onChange={e => setEditLeadData({...editLeadData, nome: e.target.value})} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Sobrenome</label>
-                      <input className="form-input" value={editLeadData.sobrenome} onChange={e => setEditLeadData({...editLeadData, sobrenome: e.target.value})} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Telefone</label>
-                      <input className="form-input" value={editLeadData.telefone} onChange={e => setEditLeadData({...editLeadData, telefone: e.target.value})} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Cidade</label>
-                      <input className="form-input" value={editLeadData.cidade} onChange={e => setEditLeadData({...editLeadData, cidade: e.target.value})} />
-                    </div>
+              {/* 📋 TAB 1: GENERAL INFO */}
+              {modalTab === 'info' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
+                  {/* Call WhatsApp shortcut */}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <a 
+                      href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.nome}, vi que solicitou um orçamento para o pacote ${selectedLead.pacote}!`)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="btn"
+                      style={{ 
+                        background: '#25D366', 
+                        border: 'none', 
+                        color: 'white', 
+                        textDecoration: 'none', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '8px', 
+                        flex: 1,
+                        minHeight: 44,
+                        borderRadius: '8px',
+                        fontWeight: 'bold',
+                        fontSize: '0.88rem'
+                      }}
+                    >
+                      <FiPhone /> Abrir WhatsApp do Cliente
+                    </a>
                   </div>
-                ) : (
-                  <div className="admin-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Nome:</strong> {selectedLead.nome} {selectedLead.sobrenome}</div>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Telefone:</strong> {selectedLead.telefone}</div>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Cidade:</strong> {selectedLead.cidade}</div>
-                  </div>
-                )}
-              </div>
 
-              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Dados do Evento</h4>
-                {isEditingLead ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Data do Evento</label>
-                      <input type="date" className="form-input" value={editLeadData.dataEvento} onChange={e => setEditLeadData({...editLeadData, dataEvento: e.target.value})} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Horário</label>
-                      <input type="time" className="form-input" value={editLeadData.horarioEvento} onChange={e => setEditLeadData({...editLeadData, horarioEvento: e.target.value})} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Convidados</label>
-                      <input type="number" className="form-input" value={editLeadData.convidados} onChange={e => setEditLeadData({...editLeadData, convidados: e.target.value})} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tipo de Evento</label>
-                      <input className="form-input" value={editLeadData.tipoEvento} onChange={e => setEditLeadData({...editLeadData, tipoEvento: e.target.value})} />
-                    </div>
-                    <div style={{ gridColumn: 'span 2' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Pacote</label>
-                      <select className="form-select" value={editLeadData.pacote} onChange={e => setEditLeadData({...editLeadData, pacote: e.target.value})}>
-                        <option value="">Selecione</option>
-                        {pacotes.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  {/* Cerimonialista Parceiro */}
+                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '16px', border: '1px solid rgba(203, 161, 83, 0.12)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <FiHeart size={16} style={{ color: '#E91E63', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Cerimonialista Parceiro</label>
+                      <select
+                        value={selectedLead.cerimonialista || ''}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          await update(ref(db, `leads/${selectedLead.id}`), { cerimonialista: val });
+                          setSelectedLead(prev => ({ ...prev, cerimonialista: val }));
+                        }}
+                        className="form-select"
+                        style={{ 
+                          marginTop: 0, 
+                          background: '#050a06', 
+                          borderColor: 'rgba(203, 161, 83, 0.15)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          height: '40px',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <option value="">— Sem parceiro / Direto —</option>
+                        {Object.entries(cerimonialistas).map(([slug, c]) => (
+                          <option key={slug} value={slug}>{c.nome}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
-                ) : (
-                  <div className="admin-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Data:</strong> {selectedLead.dataEvento}</div>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Horário:</strong> {selectedLead.horarioEvento || '—'}</div>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Convidados:</strong> {selectedLead.convidados}</div>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Tipo:</strong> {selectedLead.tipoEvento}</div>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Pacote:</strong> <span style={{ color: 'var(--primary)' }}>{selectedLead.pacote}</span></div>
-                  </div>
-                )}
-              </div>
 
-              {/* Seção Equipe do Evento (Ajudantes) */}
-              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid var(--primary)' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>👥 Equipe do Evento</span>
-                  {selectedLead.ajudantes && Object.values(selectedLead.ajudantes).some(a => a.status === 'confirmado') && (
-                    <button
-                      onClick={handleSendHelperFinalConfirmation}
-                      disabled={sendingScript}
-                      className="btn btn--primary"
-                      style={{ padding: '4px 10px', fontSize: '0.75rem', height: 'auto', background: '#4CAF50', borderColor: '#4CAF50', color: '#FFF', fontWeight: 'bold' }}
-                    >
-                      🎉 Confirmar Evento c/ Equipe
-                    </button>
-                  )}
-                </h4>
-
-                {/* Seletor para adicionar ajudante */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                  <select
-                    id="add-helper-select"
-                    className="form-select"
-                    style={{ marginTop: 0, flex: 1 }}
-                    defaultValue=""
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val) {
-                        const overlap = checkHelperOverlap(val);
-                        if (overlap) {
-                          alert(`Atenção: Este ajudante já está escalado no mesmo dia em: ${overlap}`);
-                        }
-                        handleAddHelperToLead(val);
-                        e.target.value = ""; // reset select
-                      }
-                    }}
-                  >
-                    <option value="">+ Adicionar Ajudante à Equipe</option>
-                    {Object.entries(ajudantes)
-                      .filter(([slug]) => !selectedLead.ajudantes || !selectedLead.ajudantes[slug])
-                      .map(([slug, a]) => {
-                        const overlap = checkHelperOverlap(slug);
-                        return (
-                          <option key={slug} value={slug}>
-                            {a.nome} ({a.especialidade}) {overlap ? '⚠️ (Escalado)' : ''}
-                          </option>
-                        );
-                      })}
-                  </select>
-                </div>
-
-                {/* Lista de Ajudantes Escalados */}
-                {(!selectedLead.ajudantes || Object.keys(selectedLead.ajudantes).length === 0) ? (
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
-                    Nenhum ajudante escalado para este evento.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {Object.entries(selectedLead.ajudantes).map(([slug, data]) => {
-                      const helperInfo = ajudantes[slug] || { nome: slug, telefone: '', especialidade: 'Ajudante' };
-                      const overlap = checkHelperOverlap(slug);
-                      const helperData = typeof data === 'object' && data !== null ? data : { status: data };
-                      const helperStatus = helperData.status || 'pendente';
-                      
-                      return (
-                        <div key={slug} style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
-                            <div>
-                              <div style={{ fontWeight: 600, color: '#FFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                {helperInfo.nome}
-                                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'rgba(203,161,83,0.1)', padding: '1px 6px', borderRadius: '4px' }}>
-                                  {helperInfo.especialidade}
-                                </span>
-                              </div>
-                              {helperInfo.telefone && (
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                  📞 {formatPhone(helperInfo.telefone)}
-                                </div>
-                              )}
-                              {overlap && (
-                                <div style={{ fontSize: '0.75rem', color: '#FF9800', fontWeight: 'bold', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  ⚠️ Ocupado em: {overlap}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Badges de Status */}
-                            <div>
-                              {helperStatus === 'confirmado' && (
-                                <span style={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4CAF50', border: '1px solid #4CAF50', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                  ✅ Confirmado
-                                </span>
-                              )}
-                              {(helperStatus === 'indisponivel' || helperStatus === 'recusado') && (
-                                <span style={{ background: 'rgba(244, 67, 54, 0.15)', color: '#F44336', border: '1px solid #F44336', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                  ❌ {helperStatus === 'indisponivel' ? 'Indisponível' : 'Recusado'}
-                                </span>
-                              )}
-                              {helperStatus === 'pendente' && (
-                                <span style={{ background: 'rgba(255, 213, 79, 0.15)', color: '#FFD54F', border: '1px solid #FFD54F', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                  ⏳ Pendente
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Ações para o ajudante */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button
-                                onClick={() => handleSendHelperAvailabilityCheck(slug, helperInfo)}
-                                disabled={sendingScript || !helperInfo.telefone}
-                                className="btn btn--outline"
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', height: 'auto', display: 'flex', alignItems: 'center', gap: '4px', background: 'none' }}
-                                title="Perguntar disponibilidade via WhatsApp"
-                              >
-                                <FiPhone size={10} /> {helperData.perguntouEm ? 'Reenviar Pergunta' : 'Perguntar'}
-                              </button>
-                              
-                              {helperData.perguntouEm && (
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                                  Perguntou: {new Date(helperData.perguntouEm).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                              <button
-                                onClick={() => handleUpdateHelperStatus(slug, 'confirmado')}
-                                style={{ background: helperStatus === 'confirmado' ? 'rgba(76,175,80,0.15)' : 'none', border: '1px solid #4CAF50', color: '#4CAF50', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 'bold', minHeight: 36 }}
-                                title="Marcar como Confirmado"
-                              >
-                                <FiCheck size={14} /> OK
-                              </button>
-                              <button
-                                onClick={() => handleUpdateHelperStatus(slug, 'indisponivel')}
-                                style={{ background: (helperStatus === 'indisponivel' || helperStatus === 'recusado') ? 'rgba(244,67,54,0.15)' : 'none', border: '1px solid #F44336', color: '#F44336', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 'bold', minHeight: 36 }}
-                                title="Marcar como Indisponível"
-                              >
-                                <FiX size={14} /> Não
-                              </button>
-                              <div style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 4px' }} />
-                              <button
-                                onClick={() => handleRemoveHelperFromLead(slug)}
-                                style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '4px' }}
-                                title="Remover da lista"
-                              >
-                                <FiTrash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Escolhas Adicionais</h4>
-                <div style={{ fontSize: '0.9rem' }}>
-                  <div style={{ marginBottom: '8px' }}>
-                    <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Drinks Escolhidos:</strong>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {selectedLead.drinksEscolhidos?.map(d => {
-                        const drinkInfo = drinksMenu[d];
-                        const displayName = drinkInfo ? `${drinkInfo.emoji || ''} ${drinkInfo.name}`.trim() : d;
-                        return (
-                          <span key={d} style={{ background: '#333', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem' }}>{displayName}</span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Upsell Chopp:</strong> {selectedLead.upsellChopp ? 'Sim 🍺' : 'Não'}</div>
-                    <div><strong style={{ color: 'var(--text-secondary)' }}>Upsell Frozen:</strong> {selectedLead.upsellFrozen ? 'Sim ❄️' : 'Não'}</div>
-                  </div>
-                </div>
-              </div>
-
-              {selectedLead.shoppingListFinalizada && selectedLead.shoppingListResult && (
-                <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid #4CAF50' }}>
-                  <h4 style={{ margin: '0 0 12px 0', color: '#4CAF50', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>🛒 Lista de Compras Gerada</h4>
-                  <div style={{ fontSize: '0.9rem' }}>
+                  {/* Client & Event Data Forms */}
+                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                    <h4 style={{ margin: '0 0 16px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px' }}>
+                      Dados Cadastrais
+                    </h4>
                     
-                    {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Insumos e Bebidas:</strong>
-                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#FFF' }}>
-                          {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => (
-                            <li key={insumo} style={{ marginBottom: '4px' }}>
-                              {insumo}: <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
-                            </li>
-                          ))}
-                        </ul>
+                    {isEditingLead ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nome</label>
+                          <input className="form-input" value={editLeadData.nome} onChange={e => setEditLeadData({...editLeadData, nome: e.target.value})} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Sobrenome</label>
+                          <input className="form-input" value={editLeadData.sobrenome} onChange={e => setEditLeadData({...editLeadData, sobrenome: e.target.value})} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Telefone</label>
+                          <input className="form-input" value={editLeadData.telefone} onChange={e => setEditLeadData({...editLeadData, telefone: e.target.value})} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Cidade</label>
+                          <input className="form-input" value={editLeadData.cidade} onChange={e => setEditLeadData({...editLeadData, cidade: e.target.value})} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Data do Evento</label>
+                          <input type="date" className="form-input" value={editLeadData.dataEvento} onChange={e => setEditLeadData({...editLeadData, dataEvento: e.target.value})} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Horário</label>
+                          <input type="time" className="form-input" value={editLeadData.horarioEvento} onChange={e => setEditLeadData({...editLeadData, horarioEvento: e.target.value})} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Convidados</label>
+                          <input type="number" className="form-input" value={editLeadData.convidados} onChange={e => setEditLeadData({...editLeadData, convidados: e.target.value})} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tipo de Evento</label>
+                          <input className="form-input" value={editLeadData.tipoEvento} onChange={e => setEditLeadData({...editLeadData, tipoEvento: e.target.value})} />
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Pacote Contratado</label>
+                          <select className="form-select" value={editLeadData.pacote} onChange={e => setEditLeadData({...editLeadData, pacote: e.target.value})}>
+                            <option value="">Selecione</option>
+                            {pacotes.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '0.88rem' }}>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Cliente:</strong> {selectedLead.nome} {selectedLead.sobrenome || ''}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Telefone:</strong> {formatPhone(selectedLead.telefone)}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Cidade:</strong> {selectedLead.cidade || '—'}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Tipo:</strong> {selectedLead.tipoEvento || '—'}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Data:</strong> {selectedLead.dataEvento ? selectedLead.dataEvento.split('-').reverse().join('/') : '—'}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Horário:</strong> {selectedLead.horarioEvento || '—'}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Convidados:</strong> {selectedLead.convidados || '—'}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Pacote:</strong> <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{selectedLead.pacote || '—'}</span></div>
                       </div>
                     )}
-
-                    {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
-                      <div>
-                        <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Itens Fixos / Descartáveis:</strong>
-                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#FFF' }}>
-                          {selectedLead.shoppingListResult.fixos.map((item, idx) => (
-                            <li key={idx} style={{ marginBottom: '4px' }}>
-                              {item.nome}: <strong style={{ color: 'var(--primary)' }}>{item.quantidade} {item.unidade}</strong>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
                   </div>
                 </div>
               )}
 
-              {/* Histórico de Mensagens */}
-              {selectedLead.messages && (
-                <div style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '16px', marginBottom: '16px', borderLeft: '4px solid #00E5FF' }}>
-                  <h4 style={{ margin: '0 0 12px 0', color: '#00E5FF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>📋 Histórico de Mensagens</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
-                    {Object.entries(selectedLead.messages)
-                      .map(([id, msg]) => ({ id, ...msg }))
-                      .sort((a, b) => {
-                        const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
-                        const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
-                        return timeB - timeA;
-                      })
-                      .map(msg => {
-                        const typeLabels = {
-                          'orcamento': '💰 Orçamento',
-                          'script_autoridade': '📸 Autoridade',
-                          'script_escassez': '🔥 Escassez',
-                          'script_posEvento': '⭐ Pós-Evento',
-                          'lista_compras': '🛒 Lista de Compras',
-                          'notif_cerimonialista': '💌 Notif. Cerimonialista',
-                        };
-                        const label = typeLabels[msg.type] || msg.type;
-                        const dateStr = msg.sentAt ? new Date(msg.sentAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+              {/* 👥 TAB 2: STAFF & SCHEDULES */}
+              {modalTab === 'equipe' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
+                  {/* Event Team management */}
+                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '18px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '10px' }}>
+                      <h4 style={{ margin: 0, color: '#FFF', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <FiUsers style={{ color: 'var(--primary)' }} /> Equipe do Evento
+                      </h4>
+                      {selectedLead.ajudantes && Object.values(selectedLead.ajudantes).some(a => a.status === 'confirmado') && (
+                        <button
+                          onClick={handleSendHelperFinalConfirmation}
+                          disabled={sendingScript}
+                          style={{ 
+                            padding: '6px 12px', 
+                            fontSize: '0.75rem', 
+                            height: 'auto', 
+                            background: '#4CAF50', 
+                            border: 'none', 
+                            color: '#FFF', 
+                            fontWeight: 'bold',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Confirmar Evento c/ Equipe
+                        </button>
+                      )}
+                    </div>
 
-                        return (
-                          <div key={msg.id} style={{
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            padding: '8px 12px', borderRadius: '6px', fontSize: '0.85rem',
-                            background: msg.success ? 'rgba(76, 175, 80, 0.08)' : 'rgba(244, 67, 54, 0.08)',
-                            border: `1px solid ${msg.success ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)'}`,
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ color: msg.success ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
-                                {msg.success ? '✓' : '✗'}
-                              </span>
-                              <span style={{ color: '#FFF' }}>{label}</span>
+                    {/* Add Helper Selector */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                      <select
+                        id="add-helper-select"
+                        className="form-select"
+                        style={{ 
+                          marginTop: 0, 
+                          flex: 1, 
+                          background: '#050a06', 
+                          borderColor: 'rgba(203, 161, 83, 0.15)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          fontSize: '0.85rem',
+                          height: '40px'
+                        }}
+                        defaultValue=""
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val) {
+                            const overlap = checkHelperOverlap(val);
+                            if (overlap) {
+                              alert(`Atenção: Este ajudante já está escalado no mesmo dia em: ${overlap}`);
+                            }
+                            handleAddHelperToLead(val);
+                            e.target.value = ""; // reset select
+                          }
+                        }}
+                      >
+                        <option value="">+ Adicionar Ajudante à Equipe</option>
+                        {Object.entries(ajudantes)
+                          .filter(([slug]) => !selectedLead.ajudantes || !selectedLead.ajudantes[slug])
+                          .map(([slug, a]) => {
+                            const overlap = checkHelperOverlap(slug);
+                            return (
+                              <option key={slug} value={slug}>
+                                {a.nome} ({a.especialidade}) {overlap ? '⚠️ (Escalado)' : ''}
+                              </option>
+                            );
+                          })}
+                      </select>
+                    </div>
+
+                    {/* Helpers List */}
+                    {(!selectedLead.ajudantes || Object.keys(selectedLead.ajudantes).length === 0) ? (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0', border: '1px dashed rgba(203, 161, 83, 0.1)', borderRadius: '8px' }}>
+                        Nenhum ajudante escalado para este evento.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {Object.entries(selectedLead.ajudantes).map(([slug, data]) => {
+                          const helperInfo = ajudantes[slug] || { nome: slug, telefone: '', displayName: slug, especialidade: 'Ajudante' };
+                          const overlap = checkHelperOverlap(slug);
+                          const helperData = typeof data === 'object' && data !== null ? data : { status: data };
+                          const helperStatus = helperData.status || 'pendente';
+                          
+                          return (
+                            <div key={slug} style={{ background: 'rgba(255,255,255,0.01)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
+                              <div style={{ display: 'flex', justifyContext: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 600, color: '#FFF', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem' }}>
+                                    {helperInfo.nome}
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'rgba(203, 161, 83, 0.08)', border: '1px solid rgba(203, 161, 83, 0.2)', padding: '1px 6px', borderRadius: '4px' }}>
+                                      {helperInfo.especialidade}
+                                    </span>
+                                  </div>
+                                  {helperInfo.telefone && (
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                      📞 {formatPhone(helperInfo.telefone)}
+                                    </div>
+                                  )}
+                                  {overlap && (
+                                    <div style={{ fontSize: '0.72rem', color: '#FF9800', fontWeight: 'bold', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      ⚠️ Escalado em: {overlap}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Badges de Status */}
+                                <div>
+                                  {helperStatus === 'confirmado' && (
+                                    <span style={{ background: 'rgba(46, 139, 87, 0.12)', color: '#4CAF50', border: '1px solid rgba(76, 175, 80, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                      ✅ Confirmado
+                                    </span>
+                                  )}
+                                  {(helperStatus === 'indisponivel' || helperStatus === 'recusado') && (
+                                    <span style={{ background: 'rgba(139, 0, 0, 0.12)', color: '#F44336', border: '1px solid rgba(244, 67, 54, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                      ❌ {helperStatus === 'indisponivel' ? 'Indisponível' : 'Recusado'}
+                                    </span>
+                                  )}
+                                  {helperStatus === 'pendente' && (
+                                    <span style={{ background: 'rgba(203, 161, 83, 0.12)', color: '#FFD54F', border: '1px solid rgba(255, 213, 79, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                      ⏳ Pendente
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Actions for helper */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button
+                                    onClick={() => handleSendHelperAvailabilityCheck(slug, helperInfo)}
+                                    disabled={sendingScript || !helperInfo.telefone}
+                                    style={{ 
+                                      padding: '6px 10px', 
+                                      fontSize: '0.72rem', 
+                                      height: 'auto', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '4px', 
+                                      background: 'rgba(203, 161, 83, 0.05)',
+                                      border: '1px solid rgba(203, 161, 83, 0.2)',
+                                      color: 'var(--primary)',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer'
+                                    }}
+                                    title="Perguntar disponibilidade via WhatsApp"
+                                  >
+                                    <FiPhone size={10} /> {helperData.perguntouEm ? 'Reenviar Pergunta' : 'Perguntar'}
+                                  </button>
+                                  
+                                  {helperData.perguntouEm && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                                      Perguntou: {new Date(helperData.perguntouEm).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                  <button
+                                    onClick={() => handleUpdateHelperStatus(slug, 'confirmado')}
+                                    style={{ 
+                                      background: helperStatus === 'confirmado' ? 'rgba(76,175,80,0.15)' : 'none', 
+                                      border: '1px solid #4CAF50', 
+                                      color: '#4CAF50', 
+                                      cursor: 'pointer', 
+                                      padding: '4px 10px', 
+                                      borderRadius: '6px', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '4px', 
+                                      fontSize: '0.72rem', 
+                                      fontWeight: 'bold', 
+                                      minHeight: 30 
+                                    }}
+                                  >
+                                    <FiCheck size={12} /> Confirmado
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateHelperStatus(slug, 'indisponivel')}
+                                    style={{ 
+                                      background: (helperStatus === 'indisponivel' || helperStatus === 'recusado') ? 'rgba(244,67,54,0.15)' : 'none', 
+                                      border: '1px solid #F44336', 
+                                      color: '#F44336', 
+                                      cursor: 'pointer', 
+                                      padding: '4px 10px', 
+                                      borderRadius: '6px', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '4px', 
+                                      fontSize: '0.72rem', 
+                                      fontWeight: 'bold', 
+                                      minHeight: 30 
+                                    }}
+                                  >
+                                    <FiX size={12} /> Indisponível
+                                  </button>
+                                  <div style={{ width: '1px', height: '14px', background: 'var(--border-color)', margin: '0 4px' }} />
+                                  <button
+                                    onClick={() => handleRemoveHelperFromLead(slug)}
+                                    style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '4px' }}
+                                    title="Remover da equipe"
+                                  >
+                                    <FiTrash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              {msg.error && (
-                                <span title={msg.error} style={{ fontSize: '0.75rem', color: '#F44336', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {msg.error}
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 🍹 TAB 3: DRINKS & PURCHASES */}
+              {modalTab === 'drinks' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
+                  {/* Generate shopping list widget */}
+                  <div style={{ background: 'rgba(0, 229, 255, 0.03)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(0, 229, 255, 0.15)' }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#00E5FF', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.92rem' }}>
+                      🛒 Lista de Compras (Insumos)
+                    </h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '0 0 12px 0' }}>
+                      O cliente receberá um link para escolher os drinks e o sistema calculará os insumos.
+                    </p>
+                    
+                    {selectedLead.shoppingListFinalizada ? (
+                      <div style={{ padding: '10px 12px', background: 'rgba(76, 175, 80, 0.08)', border: '1px solid rgba(76, 175, 80, 0.3)', borderRadius: '6px', color: '#4CAF50', fontSize: '0.85rem' }}>
+                        ✅ <strong>O cliente já finalizou a lista!</strong> Insumos calculados e listados abaixo.
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => handleSendShoppingListViaApi(selectedLead)}
+                        disabled={sendingScript}
+                        className="btn"
+                        style={{ 
+                          borderColor: '#00E5FF', 
+                          color: '#00E5FF', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          gap: '8px', 
+                          width: '100%', 
+                          background: 'none', 
+                          cursor: sendingScript ? 'not-allowed' : 'pointer',
+                          border: '1px solid #00E5FF',
+                          minHeight: 40,
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        <FiPhone /> Enviar Link da Lista via API WhatsApp
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Chosen drinks */}
+                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                    <h4 style={{ margin: '0 0 14px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                      Escolhas de Bebidas
+                    </h4>
+                    <div style={{ fontSize: '0.88rem' }}>
+                      <div style={{ marginBottom: '14px' }}>
+                        <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Drinks Selecionados pelo Cliente:</strong>
+                        {selectedLead.drinksEscolhidos && selectedLead.drinksEscolhidos.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {selectedLead.drinksEscolhidos.map(d => {
+                              const drinkInfo = drinksMenu[d];
+                              const displayName = drinkInfo ? `${drinkInfo.emoji || '🍹'} ${drinkInfo.name}`.trim() : d;
+                              return (
+                                <span key={d} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.78rem', color: '#e8eade' }}>
+                                  {displayName}
                                 </span>
-                              )}
-                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                {dateStr}
-                              </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '0.82rem' }}>Nenhum drink selecionado ainda.</span>
+                        )}
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Upsell Chopp:</strong> {selectedLead.upsellChopp ? 'Sim 🍺' : 'Não'}</div>
+                        <div><strong style={{ color: 'var(--text-secondary)' }}>Upsell Frozen:</strong> {selectedLead.upsellFrozen ? 'Sim ❄️' : 'Não'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Shopping List Results */}
+                  {selectedLead.shoppingListFinalizada && selectedLead.shoppingListResult && (
+                    <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(76, 175, 80, 0.15)', borderLeft: '4px solid #4CAF50' }}>
+                      <h4 style={{ margin: '0 0 14px 0', color: '#4CAF50', borderBottom: '1px solid rgba(76, 175, 80, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                        🛒 Detalhes dos Insumos (Lista Calculada)
+                      </h4>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
+                        {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
+                          <div>
+                            <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Insumos e Bebidas:</strong>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                              {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => (
+                                <div key={insumo} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                  <span style={{ color: 'var(--text-secondary)' }}>{insumo}</span>
+                                  <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        );
-                      })
-                    }
+                        )}
+                        
+                        {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
+                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                            <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Itens Fixos / Descartáveis:</strong>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                              {selectedLead.shoppingListResult.fixos.map((item, idx) => (
+                                <div key={idx} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                  <span style={{ color: 'var(--text-secondary)' }}>{item.nome}</span>
+                                  <strong style={{ color: 'var(--primary)' }}>{item.quantidade} {item.unidade}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 💬 TAB 4: SCRIPTS & MESSAGES HISTORY */}
+              {modalTab === 'scripts' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
+                  
+                  {/* WhatsApp actions */}
+                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '18px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                      Disparador de Mensagens
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {/* Reenviar Orçamento */}
+                      <button 
+                        onClick={() => handleResendQuote(selectedLead)}
+                        disabled={sendingScript}
+                        style={{ 
+                          textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
+                          color: '#000', background: 'var(--primary)', 
+                          border: '1px solid var(--primary)', cursor: sendingScript ? 'not-allowed' : 'pointer', 
+                          fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
+                          borderRadius: '8px', minHeight: 40
+                        }}
+                      >
+                        <FiPhone size={14} /> Reenviar PDF de Orçamento (Completo)
+                      </button>
+
+                      {/* Script 1: Autoridade */}
+                      <button 
+                        onClick={() => handleSendEvolution('autoridade')}
+                        disabled={sendingScript}
+                        style={{ 
+                          textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
+                          color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
+                          background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
+                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 40
+                        }}
+                      >
+                        <span style={{ color: '#00E5FF', marginRight: '8px', fontWeight: 'bold' }}>📸 1. Autoridade:</span>
+                        Disparo de imagens/portfólio cadastrado.
+                      </button>
+
+                      {/* Script 2: Escassez */}
+                      <button 
+                        onClick={() => handleSendEvolution('escassez')}
+                        disabled={sendingScript}
+                        style={{ 
+                          textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
+                          color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
+                          background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
+                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 40
+                        }}
+                      >
+                        <span style={{ color: '#F44336', marginRight: '8px', fontWeight: 'bold' }}>🔥 2. Escassez:</span>
+                        Disparo de aviso de bloqueio de data/escassez.
+                      </button>
+
+                      {/* Script 3: Pós-Evento */}
+                      <button 
+                        onClick={() => handleSendEvolution('posEvento')}
+                        disabled={sendingScript}
+                        style={{ 
+                          textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
+                          color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
+                          background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
+                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 40
+                        }}
+                      >
+                        <span style={{ color: '#4CAF50', marginRight: '8px', fontWeight: 'bold' }}>⭐ 3. NPS / Pós:</span>
+                        Mensagem pós-evento (feedback/avaliação).
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Message history */}
+                  {selectedLead.messages && (
+                    <div style={{ background: '#070e09', borderRadius: '10px', padding: '18px', border: '1px solid rgba(0, 229, 255, 0.15)', borderLeft: '4px solid #00E5FF' }}>
+                      <h4 style={{ margin: '0 0 12px 0', color: '#00E5FF', borderBottom: '1px solid rgba(0, 229, 255, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                        📋 Histórico de Envios
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                        {Object.entries(selectedLead.messages)
+                          .map(([id, msg]) => ({ id, ...msg }))
+                          .sort((a, b) => {
+                            const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+                            const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+                            return timeB - timeA;
+                          })
+                          .map(msg => {
+                            const typeLabels = {
+                              'orcamento': '💰 Orçamento',
+                              'script_autoridade': '📸 Autoridade',
+                              'script_escassez': '🔥 Escassez',
+                              'script_posEvento': '⭐ NPS Pós',
+                              'lista_compras': '🛒 Lista Compras',
+                              'notif_cerimonialista': '💌 Cerimonialista',
+                            };
+                            const label = typeLabels[msg.type] || msg.type;
+                            const dateStr = msg.sentAt ? new Date(msg.sentAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
+                            return (
+                              <div key={msg.id} style={{
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                padding: '8px 12px', borderRadius: '6px', fontSize: '0.82rem',
+                                background: msg.success ? 'rgba(76, 175, 80, 0.06)' : 'rgba(244, 67, 54, 0.06)',
+                                border: `1px solid ${msg.success ? 'rgba(76, 175, 80, 0.15)' : 'rgba(244, 67, 54, 0.15)'}`,
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ color: msg.success ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
+                                    {msg.success ? '✓' : '✗'}
+                                  </span>
+                                  <span style={{ color: '#FFF' }}>{label}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  {msg.error && (
+                                    <span title={msg.error} style={{ fontSize: '0.72rem', color: '#F44336', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {msg.error}
+                                    </span>
+                                  )}
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                                    {dateStr}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        }
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
             </div>
+            
+            {/* MODAL FOOTER */}
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'flex-end', background: '#070e09' }}>
+              <button 
+                onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} 
+                style={{
+                  background: 'none',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#FFF',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
+                }}
+              >
+                Fechar
+              </button>
+            </div>
+
           </div>
         </div>
       )}
