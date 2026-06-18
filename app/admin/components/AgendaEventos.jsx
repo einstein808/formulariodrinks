@@ -234,13 +234,18 @@ export default function AgendaEventos() {
       
       {/* Modal de Detalhes do Evento */}
       {selectedEvento && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: '16px'
-        }}>
-          <div style={{
-            background: '#0a140d', width: '100%', maxWidth: '560px',
+        <div 
+          onClick={() => setSelectedEvento(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: '16px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#0a140d', width: '100%', maxWidth: '560px',
             borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.25)',
             maxHeight: '90vh', display: 'flex', flexDirection: 'column',
             boxShadow: '0 10px 40px rgba(0,0,0,0.7)',

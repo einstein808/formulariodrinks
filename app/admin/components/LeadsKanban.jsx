@@ -618,25 +618,25 @@ export default function LeadsKanban() {
 
   return (
     <div>
-      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Gestão de Leads</h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Acompanhe os orçamentos solicitados.</p>
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', width: isMobile ? '100%' : 'auto' }}>
+          <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto' }}>
             <button 
               onClick={() => setViewMode('kanban')}
               className={`btn ${viewMode === 'kanban' ? 'btn--primary' : 'btn--outline'}`} 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', width: 'auto', color: viewMode === 'kanban' ? '#000' : '#FFF' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 16px', flex: isMobile ? 1 : 'none', width: 'auto', color: viewMode === 'kanban' ? '#000' : '#FFF' }}
             >
               <FiColumns size={16} /> Kanban
             </button>
             <button 
               onClick={() => setViewMode('table')}
               className={`btn ${viewMode === 'table' ? 'btn--primary' : 'btn--outline'}`} 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', width: 'auto', color: viewMode === 'table' ? '#000' : '#FFF' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 16px', flex: isMobile ? 1 : 'none', width: 'auto', color: viewMode === 'table' ? '#000' : '#FFF' }}
             >
               <FiList size={16} /> Tabela
             </button>
@@ -645,13 +645,13 @@ export default function LeadsKanban() {
           <button 
             onClick={() => setIsAddingManual(true)}
             className="btn btn--primary" 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: isMobile ? '100%' : 'auto' }}
           >
             <FiPlus size={18} /> Novo Lead Manual
           </button>
 
           {/* Simplified Analytics Bar */}
-          <div className="admin-stats" style={{ display: 'flex', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div className="admin-stats" style={{ display: 'flex', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-around' : 'flex-start' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF' }}>{totalLeads}</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Leads</div>
@@ -932,17 +932,23 @@ export default function LeadsKanban() {
 
       {/* Modal de Detalhes do Lead */}
       {selectedLead && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: '16px'
-        }}>
-          <div style={{
-            background: '#0a140d', width: '100%', maxWidth: '680px',
-            borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.25)',
-            maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.7)',
-            animation: 'fadeInUp 0.3s ease'
+        <div 
+          onClick={() => { setSelectedLead(null); setIsEditingLead(false); }}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex',
+            alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? '0' : '16px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#0a140d', width: '100%', maxWidth: isMobile ? '100%' : '680px',
+            borderRadius: isMobile ? '20px 20px 0 0' : '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.25)',
+            maxHeight: isMobile ? '95vh' : '90vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 -4px 40px rgba(0,0,0,0.7)',
+            animation: isMobile ? 'slideUp 0.3s ease' : 'fadeInUp 0.3s ease',
+            borderBottom: isMobile ? 'none' : undefined
           }}>
             {/* HEADER */}
             <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#070e09' }}>
@@ -972,13 +978,16 @@ export default function LeadsKanban() {
               background: '#070e09', 
               borderBottom: '1px solid rgba(203, 161, 83, 0.12)',
               overflowX: 'auto',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
             }}>
               {[
-                { id: 'info', label: 'Cadastro', icon: FiList },
-                { id: 'equipe', label: 'Equipe / Escala', icon: FiUsers },
-                { id: 'drinks', label: 'Bebidas & Lista', icon: FiPackage },
-                { id: 'scripts', label: 'Ações WhatsApp', icon: FiPhone }
+                { id: 'info', label: isMobile ? 'Cadastro' : 'Cadastro', icon: FiList },
+                { id: 'equipe', label: isMobile ? 'Equipe' : 'Equipe / Escala', icon: FiUsers },
+                { id: 'drinks', label: isMobile ? 'Bebidas' : 'Bebidas & Lista', icon: FiPackage },
+                { id: 'scripts', label: isMobile ? 'WhatsApp' : 'Ações WhatsApp', icon: FiPhone }
               ].map(tab => {
                 const TabIcon = tab.icon;
                 const isActive = modalTab === tab.id;
@@ -987,25 +996,28 @@ export default function LeadsKanban() {
                     key={tab.id}
                     onClick={() => setModalTab(tab.id)}
                     style={{
-                      flex: 1,
+                      flex: isMobile ? 'none' : 1,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px',
-                      padding: '14px 16px',
+                      gap: isMobile ? '5px' : '8px',
+                      padding: isMobile ? '14px 14px' : '14px 16px',
                       background: isActive ? 'rgba(203, 161, 83, 0.05)' : 'transparent',
                       color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
                       border: 'none',
                       borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
                       cursor: 'pointer',
-                      fontSize: '0.85rem',
+                      fontSize: isMobile ? '0.78rem' : '0.85rem',
                       fontWeight: isActive ? 'bold' : 'normal',
                       transition: 'all 0.2s',
                       outline: 'none',
-                      minWidth: '120px'
+                      minWidth: isMobile ? 'auto' : '120px',
+                      minHeight: '48px',
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation'
                     }}
                   >
-                    <TabIcon size={14} />
+                    <TabIcon size={isMobile ? 13 : 14} />
                     {tab.label}
                   </button>
                 );
@@ -1676,13 +1688,18 @@ export default function LeadsKanban() {
 
       {/* Modal de Novo Lead Manual */}
       {isAddingManual && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--bg-main)', width: '100%', maxWidth: '500px',
+        <div 
+          onClick={() => setIsAddingManual(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: '20px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-main)', width: '100%', maxWidth: '500px',
             borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)',
             maxHeight: '90vh', display: 'flex', flexDirection: 'column'
           }}>

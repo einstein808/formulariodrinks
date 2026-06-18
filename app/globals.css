@@ -936,6 +936,11 @@ body {
 
 @keyframes fadeInDown {
   from { opacity: 0; transform: translateY(-16px); }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -1162,7 +1167,27 @@ body {
    Admin — Mobile Overrides (<=768px)
    ============================ */
 @media (max-width: 768px) {
-  .admin-sidebar { display: none; }
+  .admin-sidebar {
+    display: flex !important;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1100 !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100vh !important;
+    background: #070e09 !important;
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .admin-sidebar.admin-sidebar--open {
+    transform: translateX(0) !important;
+  }
+
+  .admin-sidebar-close-btn {
+    display: flex !important;
+  }
 
   .admin-mobile-header {
     display: flex;
@@ -1238,5 +1263,70 @@ body {
   .admin-calendar-day-label {
     font-size: 0.6rem !important;
     padding: 6px 2px !important;
+  }
+}
+
+/* ============================
+   Mobile Touch Improvements
+   ============================ */
+.admin-bottom-nav-item {
+  touch-action: manipulation;
+}
+
+.admin-bottom-nav-item:active {
+  transform: scale(0.92);
+}
+
+@media (max-width: 768px) {
+  .admin-mobile-header {
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .admin-main {
+    padding-top: calc(56px + env(safe-area-inset-top, 0px) + 12px) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-bottom-nav {
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .btn, button, select, a.btn {
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .admin-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .admin-header h1 {
+    font-size: 1.3rem !important;
+  }
+
+  .admin-stats {
+    width: 100% !important;
+    justify-content: space-around !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .admin-bottom-nav-item {
+    font-size: 0.58rem;
+    padding: 6px 2px;
+  }
+
+  .admin-bottom-nav-item svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .admin-main {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
 }

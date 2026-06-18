@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
-import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus } from 'react-icons/fi';
+import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 
 const LeadsKanban = dynamic(() => import('./components/LeadsKanban'), {
@@ -82,9 +82,50 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
 
-      {/* ── DESKTOP SIDEBAR ─────────────────────────────────── */}
-      <aside className="admin-sidebar" style={{ background: 'linear-gradient(180deg, #0a140d 0%, #050a06 100%)', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', width: '260px', flexShrink: 0 }}>
-        <div style={{ padding: '32px 24px', textAlign: 'center', borderBottom: '1px solid rgba(203, 161, 83, 0.1)' }}>
+      {/* ── MOBILE BACKDROP ─────────────────────────────────── */}
+      {menuOpen && (
+        <div
+          onClick={() => setMenuOpen(false)}
+          className="admin-sidebar-backdrop"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            zIndex: 1050,
+            animation: 'fadeIn 0.2s ease'
+          }}
+        />
+      )}
+
+      {/* ── DESKTOP/MOBILE SIDEBAR ─────────────────────────────────── */}
+      <aside className={`admin-sidebar ${menuOpen ? 'admin-sidebar--open' : ''}`} style={{ background: 'linear-gradient(180deg, #0a140d 0%, #050a06 100%)', borderRight: '1px solid var(--border-color)', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', width: '260px', flexShrink: 0 }}>
+        <div style={{ padding: '32px 24px', textAlign: 'center', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', position: 'relative' }}>
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="admin-sidebar-close-btn"
+            style={{
+              position: 'absolute',
+              right: '16px',
+              top: '16px',
+              background: 'transparent',
+              border: 'none',
+              color: '#FFF',
+              cursor: 'pointer',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32
+            }}
+            aria-label="Fechar menu"
+          >
+            <FiX size={20} />
+          </button>
           <img src="/logo.webp" alt="Logo" style={{ width: '90px', marginBottom: '12px' }} />
           <h2 style={{ margin: 0, fontSize: '0.95rem', fontFamily: 'Cinzel, serif', color: 'var(--primary)', letterSpacing: '1px', textTransform: 'uppercase' }}>
             Painel Admin
@@ -98,7 +139,10 @@ export default function AdminDashboard() {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setMenuOpen(false);
+                }}
                 style={{
                   width: 'calc(100% - 32px)',
                   margin: '2px 16px',
@@ -159,7 +203,25 @@ export default function AdminDashboard() {
 
       {/* ── MOBILE HEADER ───────────────────────────────────── */}
       <header className="admin-mobile-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => setMenuOpen(true)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--primary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              minWidth: 40,
+              minHeight: 40
+            }}
+            aria-label="Abrir menu"
+          >
+            <FiMenu size={24} />
+          </button>
           <img src="/logo.webp" alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
           <span style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontWeight: 700, fontSize: '0.95rem' }}>
             {activeNavItem?.label || 'Admin'}
