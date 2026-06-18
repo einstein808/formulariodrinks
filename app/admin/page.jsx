@@ -4,13 +4,35 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
 import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus } from 'react-icons/fi';
-import LeadsKanban from './components/LeadsKanban';
-import ConfigsEditor from './components/ConfigsEditor';
-import AnalyticsDashboard from './components/AnalyticsDashboard';
-import RetargetAlert from './components/RetargetAlert';
-import CerimonialstasManager from './components/CerimonialstasManager';
-import AgendaEventos from './components/AgendaEventos';
-import AjudantesManager from './components/AjudantesManager';
+import dynamic from 'next/dynamic';
+
+const LeadsKanban = dynamic(() => import('./components/LeadsKanban'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
+const ConfigsEditor = dynamic(() => import('./components/ConfigsEditor'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
+const AnalyticsDashboard = dynamic(() => import('./components/AnalyticsDashboard'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
+const RetargetAlert = dynamic(() => import('./components/RetargetAlert'), {
+  ssr: false
+});
+const CerimonialstasManager = dynamic(() => import('./components/CerimonialstasManager'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
+const AgendaEventos = dynamic(() => import('./components/AgendaEventos'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
+const AjudantesManager = dynamic(() => import('./components/AjudantesManager'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
 
 const navItems = [
   { id: 'leads',     label: 'Leads',     icon: FiUsers },
