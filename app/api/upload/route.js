@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 
 const s3Client = new S3Client({
   endpoint: 'https://s3.gabryelamaro.com',
@@ -9,6 +10,10 @@ const s3Client = new S3Client({
     secretAccessKey: 'nNN4YwBcJPtiwvRimGTDiJZp1W6SP0jKjsM46PlI',
   },
   forcePathStyle: true, // Required for MinIO
+  requestHandler: new NodeHttpHandler({
+    connectionTimeout: 300000, // 5 minutos (300.000 ms)
+    socketTimeout: 300000,     // 5 minutos (300.000 ms)
+  }),
 });
 
 export async function POST(request) {

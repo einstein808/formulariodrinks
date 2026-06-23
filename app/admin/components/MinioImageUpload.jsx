@@ -1,41 +1,151 @@
 import React, { useState } from 'react';
 import { FiUploadCloud } from 'react-icons/fi';
 
-export default function MinioImageUpload({ value, onChange, placeholder = 'https://link-da-imagem.jpg' }) {
+const compressImage = (file, maxWidth = 1280, quality = 0.7) => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
+export default function MinioImageUpload({ value, onChange, placeholder = 'https://link-da-imagem.jpg', accept = 'image/*' }) {
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Apenas imagens
-    if (!file.type.startsWith('image/')) {
+    // Validação de tipo de arquivo baseado no accept
+    const isImage = accept.includes('image');
+    const isVideo = accept.includes('video');
+
+    if (isImage && !file.type.startsWith('image/')) {
       alert('Por favor, selecione apenas arquivos de imagem.');
+      return;
+    }
+    if (isVideo && !file.type.startsWith('video/')) {
+      alert('Por favor, selecione apenas arquivos de vídeo.');
       return;
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    setUploadProgress(0);
 
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Erro ao subir imagem.');
-
-      const data = await response.json();
-      if (data.url) {
-        onChange(data.url);
+    let fileToUpload = file;
+    if (isImage) {
+      if (file.type === 'image/gif') {
+        const fileSizeInMB = file.size / (1024 * 1024);
+        if (fileSizeInMB > 5) {
+          const confirmUpload = window.confirm(
+            `Este GIF tem ${fileSizeInMB.toFixed(1)}MB. GIFs animados não podem ser comprimidos no navegador para não perderem a animação. O upload pode demorar alguns minutos. Deseja continuar?`
+          );
+          if (!confirmUpload) {
+            setUploading(false);
+            return;
+          }
+        }
+      } else {
+        try {
+          fileToUpload = await compressImage(file);
+        } catch (err) {
+          console.error("Erro na compressão:", err);
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('Ocorreu um erro ao fazer o upload da imagem.');
-    } finally {
-      setUploading(false);
+    } else if (isVideo) {
+      const fileSizeInMB = file.size / (1024 * 1024);
+      if (fileSizeInMB > 30) {
+        const confirmUpload = window.confirm(
+          `Este vídeo tem ${fileSizeInMB.toFixed(1)}MB. Vídeos maiores que 30MB podem falhar no upload devido a limites de conexão do servidor (Timeouts de Nginx/Cloudflare). Deseja tentar mesmo assim?`
+        );
+        if (!confirmUpload) {
+          setUploading(false);
+          return;
+        }
+      }
     }
+
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload');
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.url) {
+            onChange(data.url);
+          } else {
+            alert('Erro ao subir arquivo: resposta inválida do servidor.');
+          }
+        } catch (e) {
+          alert('Erro ao processar resposta do servidor.');
+        }
+      } else {
+        alert(`Erro ao subir arquivo (${xhr.status}).`);
+      }
+      setUploading(false);
+      setUploadProgress(0);
+    };
+
+    xhr.onerror = () => {
+      alert('Ocorreu um erro de conexão ao fazer o upload do arquivo.');
+      setUploading(false);
+      setUploadProgress(0);
+    };
+
+    xhr.send(formData);
   };
 
   return (
@@ -56,12 +166,16 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
               justifyContent: 'center'
             }}
           >
-            <img 
-              src={value} 
-              alt="Preview" 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
+            {value.match(/\.(mp4|webm|ogg|mov|avi|mkv)(\?.*)?$/i) || accept.includes('video') ? (
+              <span style={{ fontSize: '1.2rem' }}>🎬</span>
+            ) : (
+              <img 
+                src={value} 
+                alt="Preview" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            )}
           </div>
         )}
         <label 
@@ -86,10 +200,10 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(203, 161, 83, 0.08)'; }}
         >
           <FiUploadCloud size={16} />
-          {uploading ? 'Enviando imagem... ⏳' : 'Selecionar Foto'}
+          {uploading ? `Enviando... ${uploadProgress}% ⏳` : accept.includes('video') ? 'Selecionar Vídeo' : 'Selecionar Foto'}
           <input 
             type="file" 
-            accept="image/*" 
+            accept={accept} 
             onChange={handleFileChange} 
             disabled={uploading}
             style={{ display: 'none' }} 

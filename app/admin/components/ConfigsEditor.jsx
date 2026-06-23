@@ -699,20 +699,14 @@ export default function ConfigsEditor() {
                           <option value="imagem">🖼️ Imagem</option>
                           <option value="video">🎬 Vídeo</option>
                         </select>
-                        {midia.tipo === 'imagem' ? (
-                          <div style={{ flex: 1 }}>
-                            <MinioImageUpload value={midia.url} onChange={(url) => updateMidia(evento.id, idx, 'url', url)} placeholder="https://link-da-imagem.jpg" />
-                          </div>
-                        ) : (
-                          <input
-                            type="text"
-                            className="form-input"
-                            value={midia.url || ''}
-                            onChange={(e) => updateMidia(evento.id, idx, 'url', e.target.value)}
-                            placeholder="https://...video.mp4"
-                            style={{ flex: 1 }}
+                        <div style={{ flex: 1 }}>
+                          <MinioImageUpload 
+                            value={midia.url} 
+                            onChange={(url) => updateMidia(evento.id, idx, 'url', url)} 
+                            placeholder={midia.tipo === 'video' ? "https://link-do-video.mp4" : "https://link-da-imagem.jpg"} 
+                            accept={midia.tipo === 'video' ? "video/*" : "image/*"}
                           />
-                        )}
+                        </div>
                         <button onClick={() => removeMidia(evento.id, idx)} style={{ background: 'none', color: '#F44336', border: 'none', cursor: 'pointer', padding: '8px', flexShrink: 0 }}>
                           <FiTrash2 size={16} />
                         </button>
