@@ -139,6 +139,7 @@ export default function Portfolio() {
   const [pacotes, setPacotes] = useState([]);
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [galeria, setGaleria] = useState([]);
+  const [tiposEvento, setTiposEvento] = useState([]);
   const [loading, setLoading] = useState(true);
   const [eventoAberto, setEventoAberto] = useState(null);
   const [midiaAtual, setMidiaAtual] = useState(0);
@@ -173,6 +174,12 @@ export default function Portfolio() {
                 return (a.order ?? 0) - (b.order ?? 0);
               });
             setGaleria(galeriaArray);
+          }
+          if (configData.tiposEvento) {
+            const tiposArray = Object.entries(configData.tiposEvento)
+              .map(([id, val]) => ({ id, ...val }))
+              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            setTiposEvento(tiposArray);
           }
         }
 
@@ -246,7 +253,139 @@ export default function Portfolio() {
         </p>
       </header>
 
-      {/* Packages Section */}
+      {/* 1. Testimonials */}
+      {avaliacoes.length > 0 && (
+        <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ maxWidth: 800, margin: '0 auto' }}>
+            <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+              O Melhor Serviço de Bartender de JF
+              <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
+            </h2>
+            <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
+              {avaliacoes.map((ava, idx) => (
+                <div key={idx} style={{ 
+                  minWidth: 300, flex: '0 0 300px', background: 'var(--bg-card)', padding: 24, borderRadius: 16, 
+                  border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 16
+                }}>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[...Array(ava.stars)].map((_, i) => <FiStar key={i} size={18} fill="#FFC107" color="#FFC107" />)}
+                  </div>
+                  <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, flex: 1, lineHeight: 1.5 }}>
+                    "{ava.feedback}"
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
+                    <div style={{ width: 40, height: 40, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
+                      {ava.nome.charAt(0)}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>{ava.nome}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 2. Galeria de Eventos Realizados */}
+      {galeria.length > 0 && (
+        <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+            Eventos Realizados: Barman em Casamentos e Festas em JF
+            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
+          </h2>
+
+          <div className="galeria-grid">
+            {(verTodosEventos ? galeria : galeria.slice(0, 3)).map(evento => (
+              <EventoCard
+                key={evento.id}
+                evento={evento}
+                onOpen={abrirEvento}
+                formatDate={formatDate}
+              />
+            ))}
+          </div>
+
+          {galeria.length > 3 && (
+            <div style={{ textAlign: 'center', marginTop: 32 }}>
+              <button
+                onClick={() => setVerTodosEventos(v => !v)}
+                className="btn btn--outline"
+                style={{ minHeight: 48, minWidth: 200, fontSize: '1rem', fontWeight: 600 }}
+              >
+                {verTodosEventos ? '↑ Ver menos' : `Ver todos os ${galeria.length} eventos`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 3. Tipos de Eventos que Atendemos */}
+      <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+          Bar para Diferentes Eventos
+          <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
+        </h2>
+
+        <div className="eventos-grid">
+          {(tiposEvento.length > 0 ? tiposEvento : [
+            { id: 'casamento', label: 'Casamento', icon: '💍' },
+            { id: 'aniversario', label: 'Aniversário', icon: '🎂' },
+            { id: 'corporativo', label: 'Corporativo', icon: '🏢' },
+            { id: 'formatura', label: 'Formatura', icon: '🎓' },
+            { id: 'confraternizacao', label: 'Confraternização', icon: '🎉' },
+            { id: 'cha-bar', label: 'Chá Bar', icon: '🍸' },
+            { id: 'debutante', label: 'Debutante', icon: '👑' },
+          ]).map((item) => {
+            const descricoes = {
+              casamento: "O brinde perfeito para o seu grande dia. Um bar sofisticado com coquetéis personalizados e atendimento premium para encantar seus convidados.",
+              aniversario: "Celebre a vida com muito estilo. Estruturas completas de bar temático que encantam convidados de todas as idades com drinks incríveis.",
+              corporativo: "Sofisticação e profissionalismo para sua marca. Ideal para confraternizações, lançamentos e congressos que exigem excelência.",
+              formatura: "A celebração máxima da sua conquista. Drinks instagramáveis, dezenas de opções e muita energia para fazer sua noite histórica.",
+              confraternizacao: "Reúna amigos ou colaboradores com o melhor bar. Drinks descontraídos e clássicos preparados por barmen profissionais.",
+              'cha-bar': "Comemore seu chá bar com coquetéis personalizados, brincadeiras temáticas e muita diversão antes do grande dia.",
+              debutante: "Os 15 anos merecem um bar dos sonhos. Coquetéis sem álcool super coloridos, milkshakes especiais e drinks premium para os adultos."
+            };
+            return (
+              <div 
+                key={item.id} 
+                className="evento-tipo-card"
+                onClick={() => router.push(`/eventos/${item.id}`)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div style={{ height: 180, background: '#111', position: 'relative', overflow: 'hidden', borderRadius: '12px', marginBottom: 16 }}>
+                  {item.image ? (
+                    <img 
+                      src={item.image} 
+                      alt={item.label} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} 
+                      className="evento-tipo-img" 
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0a140d, #1a2a1d)' }}>
+                      <span style={{ fontSize: '3rem' }}>{item.icon}</span>
+                    </div>
+                  )}
+                  <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', border: '1px solid rgba(255,255,255,0.12)' }}>
+                    {item.icon}
+                  </div>
+                </div>
+                <h3 className="evento-tipo-title">{item.label}</h3>
+                <p className="evento-tipo-desc">
+                  {item.desc || descricoes[item.id] || "Estrutura de bar completa com atendimento profissional e coquetéis personalizados para o seu evento."}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 4. Packages Section */}
       {pacotes.length > 0 && (
         <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
           <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
@@ -319,41 +458,7 @@ export default function Portfolio() {
         </section>
       )}
 
-      {/* Galeria de Eventos Realizados */}
-      {galeria.length > 0 && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '32px 16px', maxWidth: 1200, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
-            Eventos Realizados: Barman em Casamentos e Festas em JF
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
-          </h2>
-
-          <div className="galeria-grid">
-            {(verTodosEventos ? galeria : galeria.slice(0, 3)).map(evento => (
-              <EventoCard
-                key={evento.id}
-                evento={evento}
-                onOpen={abrirEvento}
-                formatDate={formatDate}
-              />
-            ))}
-          </div>
-
-          {galeria.length > 3 && (
-            <div style={{ textAlign: 'center', marginTop: 32 }}>
-              <button
-                onClick={() => setVerTodosEventos(v => !v)}
-                className="btn btn--outline"
-                style={{ minHeight: 48, minWidth: 200, fontSize: '1rem', fontWeight: 600 }}
-              >
-                {verTodosEventos ? '↑ Ver menos' : `Ver todos os ${galeria.length} eventos`}
-              </button>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Drinks Gallery */}
+      {/* 5. Drinks Gallery */}
       <section style={{ position: 'relative', zIndex: 10, padding: '32px 16px', maxWidth: 1000, margin: '0 auto' }}>
         <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
@@ -391,41 +496,6 @@ export default function Portfolio() {
         )}
       </section>
 
-      {/* Testimonials */}
-      {avaliacoes.length > 0 && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '60px 24px', background: 'rgba(0,0,0,0.5)', marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ maxWidth: 800, margin: '0 auto' }}>
-            <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 40 }}>
-              Avaliações: O Melhor Serviço de Bartender de Juiz de Fora
-            </h2>
-            <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
-              {avaliacoes.map((ava, idx) => (
-                <div key={idx} style={{ 
-                  minWidth: 300, flex: '0 0 300px', background: 'var(--bg-card)', padding: 24, borderRadius: 16, 
-                  border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 16
-                }}>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {[...Array(ava.stars)].map((_, i) => <FiStar key={i} size={18} fill="#FFC107" color="#FFC107" />)}
-                  </div>
-                  <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, flex: 1, lineHeight: 1.5 }}>
-                    "{ava.feedback}"
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
-                    <div style={{ width: 40, height: 40, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
-                      {ava.nome.charAt(0)}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>{ava.nome}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Fixed CTA */}
       <div style={{ 
         position: 'fixed', bottom: 0, left: 0, right: 0, padding: 20, 
@@ -456,6 +526,48 @@ export default function Portfolio() {
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           gap: 20px;
         }
+        .eventos-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 24px;
+        }
+        .evento-tipo-card {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(203, 161, 83, 0.1);
+          border-radius: 16px;
+          padding: 20px;
+          text-align: center;
+          transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          flex-direction: column;
+        }
+        .evento-tipo-card:hover {
+          transform: translateY(-6px);
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(203, 161, 83, 0.4);
+          box-shadow: 0 12px 30px rgba(203, 161, 83, 0.15);
+        }
+        .evento-tipo-card:hover .evento-tipo-img {
+          transform: scale(1.08);
+        }
+        .evento-tipo-icon {
+          font-size: 2.5rem;
+          margin-bottom: 16px;
+          filter: drop-shadow(0 0 8px rgba(203, 161, 83, 0.2));
+        }
+        .evento-tipo-title {
+          font-family: var(--font-cinzel), serif;
+          font-size: 1.25rem;
+          color: #FFF;
+          margin: 0 0 12px 0;
+          letter-spacing: 0.05em;
+        }
+        .evento-tipo-desc {
+          font-size: 0.88rem;
+          color: var(--text-secondary);
+          line-height: 1.6;
+          margin: 0;
+        }
 
         /* Mobile: 1 coluna */
         @media (max-width: 600px) {
@@ -467,6 +579,10 @@ export default function Portfolio() {
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
           }
+          .eventos-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
         }
 
         /* Tablet: 2 colunas para galeria */
@@ -475,6 +591,9 @@ export default function Portfolio() {
             grid-template-columns: repeat(2, 1fr);
           }
           .drinks-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .eventos-grid {
             grid-template-columns: repeat(2, 1fr);
           }
         }

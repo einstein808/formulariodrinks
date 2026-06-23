@@ -36,6 +36,7 @@ export default function ConfigsEditor() {
     contrato: { text: '', image: '' }
   });
   const [galeria, setGaleria] = useState([]);
+  const [tiposEvento, setTiposEvento] = useState([]);
   
   // Shopping List Config
   const [shoppingConfig, setShoppingConfig] = useState({
@@ -56,6 +57,7 @@ export default function ConfigsEditor() {
         if (data.scripts) setScripts(data.scripts);
         if (data.galeriaEventos) setGaleria(firebaseObjToArray(data.galeriaEventos));
         if (data.shoppingConfig) setShoppingConfig(data.shoppingConfig);
+        if (data.tiposEvento) setTiposEvento(firebaseObjToArray(data.tiposEvento));
       }
       setLoading(false);
     });
@@ -81,6 +83,9 @@ export default function ConfigsEditor() {
         await set(ref(db, 'config/galeriaEventos'), arrayToFirebaseObj(sorted));
       } else if (activeTab === 'shopping') {
         await set(ref(db, 'config/shoppingConfig'), shoppingConfig);
+      } else if (activeTab === 'eventos') {
+        const sorted = tiposEvento.map((t, i) => ({ ...t, order: i }));
+        await set(ref(db, 'config/tiposEvento'), arrayToFirebaseObj(sorted));
       }
       alert('Configurações salvas com sucesso!');
     } catch (err) {
@@ -199,6 +204,20 @@ export default function ConfigsEditor() {
     }));
   };
 
+  /* TiposEvento Handlers */
+  const addTipoEvento = () => {
+    const newId = `evento-${Date.now()}`;
+    setTiposEvento([...tiposEvento, { id: newId, label: 'Novo Tipo de Evento', icon: '✨', image: '', desc: '' }]);
+  };
+  const updateTipoEvento = (id, field, value) => {
+    setTiposEvento(tiposEvento.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+  const removeTipoEvento = (id) => {
+    if (window.confirm('Remover este tipo de evento?')) {
+      setTiposEvento(tiposEvento.filter(t => t.id !== id));
+    }
+  };
+
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>;
   }
@@ -262,6 +281,16 @@ export default function ConfigsEditor() {
           🎥 Galeria de Eventos
         </button>
         <button
+          onClick={() => setActiveTab('eventos')}
+          style={{
+            background: activeTab === 'eventos' ? 'var(--primary)' : 'transparent',
+            color: activeTab === 'eventos' ? '#000' : '#FFF',
+            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
+          }}
+        >
+          ✨ Tipos de Eventos
+        </button>
+        <button
           onClick={() => setActiveTab('shopping')}
           style={{
             background: activeTab === 'shopping' ? 'var(--primary)' : 'transparent',
@@ -282,7 +311,7 @@ export default function ConfigsEditor() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {drinks.map((drink) => (
               <div key={drink.id} className="admin-config-row" style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <div style={{ width: '60px' }}>
                     <label className="form-label" style={{ fontSize: '0.8rem' }}>Emoji</label>
                     <input type="text" className="form-input" value={drink.emoji || ''} onChange={(e) => updateDrink(drink.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
@@ -660,7 +689,7 @@ export default function ConfigsEditor() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {(evento.midias || []).map((midia, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
                         <select
                           className="form-select"
                           value={midia.tipo || 'imagem'}
@@ -822,6 +851,60 @@ export default function ConfigsEditor() {
             <div style={{ marginTop: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               <strong>Dica de cálculo:</strong> Se você usa 1 saco de gelo a cada 10 pessoas, a "Qtd por Convidado" é <strong>0.1</strong>. 
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'eventos' && (
+        <div>
+          <button className="btn btn--outline" onClick={addTipoEvento} style={{ marginBottom: '16px', width: 'auto' }}>
+            <FiPlus /> Adicionar Tipo de Evento
+          </button>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {tiposEvento.map((tipo) => (
+              <div key={tipo.id} style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, color: 'var(--primary)' }}>{tipo.label || 'Sem Nome'}</h3>
+                  <button onClick={() => removeTipoEvento(tipo.id)} style={{ background: 'none', color: '#F44336', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiTrash2 /> Excluir Tipo de Evento
+                  </button>
+                </div>
+
+                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label className="form-label">ID / Slug da Página (ex: casamento)</label>
+                    <input type="text" className="form-input" value={tipo.id} onChange={(e) => updateTipoEvento(tipo.id, 'id', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label">Nome / Título</label>
+                    <input type="text" className="form-input" value={tipo.label || ''} onChange={(e) => updateTipoEvento(tipo.id, 'label', e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label className="form-label">Ícone/Emoji (ex: 💍)</label>
+                    <input type="text" className="form-input" value={tipo.icon || ''} onChange={(e) => updateTipoEvento(tipo.id, 'icon', e.target.value)} style={{ textAlign: 'center' }} />
+                  </div>
+                  <div>
+                    <label className="form-label">Imagem da Capa (MinIO)</label>
+                    <MinioImageUpload value={tipo.image} onChange={(url) => updateTipoEvento(tipo.id, 'image', url)} placeholder="https://link-da-imagem.jpg" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label">Descrição / Detalhes do Evento</label>
+                  <textarea 
+                    className="form-input" 
+                    value={tipo.desc || ''} 
+                    onChange={(e) => updateTipoEvento(tipo.id, 'desc', e.target.value)} 
+                    style={{ minHeight: '100px', resize: 'vertical' }}
+                    placeholder="Descreva a experiência de bar para este tipo de evento..."
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

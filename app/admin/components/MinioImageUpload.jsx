@@ -39,8 +39,8 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
         {value && (
           <div 
             style={{ 
@@ -79,7 +79,8 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
             fontWeight: 'bold',
             transition: 'all 0.2s',
             opacity: uploading ? 0.6 : 1,
-            pointerEvents: uploading ? 'none' : 'auto'
+            pointerEvents: uploading ? 'none' : 'auto',
+            flexShrink: 0
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(203, 161, 83, 0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(203, 161, 83, 0.08)'; }}
@@ -101,6 +102,7 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
         value={value || ''} 
         onChange={(e) => onChange(e.target.value)} 
         placeholder={placeholder}
+        style={{ width: '100%' }}
       />
     </div>
   );
