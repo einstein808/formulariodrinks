@@ -31,7 +31,8 @@ export default function ConfigsEditor() {
   const [scripts, setScripts] = useState({
     autoridade: { text: '', image: '' },
     escassez: { text: '', image: '' },
-    posEvento: { text: '', image: '' }
+    posEvento: { text: '', image: '' },
+    contrato: { text: '', image: '' }
   });
   const [galeria, setGaleria] = useState([]);
   
@@ -92,7 +93,7 @@ export default function ConfigsEditor() {
   /* Drinks Handlers */
   const addDrink = () => {
     const newId = `drink-${Date.now()}`;
-    setDrinks([...drinks, { id: newId, name: 'Novo Drink', emoji: '🍹' }]);
+    setDrinks([...drinks, { id: newId, name: 'Novo Drink', emoji: '🍹', category: 'alcool' }]);
   };
   const updateDrink = (id, field, value) => {
     setDrinks(drinks.map(d => d.id === id ? { ...d, [field]: value } : d));
@@ -128,7 +129,7 @@ export default function ConfigsEditor() {
   /* Pacotes Handlers */
   const addPacote = () => {
     const newId = `pacote-${Date.now()}`;
-    setPacotes([...pacotes, { id: newId, name: 'Novo Pacote', emoji: '📦', price: 'R$ 0,00', priceLabel: 'convidado', features: ['Feature 1'] }]);
+    setPacotes([...pacotes, { id: newId, name: 'Novo Pacote', emoji: '📦', price: 'R$ 0,00', priceLabel: 'convidado', hoursLimit: 5, extraHourPrice: 'R$ 5,00', features: ['Feature 1'] }]);
   };
   const updatePacote = (id, field, value) => {
     setPacotes(pacotes.map(p => p.id === id ? { ...p, [field]: value } : p));
@@ -297,9 +298,22 @@ export default function ConfigsEditor() {
                     <label className="form-label" style={{ fontSize: '0.8rem' }} title="Maior peso significa que sai mais na festa">Peso (1-10)</label>
                     <input type="number" className="form-input" value={drink.popularityWeight || ''} onChange={(e) => updateDrink(drink.id, 'popularityWeight', Number(e.target.value))} min="1" max="10" placeholder="5" />
                   </div>
-                  <div style={{ width: '90px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Sem Álcool?</label>
-                    <input type="checkbox" checked={drink.isNonAlcoholic || false} onChange={(e) => updateDrink(drink.id, 'isNonAlcoholic', e.target.checked)} style={{ width: '20px', height: '20px', marginTop: '4px', cursor: 'pointer' }} />
+                  <div style={{ width: '140px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Categoria</label>
+                    <select
+                      className="form-select"
+                      value={drink.category || (drink.isNonAlcoholic ? 'sem_alcool' : 'alcool')}
+                      onChange={(e) => {
+                        const cat = e.target.value;
+                        setDrinks(drinks.map(d => d.id === drink.id ? { ...d, category: cat, isNonAlcoholic: cat === 'sem_alcool' } : d));
+                      }}
+                      style={{ padding: '8px', fontSize: '0.85rem', width: '100%' }}
+                    >
+                      <option value="alcool">🍸 Alcoólico</option>
+                      <option value="sem_alcool">🧃 Sem Álcool</option>
+                      <option value="sofisticado">✨ Sofisticado</option>
+                      <option value="frozen">❄️ Frozen</option>
+                    </select>
                   </div>
                   <button onClick={() => removeDrink(drink.id)} style={{ background: 'rgba(244, 67, 54, 0.1)', color: '#F44336', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer', marginTop: '20px' }}>
                     <FiTrash2 size={18} />
@@ -379,6 +393,17 @@ export default function ConfigsEditor() {
                   <div>
                     <label className="form-label">Unidade (ex: convidado)</label>
                     <input type="text" className="form-input" value={pacote.priceLabel || ''} onChange={(e) => updatePacote(pacote.id, 'priceLabel', e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label className="form-label">Limite de Horas Sem Acréscimo (ex: 5)</label>
+                    <input type="number" className="form-input" value={pacote.hoursLimit !== undefined ? pacote.hoursLimit : 5} onChange={(e) => updatePacote(pacote.id, 'hoursLimit', parseInt(e.target.value, 10) || 5)} />
+                  </div>
+                  <div>
+                    <label className="form-label">Valor Hora Adicional (ex: R$ 5,00 ou R$ 70,00)</label>
+                    <input type="text" className="form-input" value={pacote.extraHourPrice || ''} onChange={(e) => updatePacote(pacote.id, 'extraHourPrice', e.target.value)} placeholder="Ex: R$ 5,00 ou R$ 70,00" />
                   </div>
                 </div>
 
@@ -510,6 +535,21 @@ export default function ConfigsEditor() {
               />
               <label className="form-label">URL da Imagem/Foto ou Link (opcional)</label>
               <input type="text" className="form-input" value={scripts.posEvento?.image || ''} onChange={(e) => setScripts({ ...scripts, posEvento: { ...scripts.posEvento, image: e.target.value } })} placeholder="https://..." />
+            </div>
+
+            {/* Contrato */}
+            <div style={{ marginBottom: '32px' }}>
+              <h4 style={{ color: '#FFF', marginBottom: '12px' }}>✍️ 4. Envio de Contrato</h4>
+              <textarea 
+                className="form-input" 
+                rows={4} 
+                value={scripts.contrato?.text || ''} 
+                onChange={(e) => setScripts({ ...scripts, contrato: { ...scripts.contrato, text: e.target.value } })} 
+                style={{ resize: 'vertical', marginBottom: '12px' }}
+                placeholder="Ex: Olá {{nome}}! Preencha seus dados de contrato e escolha seus drinks acessando: {{linkContrato}}"
+              />
+              <label className="form-label">URL da Imagem/Foto ou Link (opcional)</label>
+              <input type="text" className="form-input" value={scripts.contrato?.image || ''} onChange={(e) => setScripts({ ...scripts, contrato: { ...scripts.contrato, image: e.target.value } })} placeholder="https://..." />
             </div>
 
             <hr style={{ borderColor: 'var(--border-color)', margin: '32px 0' }} />

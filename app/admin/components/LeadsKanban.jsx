@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, update, remove, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck, FiUsers, FiPackage } from 'react-icons/fi';
+import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck, FiUsers, FiFileText } from 'react-icons/fi';
+import { FiPackage as FiPackageIcon } from 'react-icons/fi';
 import { sendWhatsAppQuote, logMessageToLead } from '../../../lib/whatsappService';
 
 const COLUMNS = [
@@ -432,8 +433,13 @@ export default function LeadsKanban() {
       return;
     }
     
-    const scriptConfig = scripts?.[scriptType];
-    if (!scriptConfig || !scriptConfig.text) {
+    let scriptConfig = scripts?.[scriptType];
+    if (scriptType === 'contrato' && (!scriptConfig || !scriptConfig.text)) {
+      scriptConfig = {
+        text: "Olá {{nome}},\n\nPara gerarmos o contrato do seu evento no dia {{dataEvento}}, por favor preencha os seus dados de contratante e selecione os drinks da sua festa acessando o link abaixo:\n\n{{linkContrato}}\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\nEquipe Formulário Drinks",
+        image: ""
+      };
+    } else if (!scriptConfig || !scriptConfig.text) {
       alert("O texto deste script não está configurado. Vá até as configurações para escrevê-lo.");
       return;
     }
@@ -465,6 +471,9 @@ export default function LeadsKanban() {
         }
       }
 
+      // Preparar Link do Contrato
+      const linkContrato = `${baseSiteUrl}/contrato/${selectedLead.id}`;
+
       // Substituir variáveis
       let finalText = scriptConfig.text
         .replace(/\{\{nome\}\}/g, selectedLead.nome || '')
@@ -473,7 +482,8 @@ export default function LeadsKanban() {
         .replace(/\{\{mes\}\}/g, mesNome)
         .replace(/\{\{ano\}\}/g, anoEvento)
         .replace(/\{\{cidade\}\}/g, selectedLead.cidade || '')
-        .replace(/\{\{linkAvaliacao\}\}/g, linkAvaliacao);
+        .replace(/\{\{linkAvaliacao\}\}/g, linkAvaliacao)
+        .replace(/\{\{linkContrato\}\}/g, linkContrato);
 
       const number = '55' + selectedLead.telefone.replace(/\D/g, '');
       const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
@@ -986,7 +996,7 @@ export default function LeadsKanban() {
               {[
                 { id: 'info', label: isMobile ? 'Cadastro' : 'Cadastro', icon: FiList },
                 { id: 'equipe', label: isMobile ? 'Equipe' : 'Equipe / Escala', icon: FiUsers },
-                { id: 'drinks', label: isMobile ? 'Bebidas' : 'Bebidas & Lista', icon: FiPackage },
+                { id: 'drinks', label: isMobile ? 'Bebidas' : 'Bebidas & Lista', icon: FiPackageIcon },
                 { id: 'scripts', label: isMobile ? 'WhatsApp' : 'Ações WhatsApp', icon: FiPhone }
               ].map(tab => {
                 const TabIcon = tab.icon;
@@ -1556,6 +1566,21 @@ export default function LeadsKanban() {
                         <FiPhone size={14} /> Reenviar PDF de Orçamento (Completo)
                       </button>
 
+                      {/* Enviar Contrato */}
+                      <button 
+                        onClick={() => handleSendEvolution('contrato')}
+                        disabled={sendingScript}
+                        style={{ 
+                          textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
+                          color: '#000', background: 'var(--primary)', 
+                          border: '1px solid var(--primary)', cursor: sendingScript ? 'not-allowed' : 'pointer', 
+                          fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
+                          borderRadius: '8px', minHeight: 40
+                        }}
+                      >
+                        <FiFileText size={14} /> Enviar Contrato via WhatsApp
+                      </button>
+
                       {/* Script 1: Autoridade */}
                       <button 
                         onClick={() => handleSendEvolution('autoridade')}
@@ -1623,6 +1648,7 @@ export default function LeadsKanban() {
                               'script_autoridade': '📸 Autoridade',
                               'script_escassez': '🔥 Escassez',
                               'script_posEvento': '⭐ NPS Pós',
+                              'script_contrato': '📄 Contrato',
                               'lista_compras': '🛒 Lista Compras',
                               'notif_cerimonialista': '💌 Cerimonialista',
                             };

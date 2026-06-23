@@ -1,0 +1,592 @@
+{
+  "name": "Gerador de contrato Pdf1",
+  "nodes": [
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Contrato de Prestação de Serviços de Barman</title>\n  <style>\n    :root {\n      --text: #1f2937;\n      --muted: #6b7280;\n      --border: #d1d5db;\n      --title: #111827;\n      --bg: #ffffff;\n      --soft: #f9fafb;\n      --accent: #111827;\n      --accent-soft: #e5e7eb;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      margin: 0;\n      background: #f3f4f6;\n      font-family: Arial, Helvetica, sans-serif;\n      color: var(--text);\n      line-height: 1.55;\n      padding: 24px;\n      font-size: 13.5px;\n    }\n\n    .page {\n      width: 100%;\n      max-width: 900px;\n      margin: 0 auto;\n      background: var(--bg);\n      padding: 42px 46px;\n      border-radius: 14px;\n      box-shadow: 0 12px 34px rgba(0,0,0,0.08);\n      border: 1px solid #e5e7eb;\n    }\n\n    .header {\n      border-bottom: 2px solid var(--accent);\n      padding-bottom: 18px;\n      margin-bottom: 26px;\n    }\n\n    .header h1 {\n      text-align: center;\n      font-size: 23px;\n      margin: 0 0 8px;\n      color: var(--title);\n      text-transform: uppercase;\n      letter-spacing: 0.6px;\n    }\n\n    .header p {\n      text-align: center;\n      margin: 0;\n      color: var(--muted);\n      font-size: 13px;\n    }\n\n    .box {\n      background: var(--soft);\n      border: 1px solid var(--border);\n      border-radius: 10px;\n      padding: 16px 18px;\n      margin-bottom: 22px;\n    }\n\n    .box-grid {\n      display: grid;\n      grid-template-columns: 1fr 1fr;\n      gap: 14px 22px;\n    }\n\n    .item {\n      margin: 0;\n    }\n\n    .label {\n      font-weight: bold;\n      color: var(--title);\n    }\n\n    .intro {\n      margin: 0 0 16px;\n      text-align: justify;\n    }\n\n    .clausula {\n      margin-top: 24px;\n      page-break-inside: avoid;\n    }\n\n    .clausula h2 {\n      font-size: 16px;\n      margin: 0 0 12px;\n      color: var(--title);\n      text-transform: uppercase;\n      border-left: 5px solid var(--accent);\n      padding: 8px 12px;\n      background: #f8fafc;\n      border-radius: 6px;\n    }\n\n    .clausula p {\n      margin: 0 0 10px;\n      text-align: justify;\n    }\n\n    .resumo-financeiro {\n      margin-top: 12px;\n      border: 1px solid var(--border);\n      border-radius: 12px;\n      overflow: hidden;\n    }\n\n    .resumo-financeiro .topo {\n      background: var(--accent);\n      color: white;\n      padding: 12px 16px;\n      font-weight: bold;\n      font-size: 14px;\n    }\n\n    .resumo-financeiro .corpo {\n      padding: 14px 16px;\n      background: #fcfcfd;\n    }\n\n    .resumo-financeiro table {\n      width: 100%;\n      border-collapse: collapse;\n      font-size: 13.5px;\n    }\n\n    .resumo-financeiro td {\n      padding: 8px 0;\n      border-bottom: 1px solid #eceff3;\n      vertical-align: top;\n    }\n\n    .resumo-financeiro tr:last-child td {\n      border-bottom: none;\n    }\n\n    .valor-destaque {\n      font-size: 20px;\n      font-weight: bold;\n      color: var(--title);\n    }\n\n    .assinaturas {\n      margin-top: 42px;\n      page-break-inside: avoid;\n    }\n\n    .assinaturas p {\n      margin: 0 0 8px;\n    }\n\n    .assinatura-grid {\n      display: grid;\n      grid-template-columns: 1fr 1fr;\n      gap: 36px;\n      margin-top: 42px;\n    }\n\n    .assinatura-box {\n      text-align: center;\n      padding-top: 34px;\n    }\n\n    .linha {\n      border-top: 1px solid #111827;\n      margin-bottom: 8px;\n    }\n\n    .muted {\n      color: var(--muted);\n      font-size: 12.5px;\n    }\n\n    .small {\n      font-size: 12px;\n      color: var(--muted);\n    }\n\n    ul.clean {\n      margin: 8px 0 0 18px;\n      padding: 0;\n    }\n\n    ul.clean li {\n      margin-bottom: 4px;\n    }\n\n    @media print {\n      body {\n        background: #ffffff;\n        padding: 0;\n      }\n\n      .page {\n        box-shadow: none;\n        border: none;\n        border-radius: 0;\n        max-width: 100%;\n        padding: 18mm 16mm;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"page\">\n    <div class=\"header\">\n      <h1>Contrato de Prestação de Serviços de Barman</h1>\n      <p>Instrumento particular de prestação de serviços para evento</p>\n    </div>\n\n<div class=\"box\">\n  <div class=\"box-grid\">\n\n    <!-- COLUNA CONTRATANTE -->\n    <div>\n      <p class=\"item\"><span class=\"label\">CONTRATANTE</span></p>\n      <p class=\"item\"><span class=\"label\">Nome:</span> {{ $json.body.nome }}</p>\n      <p class=\"item\"><span class=\"label\">CPF:</span> {{ $json.body.cpf }}</p>\n      <p class=\"item\"><span class=\"label\">Whatsapp:</span> {{ $json.body.whatsapp }}</p>\n\n      <p class=\"item\"><span class=\"label\">Endereço:</span> Rua {{ $json.body.rua }}, nº {{ $json.body.numero }}</p>\n      <p class=\"item\"><span class=\"label\">Bairro/Cidade:</span> {{ $json.body.bairro }} - {{ $json.body.cidade }}</p>\n      <p class=\"item\"><span class=\"label\">Referência:</span> {{ $json.body.referencia || 'Não informado' }}</p>\n\n      <p class=\"item\"><span class=\"label\">Data do Evento:</span> {{ $json.body.data_formatada || $json.body.data }}</p>\n      <p class=\"item\"><span class=\"label\">Horário:</span> {{ $json.body.horario_evento || (($json.body.hora || '') + ' às ' + ($json.hora_fim || '')) }}</p>\n    </div>\n\n    <!-- COLUNA CONTRATADO -->\n    <div>\n      <p class=\"item\"><span class=\"label\">CONTRATADO</span></p>\n      <p class=\"item\"><span class=\"label\">Nome:</span> Gabryel Einstein de Carvalho Amaro</p>\n      <p class=\"item\"><span class=\"label\">CPF:</span> 144.612.766-43</p>\n      <p class=\"item\"><span class=\"label\">Profissão:</span> Barman</p>\n      <p class=\"item\"><span class=\"label\">Responsável pelo serviço de bar no evento.</span></p>\n    </div>\n\n  </div>\n</div>\n    <p class=\"intro\">\n      As partes acima identificadas têm entre si justo e contratado o presente instrumento particular de prestação de serviços de barman, que se regerá pelas cláusulas e condições abaixo.\n    </p>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 1 – Objeto</h2>\n      <p>\n        1.1 O presente contrato tem como objeto a prestação de serviços de barman para evento a ser realizado em\n        <strong>{{ $json.body.data_formatada || $json.body.data }}</strong>,\n        no horário de <strong>{{ $json.body.horario_evento || (($json.body.hora || '') + ' às ' + ($json.hora_fim || '')) }}</strong>,\n        no endereço <strong>Rua {{ $json.body.rua }}, nº {{ $json.body.numero }}, bairro {{ $json.body.bairro }}, cidade {{ $json.body.cidade }}</strong>,\n        com duração de <strong>{{ $json.body.duracao }} horas</strong> de atendimento efetivo.\n      </p>\n      <p>\n        1.2 O serviço contratado corresponde ao plano <strong>{{ $json.body.Servico }}</strong>, incluindo mão de obra, insumos necessários para o preparo dos drinks, deslocamento e acessórios de bar, conforme a modalidade efetivamente contratada.\n      </p>\n      <p>\n        1.3 O tipo de drinks selecionado para o evento é <strong>{{ $json.body.tipodrink }}</strong>.\n      </p>\n      <p>\n        1.4 Drinks alcoólicos selecionados:\n        <strong>{{ Array.isArray($json.body.drinks_alcool) ? $json.body.drinks_alcool.join(', ') : ($json.body.drinks_alcool || 'Não selecionado') }}</strong>.\n      </p>\n      <p>\n        1.5 Drinks sem álcool selecionados:\n        <strong>{{ Array.isArray($json.body.drinks_sem_alcool) ? $json.body.drinks_sem_alcool.join(', ') : ($json.body.drinks_sem_alcool || 'Não selecionado') }}</strong>.\n      </p>\n      <p>\n        1.6 Drinks sofisticados selecionados:\n        <strong>{{ Array.isArray($json.body.drinks_sofisticados) ? $json.body.drinks_sofisticados.join(', ') : ($json.body.drinks_sofisticados || 'Não selecionado') }}</strong>.\n      </p>\n      <p>\n        1.7 O pacote inclui os insumos necessários ao preparo dos drinks, tais como bebidas, frutas, gelo, xaropes e demais ingredientes, além da bancada de bar quando aplicável.\n      </p>\n      <p>\n        1.8 Os insumos utilizados para o preparo dos drinks não permanecem com o CONTRATANTE ou convidados após o término do evento, sendo recolhidos pelo CONTRATADO, exceto perecíveis já abertos ou inutilizados.\n      </p>\n      <p>\n        1.9 O transporte do CONTRATADO é de inteira responsabilidade do próprio CONTRATADO, não cabendo ao CONTRATANTE o custeio ou a disponibilização de meios de locomoção, salvo ajuste expresso em contrário.\n      </p>\n    </div>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 2 – Valor e Forma de Pagamento</h2>\n\n      <div class=\"resumo-financeiro\">\n        <div class=\"topo\">Resumo Financeiro do Evento</div>\n        <div class=\"corpo\">\n          <table>\n            <tr>\n              <td><strong>Serviço contratado</strong></td>\n              <td>{{ $json.body.Servico }}</td>\n            </tr>\n            <tr>\n              <td><strong>Convidados informados</strong></td>\n              <td>{{ $json.convidados_informados }}</td>\n            </tr>\n            <tr>\n              <td><strong>Mínimo contratual</strong></td>\n              <td>{{ $json.minimo_convidados }}</td>\n            </tr>\n            <tr>\n              <td><strong>Convidados cobrados</strong></td>\n              <td>{{ $json.convidados_cobrados }}</td>\n            </tr>\n            <tr>\n              <td><strong>Valor por convidado</strong></td>\n              <td>R$ {{ $json.valor_por_convidado_formatado }}</td>\n            </tr>\n            <tr>\n              <td><strong>Valor total</strong></td>\n              <td class=\"valor-destaque\">R$ {{ $json.valor_total_formatado }}</td>\n            </tr>\n          </table>\n        </div>\n      </div>\n\n      <p>\n        2.1 O valor deste contrato foi calculado com base em <strong>{{ $json.convidados_cobrados }} convidados cobrados</strong>,\n        ao valor unitário de <strong>R$ {{ $json.valor_por_convidado_formatado }}</strong> por convidado,\n        totalizando <strong>R$ {{ $json.valor_total_formatado }}</strong>.\n      </p>\n      <p>\n        2.2 Ainda que o CONTRATANTE informe número inferior de participantes, fica estabelecido o mínimo contratual de\n        <strong>{{ $json.minimo_convidados }} convidados</strong> para fins de cobrança.\n      </p>\n      <p>\n        2.3 O valor total será pago em duas parcelas, conforme abaixo:\n      </p>\n      <ul class=\"clean\">\n        <li><strong>Primeira parcela:</strong> R$ {{ $json.parcela_1_valor_formatado }} no ato da assinatura deste contrato;</li>\n        <li><strong>Segunda parcela:</strong> R$ {{ $json.parcela_2_valor_formatado }} até o dia do evento {{ $json.parcela_2_data }};</li>\n      </ul>\n      <p>\n        2.4 A quitação integral das parcelas é condição essencial para a execução dos serviços contratados.\n      </p>\n      <p>\n        2.5 O pagamento poderá ser efetuado por PIX, transferência bancária ou dinheiro, conforme ajustado entre as partes.\n      </p>\n    </div>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 3 – Cancelamento pelo Contratante</h2>\n      <p>\n        3.1 O cancelamento implicará multa de 20% sobre o valor total do contrato, podendo ser descontada de quaisquer valores já pagos.\n      </p>\n      <p>\n        3.2 Cancelamentos realizados com menos de 30 (trinta) dias da data do evento não dão direito a reembolso dos valores já pagos.\n      </p>\n      <p>\n        3.3 A redução no número de convidados não implica redução do valor contratado, especialmente em razão do mínimo contratual estabelecido.\n      </p>\n    </div>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 4 – Cancelamento pelo Contratado</h2>\n      <p>\n        4.1 O CONTRATADO poderá cancelar a prestação dos serviços em casos de força maior ou impossibilidade justificada, como doença grave, acidente ou falecimento de familiar direto.\n      </p>\n      <p>\n        4.2 Nessa hipótese, o CONTRATANTE será reembolsado integralmente dos valores pagos ou poderá optar pela remarcação do evento, conforme disponibilidade de agenda.\n      </p>\n      <p>\n        4.3 Sempre que possível, o CONTRATADO compromete-se a indicar profissional de qualificação equivalente para substituição.\n      </p>\n    </div>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 5 – Remarcação</h2>\n      <p>\n        5.1 O CONTRATANTE poderá solicitar a remarcação do evento com antecedência mínima de 20 (vinte) dias.\n      </p>\n      <p>\n        5.2 A remarcação dependerá da disponibilidade de agenda do CONTRATADO e poderá implicar reajuste de valores conforme a nova data.\n      </p>\n      <p>\n        5.3 Os valores pagos permanecerão como crédito para a nova data, não sendo reembolsáveis, salvo acordo diverso.\n      </p>\n    </div>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 6 – Responsabilidade por Danos e Consumo</h2>\n      <p>\n        6.1 O CONTRATADO não se responsabiliza por acidentes ou pelo consumo excessivo de bebidas alcoólicas por parte dos convidados.\n      </p>\n      <p>\n        6.2 É vedado o fornecimento ou consumo de bebidas alcoólicas por menores de 18 (dezoito) anos, cabendo exclusivamente ao CONTRATANTE a fiscalização e o controle para impedir tal prática.\n      </p>\n      <p>\n        6.3 Caso ocorra consumo de bebidas alcoólicas por menores durante o evento, toda responsabilidade civil, administrativa ou criminal recairá exclusivamente sobre o CONTRATANTE.\n      </p>\n      <p>\n        6.4 O CONTRATANTE responderá por danos causados a copos, taças, utensílios, acessórios e demais materiais disponibilizados pelo CONTRATADO durante o evento.\n      </p>\n    </div>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 7 – Condições Gerais</h2>\n      <p>\n        7.1 O presente contrato é firmado em caráter particular, produzindo efeitos jurídicos mediante a assinatura das partes.\n      </p>\n      <p>\n        7.2 Casos omissos ou dúvidas serão resolvidos de comum acordo e, não sendo possível, fica eleito o foro da Comarca de Juiz de Fora – MG.\n      </p>\n      <p>\n        7.3 Qualquer alteração neste contrato somente terá validade se formalizada por escrito e assinada por ambas as partes.\n      </p>\n    </div>\n\n    <div class=\"clausula\">\n      <h2>Cláusula 8 – Vigência</h2>\n      <p>\n        8.1 O presente contrato entra em vigor na data de sua assinatura e permanece válido até a conclusão do evento descrito na Cláusula 1, ressalvadas as obrigações pendentes de pagamento, multa ou indenização.\n      </p>\n    </div>\n    <div class=\"clausula\">\n  <h2>Cláusula 9 – Convidados Excedentes</h2>\n  <p>\n    9.1 O presente contrato foi calculado com base na quantidade de convidados informada pelo CONTRATANTE,\n    sendo considerados para planejamento do serviço, preparo de insumos e dimensionamento do atendimento\n    o total de <strong>{{ $json.convidados_informados }}</strong> convidados.\n  </p>\n\n  <p>\n    9.2 Caso o número de pessoas presentes no evento ultrapasse a quantidade informada no momento da contratação,\n    será considerado que houve convidados excedentes.\n  </p>\n\n  <p>\n    9.3 Os convidados adicionais poderão ser identificados por contagem direta, observação do fluxo de pessoas,\n    controle de consumo ou qualquer outro meio razoável utilizado pelo CONTRATADO durante a realização do evento.\n  </p>\n\n  <p>\n    9.4 Cada convidado excedente será cobrado com base no valor unitário do pacote contratado,\n    correspondente a <strong>R$ {{ $json.valor_por_convidado_formatado }}</strong> por pessoa,\n    podendo ser aplicado acréscimo de até 20% em razão de ajuste operacional de última hora.\n  </p>\n\n  <p>\n    9.5 O valor referente aos convidados excedentes deverá ser pago pelo CONTRATANTE ao final do evento\n    ou no prazo máximo de 24 horas após sua realização.\n  </p>\n\n  <p>\n    9.6 Caso o número de convidados ultrapasse significativamente a quantidade informada,\n    o CONTRATADO não garante a disponibilidade de insumos suficientes para todos os presentes,\n    limitando o atendimento ao estoque previamente preparado para o evento.\n  </p>\n</div>\n    <div class=\"clausula\">\n  <h2>Cláusula 10 – Hora Extra</h2>\n  <p>\n    10.1 O serviço contratado foi ajustado para a duração de <strong>{{ $json.body.duracao }} horas</strong>,\n    conforme descrito neste contrato.\n  </p>\n  <p>\n    10.2 Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado,\n    e havendo disponibilidade do CONTRATADO, será cobrado valor adicional a título de hora extra.\n  </p>\n  <p>\n    10.3 O valor de cada hora extra corresponderá ao valor total do pedido dividido por 5 (cinco),\n    acrescido de 30% (trinta por cento), totalizando:\n    <strong>\n      R$ {{ $json.valor_hora_extra_formatado }}\n    </strong>\n    por hora excedente.\n  </p>\n  <p>\n    10.4 Para fins de cálculo, será utilizada a seguinte fórmula:\n    <strong>(valor total do pedido ÷ 5) + 30%</strong>.\n  </p>\n  <p>\n    10.5 A hora extra será cobrada proporcionalmente por período iniciado superior a 30 (trinta) minutos,\n    podendo o pagamento ser realizado ao final do evento ou no prazo máximo de 24 horas após sua realização.\n  </p>\n  <p>\n    10.6 A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento,\n    não havendo obrigação de prorrogação automática do atendimento.\n  </p>\n</div>\n\n    <div class=\"assinaturas\">\n      <p><span class=\"label\">Local e Data:</span> {{ $json.local_data_assinatura }}</p>\n      <p class=\"small\">E, por estarem justos e contratados, firmam o presente instrumento em duas vias de igual teor.</p>\n\n      <div class=\"assinatura-grid\">\n        <div class=\"assinatura-box\">\n          <div class=\"linha\"></div>\n          <p><strong>CONTRATANTE</strong></p>\n          <p class=\"muted\">{{ $json.body.nome }}</p>\n          <p class=\"muted\">CPF: {{ $json.body.cpf }}</p>\n        </div>\n\n        <div class=\"assinatura-box\">\n          <div class=\"linha\"></div>\n          <p><strong>CONTRATADO</strong></p>\n          <p class=\"muted\">Gabryel Einstein de Carvalho Amaro</p>\n          <p class=\"muted\">CPF: 144.612.766-43</p>\n        </div>\n      </div>\n    </div>\n  </div>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1056,
+        96
+      ],
+      "id": "332674d2-38d2-4b66-9642-35272771ff43",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ed760006-5e9b-4888-8c00-0a5557ccc14f",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5a2325a7-8a57-499f-a040-7816097a47cb",
+      "name": "Webhook",
+      "webhookId": "ed760006-5e9b-4888-8c00-0a5557ccc14f"
+    },
+    {
+      "jsCode": "return items.map(item => {\n  const body = item.json.body ?? {};\n  return {\n    json: {\n      ...item.json,\n      body: {\n        ...body,\n        data_formatada: body.data_formatada || body.data || \"\",\n        hora_inicio: body.hora_inicio || body.hora || \"\",\n        hora_fim: body.hora_fim || \"\",\n        horario_evento: body.horario_evento || \"\"\n      }\n    }\n  };\n});",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9effc3f3-996b-447c-b995-3eaa4be431f6",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8c25767c-9ef8-44dd-b95c-81c251766a40",
+              "leftValue": "={{ $json.body.Servico }}",
+              "rightValue": "Mão de Obra",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "93d6f602-3459-426c-bf48-b8f8beee15a5",
+              "leftValue": "={{ $json.body.Servico }}",
+              "rightValue": "Mão de Obra + Ajudante",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        32
+      ],
+      "id": "5cd8145d-ef00-4952-98ae-5f027c912505",
+      "name": "If"
+    },
+    {
+      "jsCode": "const dados = $json.body ?? $json;\nreturn [\n  {\n    json: {\n      ...dados\n    }\n  }\n];",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        128
+      ],
+      "id": "fb33c315-b6a5-4215-b931-d95a34a99da3",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "jsCode": "const origem = $json.body ?? $json;\nreturn [\n  {\n    json: {\n      ...$json,\n      body: origem,\n      convidados_informados: origem.convidados_informados || 0,\n      minimo_convidados: origem.minimo_convidados || 40,\n      convidados_cobrados: origem.convidados_cobrados || 0,\n      valor_por_convidado: origem.valor_por_convidado || 0,\n      valor_por_convidado_formatado: origem.valor_por_convidado_formatado || \"\",\n      valor_total: origem.valor_total || 0,\n      valor_total_formatado: origem.valor_total_formatado || \"\",\n      parcela_1_valor: origem.parcela_1_valor || 0,\n      parcela_1_valor_formatado: origem.parcela_1_valor_formatado || \"\",\n      parcela_1_data: origem.parcela_1_data || \"\",\n      parcela_2_valor: origem.parcela_2_valor || 0,\n      parcela_2_valor_formatado: origem.parcela_2_valor_formatado || \"\",\n      parcela_2_data: origem.parcela_2_data || \"\",\n      local_data_assinatura: origem.local_data_assinatura || \"\",\n      valor_hora_extra: origem.valor_hora_extra || 0,\n      valor_hora_extra_formatado: origem.valor_hora_extra_formatado || \"\"\n    }\n  }\n];",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        128
+      ],
+      "id": "06902e29-7b49-4442-9ed4-da1084114f8c",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>\n        {{ $json.servico_normalizado === \"Mão de Obra + Ajudante\" ? \"Contrato de Prestação de Serviços de Barman – Mão de Obra + Ajudante\" : \"Contrato de Prestação de Serviços de Barman – Mão de Obra\" }}\n    </title>\n    <style>\n        :root {\n            --text: #1f2937;\n            --muted: #6b7280;\n            --title: #111827;\n            --border: #d1d5db;\n            --soft: #f9fafb;\n            --bg: #ffffff;\n        }\n        * { box-sizing: border-box; }\n        body {\n            margin: 0;\n            padding: 24px;\n            background: #f3f4f6;\n            font-family: Arial, Helvetica, sans-serif;\n            color: var(--text);\n            line-height: 1.6;\n            font-size: 13.5px;\n        }\n        .page {\n            width: 100%;\n            max-width: 900px;\n            margin: 0 auto;\n            background: var(--bg);\n            padding: 48px 56px;\n            border-radius: 12px;\n            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);\n        }\n        h1 {\n            margin: 0 0 24px;\n            text-align: center;\n            font-size: 22px;\n            color: var(--title);\n            text-transform: uppercase;\n            line-height: 1.3;\n        }\n        h2 {\n            font-size: 15px;\n            margin: 28px 0 10px;\n            color: var(--title);\n            text-transform: uppercase;\n            border-bottom: 1px solid var(--border);\n            padding-bottom: 6px;\n        }\n        p { margin: 8px 0; text-align: justify; }\n        .partes {\n            display: grid;\n            grid-template-columns: 1fr;\n            gap: 14px;\n            margin-bottom: 24px;\n        }\n        .box {\n            background: var(--soft);\n            border: 1px solid var(--border);\n            border-radius: 10px;\n            padding: 14px 16px;\n        }\n        .box strong { display: inline-block; min-width: 60px; }\n        ul { margin: 8px 0 8px 22px; padding: 0; }\n        li { margin: 4px 0; }\n        .clausula { margin-bottom: 10px; }\n        .assinaturas { margin-top: 48px; }\n        .assinaturas-grid {\n            display: grid;\n            grid-template-columns: 1fr 1fr;\n            gap: 40px;\n            margin-top: 56px;\n        }\n        .assinatura { text-align: center; }\n        .linha-assinatura { border-top: 1px solid #000; margin-bottom: 8px; height: 1px; width: 100%; }\n        .rodape-data { margin-top: 28px; }\n        .highlight { font-weight: bold; color: var(--title); }\n        \n        @media print {\n            body { background: #fff; padding: 0; }\n            .page { max-width: 100%; border-radius: 0; box-shadow: none; padding: 24px 32px; }\n            .assinaturas { page-break-inside: avoid; }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"page\">\n        <h1>\n            {{ $json.servico_normalizado === \"Mão de Obra + Ajudante\" ? \"Contrato de Prestação de Serviços de Barman – Mão de Obra + Ajudante\" : \"Contrato de Prestação de Serviços de Barman – Mão de Obra\" }}\n        </h1>\n\n        <div class=\"partes\">\n            <div class=\"box\">\n                <p><strong>CONTRATANTE:</strong></p>\n                <p><strong>Nome:</strong> {{ $json.nome }}</p>\n                <p><strong>CPF:</strong> {{ $json.cpf }}</p>\n            </div>\n            <div class=\"box\">\n                <p><strong>CONTRATADO:</strong></p>\n                <p><strong>Nome:</strong> Gabryel Einstein de Carvalho Amaro</p>\n                <p><strong>CPF:</strong> 144.612.766-43</p>\n            </div>\n        </div>\n\n        <h2>Cláusula 1 – Objeto</h2>\n        <p class=\"clausula\">\n            <span class=\"highlight\">1.1</span> O presente contrato tem por objeto a prestação de serviços de barman {{ $json.servico_normalizado === \"Mão de Obra + Ajudante\" ? \"com ajudante\" : \"\" }}, a serem realizados no dia <strong>{{ $json.data_formatada }}</strong>, no horário das <strong>{{ $json.horario_evento }}</strong>, no endereço <strong>Rua {{ $json.rua }}, {{ $json.numero }}, Bairro {{ $json.bairro }}, {{ $json.cidade }}</strong>.\n        </p>\n        <p class=\"clausula\">\n            <span class=\"highlight\">1.2</span> A duração total do serviço será de <strong>{{ $json.duracao }} horas</strong>.\n        </p>\n        <p class=\"clausula\">\n            <span class=\"highlight\">1.3</span> Estão incluídos neste contrato:\n        </p>\n        <ul>\n            <li>01 (um) barman;</li>\n            {{ $json.servico_normalizado === \"Mão de Obra + Ajudante\" ? \"<li>01 (um) ajudante;</li>\" : \"\" }}\n            <li>deslocamento;</li>\n            <li>acessórios de bar;</li>\n            <li>espuma de gengibre.</li>\n        </ul>\n        <p class=\"clausula\">\n            <span class=\"highlight\">1.4</span> Não estão incluídos: bebidas, frutas, gelo ou quaisquer outros insumos, os quais serão de inteira responsabilidade do CONTRATANTE.\n        </p>\n\n        <h2>Cláusula 2 – Valor e Forma de Pagamento</h2>\n        <p class=\"clausula\">\n            <span class=\"highlight\">2.1</span> O valor total deste contrato é de <strong>{{ $json.valor_total_formatado }}</strong>.\n        </p>\n        <p class=\"clausula\">\n            <span class=\"highlight\">2.2</span> O pagamento será realizado da seguinte forma:\n        </p>\n        <ul>\n            <li>50% ({{ $json.valor_entrada_formatado || \"R$ 0,00\" }}) no ato da assinatura deste contrato;</li>\n            <li>50% ({{ $json.valor_final_formatado || \"R$ 0,00\" }}) na chegada do CONTRATADO ao local do evento.</li>\n        </ul>\n\n        <h2>Cláusula 3 – Horas Extras</h2>\n        <p class=\"clausula\">\n            <span class=\"highlight\">3.1</span> Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado, e havendo disponibilidade do profissional, poderão ser realizadas horas extras de atendimento.\n        </p>\n        <p class=\"clausula\">\n            <span class=\"highlight\">3.2</span> O valor da hora extra é calculado sobre a base da mão de obra de R$ 350,00, utilizando a fórmula: <strong>(R$ 350,00 ÷ 5) + 30%</strong>.\n        </p>\n        <p class=\"clausula\">\n            <span class=\"highlight\">3.3</span> Os valores de hora extra ficam definidos da seguinte forma:\n        </p>\n        <ul>\n            <li>\n                <strong>Barman:</strong> R$ {{ $json.valor_hora_extra_barman_formatado }} por hora extra.\n            </li>\n            {{ $json.servico_normalizado === \"Mão de Obra + Ajudante\" ? \n            \"<li><strong>Ajudante:</strong> R$ \" + $json.valor_hora_extra_ajudante_formatado + \" por hora extra.</li>\" \n            : \"\" }}\n        </ul>\n        <p class=\"clausula\">\n            <span class=\"highlight\">3.4</span> A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento.\n        </p>\n\n        <h2>Cláusula 4 – Cancelamento</h2>\n        <p class=\"clausula\">\n            <span class=\"highlight\">4.1</span> Por parte do CONTRATANTE: será aplicada multa de 20% do valor total do contrato. Em caso de cancelamento com menos de 30 (trinta) dias da data do evento, os valores já pagos não serão reembolsados.\n        </p>\n        <p class=\"clausula\">\n            <span class=\"highlight\">4.2</span> Por parte do CONTRATADO: somente em casos de força maior (doença ou acidente devidamente comprovados), com reembolso integral dos valores pagos.\n        </p>\n\n        <h2>Cláusula 5 – Responsabilidades</h2>\n        <p class=\"clausula\">\n            <span class=\"highlight\">5.1</span> O CONTRATADO não se responsabiliza por condutas inadequadas de convidados nem por consumo excessivo de bebidas alcoólicas.\n        </p>\n        <p class=\"clausula\">\n            <span class=\"highlight\">5.2</span> É expressamente proibido o fornecimento de bebidas alcoólicas a menores de 18 anos, sendo a fiscalização de responsabilidade do CONTRATANTE.\n        </p>\n\n        <h2>Cláusula 6 – Foro</h2>\n        <p class=\"clausula\">\n            <span class=\"highlight\">6.1</span> Fica eleito o Foro da Comarca de Juiz de Fora/MG para dirimir eventuais conflitos oriundos deste contrato.\n        </p>\n\n        <p class=\"rodape-data\">\n            Juiz de Fora/MG, {{ $json.data_contrato_formatada || \"____/____/________\" }}.\n        </p>\n\n        <div class=\"assinaturas\">\n            <div class=\"assinaturas-grid\">\n                <div class=\"assinatura\">\n                    <div class=\"linha-assinatura\"></div>\n                    <p><strong>CONTRATANTE</strong></p>\n                    <p>{{ $json.nome }}</p>\n                </div>\n                <div class=\"assinatura\">\n                    <div class=\"linha-assinatura\"></div>\n                    <p><strong>CONTRATADO</strong></p>\n                    <p>Gabryel Einstein de Carvalho Amaro</p>\n                </div>\n            </div>\n        </div>\n    </div>\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        -80
+      ],
+      "id": "c1213529-ca2f-4b75-a4e6-1c9ca0fb282e",
+      "name": "HTML1"
+    },
+    {
+      "jsCode": "const origem = $json.body ?? $json;\nconst servico = (origem.Servico || origem.servico || \"\").toString().trim();\nreturn [\n  {\n    json: {\n      ...origem,\n      servico_normalizado: servico,\n      valor_mao_de_obra: origem.valor_mao_de_obra || 0,\n      valor_ajudante: origem.valor_ajudante || 0,\n      valor_total: origem.valor_total || 0,\n      valor_entrada: origem.valor_entrada || 0,\n      valor_final: origem.valor_final || 0,\n      valor_mao_de_obra_formatado: origem.valor_mao_de_obra_formatado || \"\",\n      valor_ajudante_formatado: origem.valor_ajudante_formatado || \"\",\n      valor_total_formatado: origem.valor_total_formatado || \"\",\n      valor_entrada_formatado: origem.valor_entrada_formatado || \"\",\n      valor_final_formatado: origem.valor_final_formatado || \"\",\n      data_contrato_formatada: origem.data_contrato_formatada || \"\",\n      valor_hora_extra_barman_formatado: origem.valor_hora_extra_barman_formatado || \"\",\n      valor_hora_extra_ajudante_formatado: origem.valor_hora_extra_ajudante_formatado || \"\"\n    }\n  }\n];",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -64
+      ],
+      "id": "716c6532-1d27-4faf-9941-ec5f5cc4e2d2",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const telefone = $('Code in JavaScript2').item.json.whatsapp;\n\nconst numeroLimpo = telefone.replace(/\\D/g, '');\n\nreturn {\n  numero: numeroLimpo\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        0
+      ],
+      "id": "9746ad1b-c4c6-474a-8fae-938446aef716",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        0
+      ],
+      "id": "2180f4d2-1f8d-4c9f-b290-a93cebc576f7",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.gabryelamaro.com/message/sendMedia/BarmanJF",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"55{{ $json.numero }}\",\n  \"mediatype\": \"document\",\n  \"caption\": \"Segue seu orçamento em PDF\",\n  \"media\": \"{{ $('Extract from File').item.json.data }}\",\n  \"fileName\": \"orcamento.pdf\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2384,
+        -16
+      ],
+      "id": "1017caa2-e11b-47dc-9d3b-2504bbad6e75",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EDZOEtrNUevvAvRT",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1696,
+        0
+      ],
+      "id": "7fb02d75-3ed1-4485-835f-2eb76a981b5d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html_base64",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "9aab7ce8-6bc5-4434-b461-848258a134f7",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "51d27bb9-2854-45a6-8a1d-5c15f586b0b6",
+              "name": "html_base64",
+              "value": "={{ $json.html.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "5cf602db-8507-4072-a746-b1cbb0866a70",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "51d27bb9-2854-45a6-8a1d-5c15f586b0b6",
+              "name": "html_base64",
+              "value": "={{ $json.html.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        -192
+      ],
+      "id": "eac7393d-b9fa-457e-acbc-9ebd446603ce",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html_base64",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1312,
+        -192
+      ],
+      "id": "b8899ff1-8d1a-411b-aeda-43ccdaf9510b",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1520,
+        -192
+      ],
+      "id": "13468840-af8d-4894-96d7-1ec49465e0fb",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.gabryelamaro.com/message/sendMedia/BarmanJF",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"55{{ $json.numero }}\",\n  \"mediatype\": \"document\",\n  \"caption\": \"Segue seu orçamento em PDF\",\n  \"media\": \"{{ $('Extract from File1').item.json.data }}\",\n  \"fileName\": \"orcamento.pdf\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2208,
+        -208
+      ],
+      "id": "5b115163-bb9a-48e5-befc-b2d595a154a1",
+      "name": "HTTP Request3",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EDZOEtrNUevvAvRT",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1728,
+        -192
+      ],
+      "id": "d0a57ac8-c107-40d8-b465-0a751cc01c87",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const telefone = $('Code in JavaScript3').item.json.whatsapp;\n\nconst numeroLimpo = telefone.replace(/\\D/g, '');\n\nreturn {\n  numero: numeroLimpo\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        -192
+      ],
+      "id": "ba6c6eff-3d9a-47c5-a648-32635dbe627c",
+      "name": "Code in JavaScript5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "eef47995-f838-4cdf-87f2-1e62c44e1069",
+  "meta": {
+    "instanceId": "33738330930e3881dd5571eca013f36ddf8aab20e4ea5c1f2ebaf4a2b4668ac6"
+  },
+  "id": "Syg8Vnjj-GLMHOm-O7YAn",
+  "tags": []
+}

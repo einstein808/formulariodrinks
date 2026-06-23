@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
-import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX } from 'react-icons/fi';
+import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX, FiFileText } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 
 const LeadsKanban = dynamic(() => import('./components/LeadsKanban'), {
@@ -33,10 +33,15 @@ const AjudantesManager = dynamic(() => import('./components/AjudantesManager'), 
   loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
   ssr: false
 });
+const GeradorContrato = dynamic(() => import('./components/GeradorContrato'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
 
 const navItems = [
   { id: 'leads',     label: 'Leads',     icon: FiUsers },
   { id: 'agenda',    label: 'Agenda',    icon: FiCalendar },
+  { id: 'contratos', label: 'Contratos', icon: FiFileText },
   { id: 'analytics', label: 'Métricas',  icon: FiPieChart },
   { id: 'parceiros', label: 'Parceiros', icon: FiHeart },
   { id: 'equipe',    label: 'Equipe',    icon: FiUserPlus },
@@ -246,6 +251,7 @@ export default function AdminDashboard() {
         <RetargetAlert />
         {activeTab === 'leads'     && <LeadsKanban />}
         {activeTab === 'agenda'    && <AgendaEventos />}
+        {activeTab === 'contratos' && <GeradorContrato />}
         {activeTab === 'analytics' && <AnalyticsDashboard />}
         {activeTab === 'parceiros' && <CerimonialstasManager />}
         {activeTab === 'equipe'    && <AjudantesManager />}
