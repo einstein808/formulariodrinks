@@ -79,7 +79,9 @@ export default function ClienteContratoPage() {
           const data = drinksSnapshot.val();
           loadedDrinks = Object.entries(data)
             .map(([id, val]) => ({
-              id: val.name || id,
+              id: id,
+              nameKey: val.name || id,
+              rawName: val.name || id,
               name: `${val.emoji || '🍹'} ${val.name || id}`,
               desc: '',
               category: val.category || (val.isNonAlcoholic ? 'sem_alcool' : 'alcool'),
@@ -102,12 +104,12 @@ export default function ClienteContratoPage() {
 
           if (lead.drinksEscolhidos) {
             lead.drinksEscolhidos.forEach(drinkId => {
-              const found = loadedDrinks.find(d => d.id === drinkId);
+              const found = loadedDrinks.find(d => d.id === drinkId || d.nameKey === drinkId);
               if (found) {
-                if (found.category === 'alcool') mappedAlcool.push(drinkId);
-                else if (found.category === 'sofisticado') mappedSofisticados.push(drinkId);
-                else if (found.category === 'sem_alcool') mappedNA.push(drinkId);
-                else if (found.category === 'frozen') mappedFrozen.push(drinkId);
+                if (found.category === 'alcool') mappedAlcool.push(found.id);
+                else if (found.category === 'sofisticado') mappedSofisticados.push(found.id);
+                else if (found.category === 'sem_alcool') mappedNA.push(found.id);
+                else if (found.category === 'frozen') mappedFrozen.push(found.id);
               } else {
                 if (drinkId.toLowerCase().includes('sem álcool') || drinkId.toLowerCase().includes('sem alcool')) {
                   mappedNA.push(drinkId);
@@ -576,8 +578,19 @@ export default function ClienteContratoPage() {
       });
 
       // 2. Dispatch to the PDF generation Webhook (form details + financials) as JSON
+      const mapKeysToNames = (keys) => {
+        return (keys || []).map(key => {
+          const found = allDrinks.find(d => d.id === key);
+          return found ? found.rawName : key;
+        });
+      };
+
       const payload = {
         ...formData,
+        drinks_alcool: mapKeysToNames(formData.drinks_alcool),
+        drinks_sem_alcool: mapKeysToNames(formData.drinks_sem_alcool),
+        drinks_sofisticados: mapKeysToNames(formData.drinks_sofisticados),
+        drinks_frozen: mapKeysToNames(formData.drinks_frozen || []),
         ...financials
       };
 
