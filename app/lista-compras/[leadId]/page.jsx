@@ -162,15 +162,13 @@ export default function ShoppingListClient() {
       let qtdFinal = data.qtd;
       let undFinal = data.unidade;
 
-      // Simplificação básica de ML para Litros se for muito grande
-      if (undFinal === 'ml' && qtdFinal >= 1000) {
-        qtdFinal = qtdFinal / 1000;
+      // Simplificação básica de ML para Litros (sempre converte e arredonda para cima)
+      if (undFinal === 'ml') {
+        qtdFinal = Math.ceil(qtdFinal / 1000);
         undFinal = 'Litros';
-        qtdFinal = qtdFinal.toFixed(1);
       } else if (undFinal === 'g' && qtdFinal >= 1000) {
-        qtdFinal = qtdFinal / 1000;
+        qtdFinal = Math.ceil(qtdFinal / 1000);
         undFinal = 'Kg';
-        qtdFinal = qtdFinal.toFixed(1);
       } else {
         qtdFinal = Math.ceil(qtdFinal);
       }
