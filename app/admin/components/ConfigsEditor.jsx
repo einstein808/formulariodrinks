@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ref, onValue, set } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiSave, FiPlus, FiTrash2 } from 'react-icons/fi';
+import MinioImageUpload from './MinioImageUpload';
 
 function firebaseObjToArray(obj) {
   if (!obj) return [];
@@ -291,8 +292,8 @@ export default function ConfigsEditor() {
                     <input type="text" className="form-input" value={drink.name || ''} onChange={(e) => updateDrink(drink.id, 'name', e.target.value)} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>URL da Imagem (Opcional)</label>
-                    <input type="text" className="form-input" value={drink.image || ''} onChange={(e) => updateDrink(drink.id, 'image', e.target.value)} placeholder="https://..." />
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Imagem do Drink (Opcional)</label>
+                    <MinioImageUpload value={drink.image} onChange={(url) => updateDrink(drink.id, 'image', url)} placeholder="https://link-da-imagem.jpg" />
                   </div>
                   <div style={{ width: '90px' }}>
                     <label className="form-label" style={{ fontSize: '0.8rem' }} title="Maior peso significa que sai mais na festa">Peso (1-10)</label>
@@ -640,8 +641,8 @@ export default function ConfigsEditor() {
 
                 {/* Foto de Capa */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label className="form-label">URL da Foto de Capa (exibida no card)</label>
-                  <input type="text" className="form-input" value={evento.capa || ''} onChange={(e) => updateEvento(evento.id, 'capa', e.target.value)} placeholder="https://link-direto-da-imagem.jpg" />
+                  <label className="form-label">Foto de Capa (exibida no card)</label>
+                  <MinioImageUpload value={evento.capa} onChange={(url) => updateEvento(evento.id, 'capa', url)} placeholder="https://link-direto-da-imagem.jpg" />
                 </div>
 
                 {/* Mídias do Evento */}
@@ -669,14 +670,20 @@ export default function ConfigsEditor() {
                           <option value="imagem">🖼️ Imagem</option>
                           <option value="video">🎬 Vídeo</option>
                         </select>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={midia.url || ''}
-                          onChange={(e) => updateMidia(evento.id, idx, 'url', e.target.value)}
-                          placeholder={midia.tipo === 'video' ? 'https://...video.mp4' : 'https://...foto.jpg'}
-                          style={{ flex: 1 }}
-                        />
+                        {midia.tipo === 'imagem' ? (
+                          <div style={{ flex: 1 }}>
+                            <MinioImageUpload value={midia.url} onChange={(url) => updateMidia(evento.id, idx, 'url', url)} placeholder="https://link-da-imagem.jpg" />
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={midia.url || ''}
+                            onChange={(e) => updateMidia(evento.id, idx, 'url', e.target.value)}
+                            placeholder="https://...video.mp4"
+                            style={{ flex: 1 }}
+                          />
+                        )}
                         <button onClick={() => removeMidia(evento.id, idx)} style={{ background: 'none', color: '#F44336', border: 'none', cursor: 'pointer', padding: '8px', flexShrink: 0 }}>
                           <FiTrash2 size={16} />
                         </button>
