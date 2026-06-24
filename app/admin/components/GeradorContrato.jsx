@@ -20,6 +20,12 @@ const getRecommendation = (guestsCount) => {
   return { barmans, ajudantes };
 };
 
+const isNextImageAllowed = (src) => {
+  if (!src) return false;
+  if (src.startsWith('/') || src.startsWith('.')) return true;
+  return src.includes('s3.gabryelamaro.com');
+};
+
 export default function GeradorContrato() {
   const [leads, setLeads] = useState([]);
   const [pacotes, setPacotes] = useState([]);
@@ -1198,13 +1204,21 @@ export default function GeradorContrato() {
                     </div>
                     {d.image && (
                       <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
-                        <Image
-                          src={d.image}
-                          alt={d.rawName}
-                          fill
-                          sizes="40px"
-                          style={{ objectFit: 'cover' }}
-                        />
+                        {isNextImageAllowed(d.image) ? (
+                          <Image
+                            src={d.image}
+                            alt={d.rawName}
+                            fill
+                            sizes="40px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <img
+                            src={d.image}
+                            alt={d.rawName}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        )}
                       </div>
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1247,13 +1261,21 @@ export default function GeradorContrato() {
                       </div>
                       {d.image && (
                         <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
-                          <Image
-                            src={d.image}
-                            alt={d.rawName}
-                            fill
-                            sizes="40px"
-                            style={{ objectFit: 'cover' }}
-                          />
+                          {isNextImageAllowed(d.image) ? (
+                            <Image
+                              src={d.image}
+                              alt={d.rawName}
+                              fill
+                              sizes="40px"
+                              style={{ objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <img
+                              src={d.image}
+                              alt={d.rawName}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          )}
                         </div>
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1297,13 +1319,21 @@ export default function GeradorContrato() {
                       </div>
                       {d.image && (
                         <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
-                          <Image
-                            src={d.image}
-                            alt={d.rawName}
-                            fill
-                            sizes="40px"
-                            style={{ objectFit: 'cover' }}
-                          />
+                          {isNextImageAllowed(d.image) ? (
+                            <Image
+                              src={d.image}
+                              alt={d.rawName}
+                              fill
+                              sizes="40px"
+                              style={{ objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <img
+                              src={d.image}
+                              alt={d.rawName}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          )}
                         </div>
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1346,13 +1376,21 @@ export default function GeradorContrato() {
                     </div>
                     {d.image && (
                       <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
-                        <Image
-                          src={d.image}
-                          alt={d.rawName}
-                          fill
-                          sizes="40px"
-                          style={{ objectFit: 'cover' }}
-                        />
+                        {isNextImageAllowed(d.image) ? (
+                          <Image
+                            src={d.image}
+                            alt={d.rawName}
+                            fill
+                            sizes="40px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <img
+                            src={d.image}
+                            alt={d.rawName}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        )}
                       </div>
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
