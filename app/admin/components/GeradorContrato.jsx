@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ref, onValue, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
+import Image from 'next/image';
 
 // Drinks will be loaded dynamically from Firebase Database config/drinksMenu.
 
@@ -94,7 +95,8 @@ export default function GeradorContrato() {
             nameKey: val.name || id,
             rawName: val.name || id,
             name: `${val.emoji || '🍹'} ${val.name || id}`,
-            desc: '',
+            desc: val.receita ? val.receita.map(r => r.insumo).filter(Boolean).join(', ') : '',
+            image: val.image || '',
             category: val.category || (val.isNonAlcoholic ? 'sem_alcool' : 'alcool'),
             order: val.order ?? 0
           }))
@@ -1190,10 +1192,21 @@ export default function GeradorContrato() {
                   >
                     <div style={{
                       width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                     }}>
                       {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                     </div>
+                    {d.image && (
+                      <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                        <Image
+                          src={d.image}
+                          alt={d.rawName}
+                          fill
+                          sizes="40px"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>
@@ -1228,10 +1241,21 @@ export default function GeradorContrato() {
                     >
                       <div style={{
                         width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                       }}>
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
+                      {d.image && (
+                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                          <Image
+                            src={d.image}
+                            alt={d.rawName}
+                            fill
+                            sizes="40px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>
@@ -1265,12 +1289,23 @@ export default function GeradorContrato() {
                         display: 'flex', gap: '12px', alignItems: 'center', transition: 'all 0.2s'
                       }}
                     >
-                      <div style={{
+                       <div style={{
                         width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                       }}>
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
+                      {d.image && (
+                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                          <Image
+                            src={d.image}
+                            alt={d.rawName}
+                            fill
+                            sizes="40px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>
@@ -1305,10 +1340,21 @@ export default function GeradorContrato() {
                   >
                     <div style={{
                       width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                     }}>
                       {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                     </div>
+                    {d.image && (
+                      <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                        <Image
+                          src={d.image}
+                          alt={d.rawName}
+                          fill
+                          sizes="40px"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>

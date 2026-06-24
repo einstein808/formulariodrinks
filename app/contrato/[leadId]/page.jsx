@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { ref, get, onValue, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
+import Image from 'next/image';
 
 // Drinks will be loaded dynamically from Firebase Database config/drinks
 
@@ -90,7 +91,8 @@ export default function ClienteContratoPage() {
               nameKey: val.name || id,
               rawName: val.name || id,
               name: `${val.emoji || '🍹'} ${val.name || id}`,
-              desc: '',
+              desc: val.receita ? val.receita.map(r => r.insumo).filter(Boolean).join(', ') : '',
+              image: val.image || '',
               category: val.category || (val.isNonAlcoholic ? 'sem_alcool' : 'alcool'),
               order: val.order ?? 0
             }))
@@ -1139,6 +1141,17 @@ export default function ClienteContratoPage() {
                       }}>
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
+                      {d.image && (
+                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                          <Image
+                            src={d.image}
+                            alt={d.rawName}
+                            fill
+                            sizes="40px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
@@ -1177,6 +1190,17 @@ export default function ClienteContratoPage() {
                         }}>
                           {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                         </div>
+                        {d.image && (
+                          <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                            <Image
+                              src={d.image}
+                              alt={d.rawName}
+                              fill
+                              sizes="40px; "
+                              style={{ objectFit: 'cover' }}
+                            />
+                          </div>
+                        )}
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
                           <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
@@ -1216,6 +1240,17 @@ export default function ClienteContratoPage() {
                         }}>
                           {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                         </div>
+                        {d.image && (
+                          <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                            <Image
+                              src={d.image}
+                              alt={d.rawName}
+                              fill
+                              sizes="40px"
+                              style={{ objectFit: 'cover' }}
+                            />
+                          </div>
+                        )}
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
                           <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
@@ -1254,6 +1289,17 @@ export default function ClienteContratoPage() {
                       }}>
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
+                      {d.image && (
+                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                          <Image
+                            src={d.image}
+                            alt={d.rawName}
+                            fill
+                            sizes="40px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
