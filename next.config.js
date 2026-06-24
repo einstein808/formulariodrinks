@@ -4,6 +4,14 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['react-icons', 'recharts']
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 's3.gabryelamaro.com',
+      },
+    ],
+  },
   async redirects() {
     return [
       {

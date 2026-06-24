@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 import { FiStar, FiChevronRight, FiCheck, FiX, FiChevronLeft, FiMapPin, FiCalendar, FiPlay } from 'react-icons/fi';
 import BackgroundEffects from '../components/BackgroundEffects';
 import PageLoader from '../components/PageLoader';
+import Image from 'next/image';
 
 // Componente de card com slideshow automático + Ken Burns
-function EventoCard({ evento, onOpen, formatDate }) {
+function EventoCard({ evento, onOpen, formatDate, priority = false }) {
   // Monta a lista de todas as mídias de imagem, começa com a capa
   const todasFotos = [
     ...(evento.capa ? [{ url: evento.capa, tipo: 'imagem' }] : []),
@@ -17,7 +18,7 @@ function EventoCard({ evento, onOpen, formatDate }) {
 
   const [fotoIdx, setFotoIdx] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
-  const [pausado, setPausado] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const intervalRef = useRef(null);
 
   const avancar = () => {
@@ -30,12 +31,11 @@ function EventoCard({ evento, onOpen, formatDate }) {
   };
 
   useEffect(() => {
-    if (todasFotos.length <= 1 || pausado) return;
+    if (todasFotos.length <= 1 || !hovered) return;
     intervalRef.current = setInterval(avancar, 3000);
     return () => clearInterval(intervalRef.current);
-  }, [todasFotos.length, pausado, fotoIdx]);
+  }, [todasFotos.length, hovered, fotoIdx]);
 
-  const fotoAtual = todasFotos[fotoIdx]?.url;
   const totalMidias = (evento.midias || []).length;
   const temVideo = (evento.midias || []).some(m => m.tipo === 'video');
   const kenBurnsClass = `kb-${fotoIdx % 4}`; // alterna direção do Ken Burns
@@ -43,8 +43,6 @@ function EventoCard({ evento, onOpen, formatDate }) {
   return (
     <div
       onClick={() => onOpen(evento)}
-      onMouseEnter={() => setPausado(true)}
-      onMouseLeave={() => setPausado(false)}
       style={{
         background: 'rgba(0,0,0,0.4)',
         borderRadius: 16,
@@ -53,26 +51,54 @@ function EventoCard({ evento, onOpen, formatDate }) {
         cursor: 'pointer',
         transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s, border-color 0.35s',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-8px) scale(1.01)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(203, 161, 83, 0.25)'; e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.6)'; setPausado(true); }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.15)'; setPausado(false); }}
+      onMouseEnter={(e) => { 
+        e.currentTarget.style.transform = 'translateY(-8px) scale(1.01)'; 
+        e.currentTarget.style.boxShadow = '0 20px 50px rgba(203, 161, 83, 0.25)'; 
+        e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.6)'; 
+        setHovered(true); 
+      }}
+      onMouseLeave={(e) => { 
+        e.currentTarget.style.transform = 'translateY(0) scale(1)'; 
+        e.currentTarget.style.boxShadow = 'none'; 
+        e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.15)'; 
+        setHovered(false);
+        setFotoIdx(0); // Volta para a capa ao sair do card
+      }}
     >
       {/* Área da capa com slideshow */}
       <div style={{ height: 240, background: '#111', position: 'relative', overflow: 'hidden' }}>
-        {fotoAtual ? (
-          <img
-            key={fotoAtual + fotoIdx}
-            src={fotoAtual}
-            alt={evento.titulo}
-            className={`ken-burns ${kenBurnsClass}`}
-            style={{
-              position: 'absolute', inset: 0,
-              width: '100%', height: '100%',
-              objectFit: 'cover',
-              opacity: fadeIn ? 1 : 0,
-              transition: 'opacity 0.35s ease',
-            }}
-          />
-        ) : (
+        {todasFotos.map((foto, i) => {
+          // Otimização crucial: só renderiza/carrega imagens adicionais se o card estiver sob hover
+          const shouldRender = i === 0 || hovered;
+          if (!shouldRender) return null;
+
+          const isCurrent = i === fotoIdx;
+          return (
+            <div
+              key={foto.url + i}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                opacity: isCurrent && fadeIn ? 1 : 0,
+                transition: 'opacity 0.35s ease',
+              }}
+            >
+              <Image
+                src={foto.url}
+                alt={evento.titulo}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                priority={priority && i === 0}
+                style={{
+                  objectFit: 'cover',
+                }}
+                className={isCurrent ? `ken-burns ${kenBurnsClass}` : ''}
+              />
+            </div>
+          );
+        })}
+
+        {todasFotos.length === 0 && (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)' }}>
             <span style={{ fontSize: '4rem' }}>🎉</span>
           </div>
@@ -230,10 +256,13 @@ export default function Portfolio() {
 
       {/* Header / Hero */}
       <header style={{ position: 'relative', zIndex: 10, padding: '32px 16px 24px', textAlign: 'center', maxWidth: 800, margin: '0 auto' }}>
-        <img 
+        <Image 
           src="/logo.webp" 
           alt="Logo Laboratório de Drinks - Barman em Juiz de Fora" 
-          style={{ width: 'clamp(90px, 25vw, 140px)', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
+          width={140}
+          height={140}
+          priority
+          style={{ width: 'clamp(90px, 25vw, 140px)', height: 'auto', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
         />
         <h1 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 6vw, 2.5rem)', color: 'var(--primary)', margin: '0 0 16px 0', textShadow: '0 4px 20px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
           Barman em Juiz de Fora: Transforme seu evento com o Laboratório de Drinks
@@ -300,12 +329,13 @@ export default function Portfolio() {
           </h2>
 
           <div className="galeria-grid">
-            {(verTodosEventos ? galeria : galeria.slice(0, 3)).map(evento => (
+            {(verTodosEventos ? galeria : galeria.slice(0, 3)).map((evento, idx) => (
               <EventoCard
                 key={evento.id}
                 evento={evento}
                 onOpen={abrirEvento}
                 formatDate={formatDate}
+                priority={idx === 0}
               />
             ))}
           </div>
@@ -360,10 +390,12 @@ export default function Portfolio() {
               >
                 <div style={{ height: 180, background: '#111', position: 'relative', overflow: 'hidden', borderRadius: '12px', marginBottom: 16 }}>
                   {item.image ? (
-                    <img 
+                    <Image 
                       src={item.image} 
                       alt={item.label} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} 
+                      fill
+                      sizes="(max-width: 768px) 100vw, 25vw"
+                      style={{ objectFit: 'cover', transition: 'transform 0.5s' }} 
                       className="evento-tipo-img" 
                     />
                   ) : (
@@ -469,9 +501,15 @@ export default function Portfolio() {
         <div className="drinks-grid">
           {(verTodosDrinks ? drinks : drinks.slice(0, 6)).map(drink => (
             <div key={drink.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
-              <div style={{ height: 220, background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: 220, background: '#111', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {drink.image ? (
-                  <img src={drink.image} alt={drink.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <Image 
+                    src={drink.image} 
+                    alt={drink.name} 
+                    fill
+                    sizes="(max-width: 768px) 50vw, 20vw"
+                    style={{ objectFit: 'cover' }} 
+                  />
                 ) : (
                   <span style={{ fontSize: '4rem' }}>{drink.emoji}</span>
                 )}
@@ -682,11 +720,13 @@ export default function Portfolio() {
                     style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                   />
                 ) : (
-                  <img
+                  <Image
                     key={midiaAtual}
                     src={eventoAberto.midias[midiaAtual]?.url}
                     alt={`${eventoAberto.titulo} - ${midiaAtual + 1}`}
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', transition: 'opacity 0.2s' }}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 900px"
+                    style={{ objectFit: 'contain', transition: 'opacity 0.2s' }}
                   />
                 )}
 
@@ -731,15 +771,16 @@ export default function Portfolio() {
                   onClick={() => setMidiaAtual(idx)}
                   style={{
                     width: 64, height: 64, flexShrink: 0, borderRadius: 8, overflow: 'hidden',
+                    position: 'relative',
                     border: idx === midiaAtual ? '2px solid var(--primary)' : '2px solid transparent',
                     cursor: 'pointer', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'border-color 0.2s', opacity: idx === midiaAtual ? 1 : 0.5
                   }}
                 >
                   {midia.tipo === 'video' ? (
-                    <FiPlay size={24} color="#FFF" />
+                    <FiPlay size={24} color="#FFF" style={{ zIndex: 2 }} />
                   ) : (
-                    <img src={midia.url} alt="thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image src={midia.url} alt="thumb" fill sizes="64px" style={{ objectFit: 'cover' }} />
                   )}
                 </div>
               ))}
