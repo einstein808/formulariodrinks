@@ -4,11 +4,13 @@ import { db } from '../../../lib/firebase';
 import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck, FiUsers, FiFileText } from 'react-icons/fi';
 import { FiPackage as FiPackageIcon } from 'react-icons/fi';
 import { sendWhatsAppQuote, logMessageToLead } from '../../../lib/whatsappService';
+import MinioImageUpload from './MinioImageUpload';
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos Leads', color: '#00E5FF' },
   { id: 'negociacao', title: 'Em Negociação', color: '#FFD54F' },
   { id: 'fechado', title: 'Fechado (Ganho)', color: '#4CAF50' },
+  { id: 'realizado', title: 'Realizados', color: '#9E9E9E' },
   { id: 'perdido', title: 'Perdido', color: '#F44336' }
 ];
 
@@ -474,16 +476,26 @@ export default function LeadsKanban() {
       // Preparar Link do Contrato
       const linkContrato = `${baseSiteUrl}/contrato/${selectedLead.id}`;
 
+      const hasLinkPlaceholder = /\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi.test(scriptConfig.text);
+      const hasContractPlaceholder = /\{\{linkContrato\}\}/gi.test(scriptConfig.text);
+
       // Substituir variáveis
       let finalText = scriptConfig.text
-        .replace(/\{\{nome\}\}/g, selectedLead.nome || '')
-        .replace(/\{\{pacote\}\}/g, selectedLead.pacote || '')
-        .replace(/\{\{dataEvento\}\}/g, selectedLead.dataEvento || '')
-        .replace(/\{\{mes\}\}/g, mesNome)
-        .replace(/\{\{ano\}\}/g, anoEvento)
-        .replace(/\{\{cidade\}\}/g, selectedLead.cidade || '')
-        .replace(/\{\{linkAvaliacao\}\}/g, linkAvaliacao)
-        .replace(/\{\{linkContrato\}\}/g, linkContrato);
+        .replace(/\{\{nome\}\}/gi, selectedLead.nome || '')
+        .replace(/\{\{pacote\}\}/gi, selectedLead.pacote || '')
+        .replace(/\{\{dataEvento\}\}/gi, selectedLead.dataEvento || '')
+        .replace(/\{\{mes\}\}/gi, mesNome)
+        .replace(/\{\{ano\}\}/gi, anoEvento)
+        .replace(/\{\{cidade\}\}/gi, selectedLead.cidade || '')
+        .replace(/\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi, linkAvaliacao)
+        .replace(/\{\{linkContrato\}\}/gi, linkContrato);
+
+      if (scriptType === 'posEvento' && !hasLinkPlaceholder) {
+        finalText += `\n\nLink para avaliação: ${linkAvaliacao}`;
+      }
+      if (scriptType === 'contrato' && !hasContractPlaceholder) {
+        finalText += `\n\nLink do contrato: ${linkContrato}`;
+      }
 
       const number = '55' + selectedLead.telefone.replace(/\D/g, '');
       const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
@@ -615,11 +627,22 @@ export default function LeadsKanban() {
   };
 
   const getLeadsByStatus = (statusId) => {
-    return leads.filter(l => (l.status || 'novo') === statusId);
+    const filtered = leads.filter(l => (l.status || 'novo') === statusId);
+    if (statusId === 'fechado' || statusId === 'realizado') {
+      return [...filtered].sort((a, b) => {
+        const dateA = a.dataEvento ? new Date(a.dataEvento) : new Date(8640000000000000);
+        const dateB = b.dataEvento ? new Date(b.dataEvento) : new Date(8640000000000000);
+        if (statusId === 'realizado') {
+          return dateB - dateA; // past: most recent first
+        }
+        return dateA - dateB; // future: soonest first
+      });
+    }
+    return filtered;
   };
 
   const totalLeads = leads.length;
-  const fechadosCount = getLeadsByStatus('fechado').length;
+  const fechadosCount = getLeadsByStatus('fechado').length + getLeadsByStatus('realizado').length;
   const conversao = totalLeads > 0 ? Math.round((fechadosCount / totalLeads) * 100) : 0;
 
   if (loading) {
@@ -863,8 +886,17 @@ export default function LeadsKanban() {
                 {(() => {
                   let filteredLeads = leads;
                   if (statusFilter !== 'all') {
-                    // Trata leads sem status explícito como 'novo'
                     filteredLeads = leads.filter(l => (l.status || 'novo') === statusFilter);
+                    if (statusFilter === 'fechado' || statusFilter === 'realizado') {
+                      filteredLeads = [...filteredLeads].sort((a, b) => {
+                        const dateA = a.dataEvento ? new Date(a.dataEvento) : new Date(8640000000000000);
+                        const dateB = b.dataEvento ? new Date(b.dataEvento) : new Date(8640000000000000);
+                        if (statusFilter === 'realizado') {
+                          return dateB - dateA;
+                        }
+                        return dateA - dateB;
+                      });
+                    }
                   }
 
                   const limit = itemsPerPage === 'all' ? filteredLeads.length : parseInt(itemsPerPage, 10);
@@ -991,13 +1023,15 @@ export default function LeadsKanban() {
               whiteSpace: 'nowrap',
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
+              msOverflowStyle: 'none',
+              position: 'relative',
+              flexShrink: 0
             }}>
               {[
-                { id: 'info', label: isMobile ? 'Cadastro' : 'Cadastro', icon: FiList },
-                { id: 'equipe', label: isMobile ? 'Equipe' : 'Equipe / Escala', icon: FiUsers },
-                { id: 'drinks', label: isMobile ? 'Bebidas' : 'Bebidas & Lista', icon: FiPackageIcon },
-                { id: 'scripts', label: isMobile ? 'WhatsApp' : 'Ações WhatsApp', icon: FiPhone }
+                { id: 'info', label: 'Cadastro', icon: FiList },
+                { id: 'equipe', label: 'Equipe', icon: FiUsers },
+                { id: 'drinks', label: 'Bebidas', icon: FiPackageIcon },
+                { id: 'scripts', label: 'Ações', icon: FiPhone }
               ].map(tab => {
                 const TabIcon = tab.icon;
                 const isActive = modalTab === tab.id;
@@ -1006,25 +1040,26 @@ export default function LeadsKanban() {
                     key={tab.id}
                     onClick={() => setModalTab(tab.id)}
                     style={{
-                      flex: isMobile ? 'none' : 1,
+                      flex: 1,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: isMobile ? '5px' : '8px',
-                      padding: isMobile ? '14px 14px' : '14px 16px',
-                      background: isActive ? 'rgba(203, 161, 83, 0.05)' : 'transparent',
+                      gap: '5px',
+                      padding: isMobile ? '12px 8px' : '14px 16px',
+                      background: isActive ? 'rgba(203, 161, 83, 0.08)' : 'transparent',
                       color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
                       border: 'none',
                       borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
                       cursor: 'pointer',
-                      fontSize: isMobile ? '0.78rem' : '0.85rem',
-                      fontWeight: isActive ? 'bold' : 'normal',
+                      fontSize: isMobile ? '0.72rem' : '0.85rem',
+                      fontWeight: isActive ? '700' : '500',
                       transition: 'all 0.2s',
                       outline: 'none',
-                      minWidth: isMobile ? 'auto' : '120px',
-                      minHeight: '48px',
+                      minHeight: '44px',
+                      flexShrink: 0,
                       WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation'
+                      touchAction: 'manipulation',
+                      letterSpacing: '0.2px'
                     }}
                   >
                     <TabIcon size={isMobile ? 13 : 14} />
@@ -1203,6 +1238,160 @@ export default function LeadsKanban() {
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Horário:</strong> {selectedLead.horarioEvento || '—'}</div>
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Convidados:</strong> {selectedLead.convidados || '—'}</div>
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Pacote:</strong> <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{selectedLead.pacote || '—'}</span></div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ✍️ CONTRATO ASSINADO & HISTÓRICO */}
+                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ margin: 0, color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FiFileText style={{ color: 'var(--primary)' }} /> Assinatura do Contrato
+                    </h4>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Contrato Assinado pelo Cliente</label>
+                      
+                      {selectedLead.contratoAssinadoUrl ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(76, 175, 80, 0.08)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(76, 175, 80, 0.2)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#4CAF50', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              ✓ Contrato Assinado Anexado
+                            </span>
+                            <button
+                              onClick={async () => {
+                                if (window.confirm("Deseja remover o contrato assinado deste lead?")) {
+                                  await update(ref(db, `leads/${selectedLead.id}`), { contratoAssinadoUrl: null });
+                                  setSelectedLead(prev => ({ ...prev, contratoAssinadoUrl: null }));
+                                  
+                                  // Log removal in history
+                                  await push(ref(db, `leads/${selectedLead.id}/messages`), {
+                                    type: 'contrato_assinado_removido',
+                                    success: true,
+                                    sentAt: Date.now()
+                                  });
+                                }
+                              }}
+                              style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}
+                            >
+                              Remover
+                            </button>
+                          </div>
+                          <a 
+                            href={selectedLead.contratoAssinadoUrl} 
+                            target="_blank" rel="noopener noreferrer"
+                            style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.8rem', wordBreak: 'break-all' }}
+                          >
+                            Visualizar Contrato Assinado 📄
+                          </a>
+                        </div>
+                      ) : (
+                        <div style={{ background: 'rgba(255, 213, 79, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 213, 79, 0.12)', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                          ⏳ Aguardando assinatura do contrato.
+                        </div>
+                      )}
+
+                      <div style={{ marginTop: '8px' }}>
+                        <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                          {selectedLead.contratoAssinadoUrl ? 'Atualizar Contrato Assinado (PDF ou Imagem):' : 'Fazer Upload do Contrato Assinado (PDF ou Imagem):'}
+                        </label>
+                        <MinioImageUpload 
+                          value={selectedLead.contratoAssinadoUrl || ''} 
+                          accept="application/pdf,image/*"
+                          placeholder="Cole a URL ou suba o arquivo do contrato"
+                          onChange={async (url) => {
+                            if (url) {
+                              await update(ref(db, `leads/${selectedLead.id}`), { contratoAssinadoUrl: url });
+                              setSelectedLead(prev => ({ ...prev, contratoAssinadoUrl: url }));
+                              
+                              // Log upload in history
+                              await push(ref(db, `leads/${selectedLead.id}/messages`), {
+                                type: 'contrato_assinado_upload',
+                                success: true,
+                                sentAt: Date.now()
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 📜 HISTÓRICO DE INTERAÇÕES E ENVIOS */}
+                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FiList style={{ color: 'var(--primary)' }} /> Histórico de Envios e Interações
+                    </h4>
+
+                    {selectedLead.messages ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+                        {Object.entries(selectedLead.messages)
+                          .map(([key, val]) => ({ key, ...val }))
+                          .sort((a, b) => (b.sentAt || 0) - (a.sentAt || 0))
+                          .map((msg) => {
+                            const dateStr = msg.sentAt ? new Date(msg.sentAt).toLocaleString('pt-BR') : '—';
+                            
+                            // Traduzir/Formatar tipos de ações
+                            let actionLabel = 'Ação registrada';
+                            let icon = '💬';
+                            
+                            if (msg.type === 'orcamento') {
+                              actionLabel = 'Orçamento enviado (PDF)';
+                              icon = '📄';
+                            } else if (msg.type === 'contrato_gerado') {
+                              actionLabel = 'Contrato gerado pelo cliente';
+                              icon = '📝';
+                            } else if (msg.type === 'contrato_gerado_admin') {
+                              actionLabel = 'Contrato gerado pelo admin';
+                              icon = '⚙️';
+                            } else if (msg.type === 'script_contrato') {
+                              actionLabel = 'Link do contrato enviado por WhatsApp';
+                              icon = '🔗';
+                            } else if (msg.type?.startsWith('script_')) {
+                              const scriptName = msg.type.split('_')[1];
+                              const namesMap = { autoridade: '1. Autoridade', escassez: '2. Escassez', posEvento: '3. Pós-Evento' };
+                              actionLabel = `Script WhatsApp enviado: ${namesMap[scriptName] || scriptName}`;
+                              icon = '📲';
+                            } else if (msg.type === 'lista_compras') {
+                              actionLabel = 'Link da Lista de Compras enviado';
+                              icon = '🛒';
+                            } else if (msg.type === 'notif_cerimonialista') {
+                              actionLabel = 'Notificação de fechamento enviada ao Cerimonialista';
+                              icon = '🤝';
+                            } else if (msg.type?.startsWith('availability_check_')) {
+                              actionLabel = 'Envio de teste de disponibilidade p/ ajudante';
+                              icon = '⏳';
+                            } else if (msg.type?.startsWith('final_confirmation_')) {
+                              actionLabel = 'Confirmação final de escala enviada p/ ajudante';
+                              icon = '✅';
+                            } else if (msg.type === 'contrato_assinado_upload') {
+                              actionLabel = 'Contrato assinado anexado pelo admin';
+                              icon = '📁';
+                            } else if (msg.type === 'contrato_assinado_removido') {
+                              actionLabel = 'Contrato assinado removido pelo admin';
+                              icon = '🗑️';
+                            }
+
+                            const statusColor = msg.success ? '#4CAF50' : '#F44336';
+                            
+                            return (
+                              <div key={msg.key} style={{ background: '#050a06', padding: '8px 12px', borderRadius: '6px', borderLeft: `3px solid ${statusColor}`, fontSize: '0.8rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                  <span style={{ fontWeight: 'bold', color: '#FFF' }}>{icon} {actionLabel}</span>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{dateStr}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                                  <span>{msg.number ? `Destinatário: ${msg.number}` : ''}</span>
+                                  <span style={{ color: statusColor, fontWeight: 'bold' }}>
+                                    {msg.success ? 'Sucesso' : `Erro: ${msg.error || 'Falha no envio'}`}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    ) : (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '12px 0' }}>
+                        Nenhuma interação registrada para este lead.
                       </div>
                     )}
                   </div>

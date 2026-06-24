@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ref, onValue, update } from 'firebase/database';
+import { ref, onValue, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
 import Image from 'next/image';
@@ -614,6 +614,19 @@ export default function GeradorContrato() {
           parcela1Valor: financials.parcela_1_valor,
           parcela2Valor: financials.parcela_2_valor,
         });
+      }
+
+      // Log contract generation in lead messages
+      if (selectedLeadId) {
+        try {
+          await push(ref(db, `leads/${selectedLeadId}/messages`), {
+            type: 'contrato_gerado_admin',
+            success: true,
+            sentAt: Date.now()
+          });
+        } catch (err) {
+          console.error('Error logging contract generation:', err);
+        }
       }
 
       // 2. Dispatch payload (form data + pre-calculated financials) to n8n Webhook as JSON

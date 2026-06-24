@@ -51,10 +51,10 @@ export default function AnalyticsDashboard() {
     value: pacotesCount[key]
   })).sort((a, b) => b.value - a.value);
 
-  // --- Processar Dados: Gráfico de Barras (Sazonalidade - Fechados) ---
+  // --- Processar Dados: Gráfico de Barras (Sazonalidade - Fechados / Realizados) ---
   const mesesCount = {};
   leads.forEach(lead => {
-    if (lead.status === 'fechado' && lead.dataEvento) {
+    if ((lead.status === 'fechado' || lead.status === 'realizado') && lead.dataEvento) {
       const [ano, mes] = lead.dataEvento.split('-');
       const mesFormatado = `${mes}/${ano}`;
       mesesCount[mesFormatado] = (mesesCount[mesFormatado] || 0) + 1;
@@ -94,7 +94,7 @@ export default function AnalyticsDashboard() {
   // --- Ranking de Parceiros ---
   const rankingParceiros = Object.entries(cerimonialistas).map(([slug, cerim]) => {
     const leadsDoParc = leads.filter(l => l.cerimonialista === slug);
-    const fechados = leadsDoParc.filter(l => l.status === 'fechado').length;
+    const fechados = leadsDoParc.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
     const total = leadsDoParc.length;
     const conversao = total > 0 ? Math.round((fechados / total) * 100) : 0;
     return { slug, nome: cerim.nome, total, fechados, conversao };
@@ -102,7 +102,7 @@ export default function AnalyticsDashboard() {
 
   // Leads diretos (sem parceiro)
   const leadsDiretos = leads.filter(l => !l.cerimonialista);
-  const fechadosDiretos = leadsDiretos.filter(l => l.status === 'fechado').length;
+  const fechadosDiretos = leadsDiretos.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
 
   return (
     <div style={{ paddingBottom: '40px' }}>

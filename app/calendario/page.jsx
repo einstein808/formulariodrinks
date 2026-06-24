@@ -105,7 +105,7 @@ function CalendarioContent() {
 
       // Filter closed events where this helper is scheduled
       const filtered = leads.filter(lead => {
-        const isClosed = lead.status === 'fechado';
+        const isClosed = lead.status === 'fechado' || lead.status === 'realizado';
         const hasHelper = lead.ajudantes && lead.ajudantes[helperSlug];
         return isClosed && hasHelper && lead.dataEvento;
       });
@@ -442,9 +442,10 @@ function CalendarioContent() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, overflowY: 'auto' }}>
                         {dayEvents.map(event => {
                           const status = getHelperStatusForEvent(event, helperSlug);
+                          const isRealizado = event.status === 'realizado';
                           
-                          const borderLeftColor = status === 'confirmado' ? '#2e8b57' : (status === 'indisponivel' || status === 'recusado' ? '#8b0000' : '#cba153');
-                          const bg = status === 'confirmado' ? 'rgba(46, 139, 87, 0.08)' : (status === 'indisponivel' || status === 'recusado' ? 'rgba(139, 0, 0, 0.08)' : 'rgba(203, 161, 83, 0.08)');
+                          const borderLeftColor = isRealizado ? '#9E9E9E' : (status === 'confirmado' ? '#2e8b57' : (status === 'indisponivel' || status === 'recusado' ? '#8b0000' : '#cba153'));
+                          const bg = isRealizado ? 'rgba(158, 158, 158, 0.08)' : (status === 'confirmado' ? 'rgba(46, 139, 87, 0.08)' : (status === 'indisponivel' || status === 'recusado' ? 'rgba(139, 0, 0, 0.08)' : 'rgba(203, 161, 83, 0.08)'));
                           
                           return (
                             <div
@@ -526,6 +527,7 @@ function CalendarioContent() {
                   const status = getHelperStatusForEvent(event, helperSlug);
                   const isConfirmed = status === 'confirmado';
                   const isRefused = status === 'indisponivel' || status === 'recusado';
+                  const isRealizado = event.status === 'realizado';
                   const { formatted, dayOfWeek } = formatEventDate(event.dataEvento);
 
                   return (
@@ -534,7 +536,7 @@ function CalendarioContent() {
                       onClick={() => handleJumpToEvent(event)}
                       style={{
                         background: '#070e09',
-                        border: '1px solid rgba(203, 161, 83, 0.15)',
+                        border: `1px solid ${isRealizado ? 'rgba(158, 158, 158, 0.15)' : 'rgba(203, 161, 83, 0.15)'}`,
                         borderRadius: '10px',
                         padding: '12px 14px',
                         cursor: 'pointer',
@@ -544,18 +546,18 @@ function CalendarioContent() {
                         transition: 'all 0.2s'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = '#cba153';
-                        e.currentTarget.style.background = 'rgba(203, 161, 83, 0.03)';
+                        e.currentTarget.style.borderColor = isRealizado ? '#9E9E9E' : '#cba153';
+                        e.currentTarget.style.background = isRealizado ? 'rgba(158, 158, 158, 0.03)' : 'rgba(203, 161, 83, 0.03)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.15)';
+                        e.currentTarget.style.borderColor = isRealizado ? 'rgba(158, 158, 158, 0.15)' : 'rgba(203, 161, 83, 0.15)';
                         e.currentTarget.style.background = '#070e09';
                       }}
                     >
                       {/* Date Badge */}
                       <div style={{
-                        background: 'rgba(203, 161, 83, 0.1)',
-                        border: '1px solid rgba(203, 161, 83, 0.3)',
+                        background: isRealizado ? 'rgba(158, 158, 158, 0.1)' : 'rgba(203, 161, 83, 0.1)',
+                        border: `1px solid ${isRealizado ? 'rgba(158, 158, 158, 0.3)' : 'rgba(203, 161, 83, 0.3)'}`,
                         borderRadius: '8px',
                         width: '50px',
                         height: '50px',
@@ -565,7 +567,7 @@ function CalendarioContent() {
                         justifyContent: 'center',
                         flexShrink: 0
                       }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#cba153' }}>{formatted}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isRealizado ? '#9E9E9E' : '#cba153' }}>{formatted}</span>
                         <span style={{ fontSize: '0.6rem', color: '#8c9e8e', textTransform: 'uppercase' }}>{dayOfWeek}</span>
                       </div>
 
@@ -573,11 +575,12 @@ function CalendarioContent() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ 
                           fontWeight: 600, 
-                          color: '#FFF', 
+                          color: isRealizado ? '#aaa' : '#FFF', 
                           fontSize: '0.88rem', 
                           whiteSpace: 'nowrap', 
                           overflow: 'hidden', 
-                          textOverflow: 'ellipsis' 
+                          textOverflow: 'ellipsis',
+                          textDecoration: isRealizado ? 'line-through' : 'none'
                         }}>
                           {event.nome}
                         </div>
@@ -591,9 +594,9 @@ function CalendarioContent() {
                           fontSize: '0.65rem',
                           fontWeight: 'bold',
                           marginTop: 6,
-                          color: isConfirmed ? '#2e8b57' : (isRefused ? '#F44336' : '#FFD54F')
+                          color: isRealizado ? '#9E9E9E' : (isConfirmed ? '#2e8b57' : (isRefused ? '#F44336' : '#FFD54F'))
                         }}>
-                          • {isConfirmed ? 'Confirmado' : (isRefused ? 'Indisponível' : 'Pendente')}
+                          • {isRealizado ? 'Realizado' : (isConfirmed ? 'Confirmado' : (isRefused ? 'Indisponível' : 'Pendente'))}
                         </span>
                       </div>
                     </div>
@@ -631,6 +634,10 @@ function CalendarioContent() {
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#e8eade' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b0000', display: 'inline-block' }}></span>
             Recusado / Indisponível
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#e8eade' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#9E9E9E', display: 'inline-block' }}></span>
+            Realizado
           </span>
         </div>
 
@@ -689,9 +696,27 @@ function CalendarioContent() {
                   
                   {/* Status Badge */}
                   {(() => {
+                    const isRealizado = selectedEvento.status === 'realizado';
                     const status = getHelperStatusForEvent(selectedEvento, helperSlug);
                     const isConfirmed = status === 'confirmado';
                     const isRefused = status === 'indisponivel' || status === 'recusado';
+                    if (isRealizado) {
+                      return (
+                        <span style={{ 
+                          background: 'rgba(158, 158, 158, 0.15)', 
+                          color: '#9E9E9E', 
+                          border: '1px solid rgba(158, 158, 158, 0.4)', 
+                          padding: '4px 14px', 
+                          borderRadius: '20px', 
+                          fontSize: '0.8rem', 
+                          fontWeight: 'bold', 
+                          display: 'inline-block', 
+                          marginTop: '6px' 
+                        }}>
+                          Evento Realizado
+                        </span>
+                      );
+                    }
                     return (
                       <span style={{ 
                         background: isConfirmed ? 'rgba(46, 139, 87, 0.15)' : (isRefused ? 'rgba(139, 0, 0, 0.15)' : 'rgba(203, 161, 83, 0.15)'), 
@@ -756,59 +781,73 @@ function CalendarioContent() {
                 )}
 
                 {/* Response Action Box */}
-                <div style={{ 
-                  background: 'rgba(203, 161, 83, 0.02)',
-                  borderRadius: '10px',
-                  border: '1px dashed rgba(203, 161, 83, 0.2)',
-                  padding: '16px'
-                }}>
-                  <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#FFF', textAlign: 'center' }}>
-                    Sua Disponibilidade para este Evento:
-                  </h4>
-                  
-                  <div style={{ display: 'flex', gap: '12px', marginTop: 12 }}>
-                    <button
-                      onClick={() => handleChoiceClick('confirmado')}
-                      style={{ 
-                        flex: 1, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: '6px', 
-                        background: '#2e8b57', 
-                        border: 'none', 
-                        color: 'white', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        fontWeight: 'bold', 
-                        cursor: 'pointer',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      <FiCheck size={16} /> Confirmar Presença
-                    </button>
-                    <button
-                      onClick={() => handleChoiceClick('indisponivel')}
-                      style={{ 
-                        flex: 1, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: '6px', 
-                        background: 'none', 
-                        border: '1px solid #8b0000', 
-                        color: '#F44336', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        fontWeight: 'bold', 
-                        cursor: 'pointer',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      <FiX size={16} /> Recusar Escala
-                    </button>
+                {selectedEvento.status !== 'realizado' ? (
+                  <div style={{ 
+                    background: 'rgba(203, 161, 83, 0.02)',
+                    borderRadius: '10px',
+                    border: '1px dashed rgba(203, 161, 83, 0.2)',
+                    padding: '16px'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#FFF', textAlign: 'center' }}>
+                      Sua Disponibilidade para este Evento:
+                    </h4>
+                    
+                    <div style={{ display: 'flex', gap: '12px', marginTop: 12 }}>
+                      <button
+                        onClick={() => handleChoiceClick('confirmado')}
+                        style={{ 
+                          flex: 1, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          gap: '6px', 
+                          background: '#2e8b57', 
+                          border: 'none', 
+                          color: 'white', 
+                          padding: '10px', 
+                          borderRadius: '8px', 
+                          fontWeight: 'bold', 
+                          cursor: 'pointer',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <FiCheck size={16} /> Confirmar Presença
+                      </button>
+                      <button
+                        onClick={() => handleChoiceClick('indisponivel')}
+                        style={{ 
+                          flex: 1, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          gap: '6px', 
+                          background: 'none', 
+                          border: '1px solid #8b0000', 
+                          color: '#F44336', 
+                          padding: '10px', 
+                          borderRadius: '8px', 
+                          fontWeight: 'bold', 
+                          cursor: 'pointer',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <FiX size={16} /> Recusar Escala
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div style={{ 
+                    background: 'rgba(158, 158, 158, 0.02)',
+                    borderRadius: '10px',
+                    border: '1px dashed rgba(158, 158, 158, 0.2)',
+                    padding: '16px',
+                    textAlign: 'center',
+                    color: '#9E9E9E',
+                    fontSize: '0.85rem'
+                  }}>
+                    Este evento já foi finalizado e concluído. Não é mais possível alterar sua presença.
+                  </div>
+                )}
 
               </div>
               

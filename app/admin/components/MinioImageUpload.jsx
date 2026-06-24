@@ -59,14 +59,24 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
     if (!file) return;
 
     // Validação de tipo de arquivo baseado no accept
-    const isImage = accept.includes('image');
-    const isVideo = accept.includes('video');
+    const isImageOnly = accept.includes('image') && !accept.includes('pdf') && !accept.includes('application/pdf');
+    const isVideoOnly = accept.includes('video');
+    const isPdfOnly = (accept.includes('pdf') || accept.includes('application/pdf')) && !accept.includes('image');
+    const isImageOrPdf = accept.includes('image') && (accept.includes('pdf') || accept.includes('application/pdf'));
 
-    if (isImage && !file.type.startsWith('image/')) {
+    if (isImageOnly && !file.type.startsWith('image/')) {
       alert('Por favor, selecione apenas arquivos de imagem.');
       return;
     }
-    if (isVideo && !file.type.startsWith('video/')) {
+    if (isPdfOnly && file.type !== 'application/pdf') {
+      alert('Por favor, selecione apenas um arquivo PDF.');
+      return;
+    }
+    if (isImageOrPdf && !file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert('Por favor, selecione um arquivo de imagem ou PDF.');
+      return;
+    }
+    if (isVideoOnly && !file.type.startsWith('video/')) {
       alert('Por favor, selecione apenas arquivos de vídeo.');
       return;
     }
@@ -75,7 +85,7 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
     setUploadProgress(0);
 
     let fileToUpload = file;
-    if (isImage) {
+    if (file.type.startsWith('image/')) {
       if (file.type === 'image/gif') {
         const fileSizeInMB = file.size / (1024 * 1024);
         if (fileSizeInMB > 5) {
@@ -94,7 +104,7 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
           console.error("Erro na compressão:", err);
         }
       }
-    } else if (isVideo) {
+    } else if (file.type.startsWith('video/')) {
       const fileSizeInMB = file.size / (1024 * 1024);
       if (fileSizeInMB > 30) {
         const confirmUpload = window.confirm(
@@ -168,6 +178,8 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
           >
             {value.match(/\.(mp4|webm|ogg|mov|avi|mkv)(\?.*)?$/i) || accept.includes('video') ? (
               <span style={{ fontSize: '1.2rem' }}>🎬</span>
+            ) : value.match(/\.pdf(\?.*)?$/i) || accept.includes('pdf') || accept.includes('application/pdf') ? (
+              <span style={{ fontSize: '1.2rem' }}>📄</span>
             ) : (
               <img 
                 src={value} 
@@ -200,7 +212,14 @@ export default function MinioImageUpload({ value, onChange, placeholder = 'https
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(203, 161, 83, 0.08)'; }}
         >
           <FiUploadCloud size={16} />
-          {uploading ? `Enviando... ${uploadProgress}% ⏳` : accept.includes('video') ? 'Selecionar Vídeo' : 'Selecionar Foto'}
+          {uploading 
+            ? `Enviando... ${uploadProgress}% ⏳` 
+            : accept.includes('video') 
+              ? 'Selecionar Vídeo' 
+              : (accept.includes('pdf') || accept.includes('application/pdf')) 
+                ? (accept.includes('image') ? 'Selecionar Foto ou PDF' : 'Selecionar PDF')
+                : 'Selecionar Foto'
+          }
           <input 
             type="file" 
             accept={accept} 

@@ -845,7 +845,7 @@ export async function POST(request) {
     const evolutionPayload = {
       number: cleanNumber,
       mediatype: 'document',
-      caption: 'Segue seu contrato em PDf',
+      caption: 'Segue seu contrato, por gentileza , confira os dados e se estiverem corretos assine e me encaminhe',
       media: base64Pdf,
       fileName: 'contrato.pdf'
     };

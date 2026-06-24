@@ -27,9 +27,9 @@ export default function AgendaEventos() {
         const data = snapshot.val();
         const todosLeads = Object.entries(data).map(([id, val]) => ({ id, ...val }));
         
-        // Filtra apenas leads fechados que possuem dataEvento
+        // Filtra apenas leads fechados ou realizados que possuem dataEvento
         const eventosFechados = todosLeads.filter(
-          lead => lead.status === 'fechado' && lead.dataEvento
+          lead => (lead.status === 'fechado' || lead.status === 'realizado') && lead.dataEvento
         );
         
         setEventos(eventosFechados);

@@ -67,18 +67,18 @@ export default function RetargetAlert() {
     const diffTime = eventDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // Regra NPS: Evento fechado, passou 1 dia ou mais da data, não enviou o NPS ainda
-    if (lead.status === 'fechado' && diffDays <= -1 && !lead.npsSent) {
+    // Regra NPS: Evento fechado ou realizado, passou 1 dia ou mais da data, não enviou o NPS ainda
+    if ((lead.status === 'fechado' || lead.status === 'realizado') && diffDays <= -1 && !lead.npsSent) {
       pendingNPS.push(lead);
     }
     
     // Regras para Eventos Próximos (Notificação pro Admin)
-    if (lead.status === 'fechado' && diffDays >= 0 && diffDays <= 15) {
+    if ((lead.status === 'fechado' || lead.status === 'realizado') && diffDays >= 0 && diffDays <= 15) {
       upcomingEvents.push({ ...lead, diffDays });
     }
 
-    // As regras abaixo são apenas para leads não fechados
-    if (lead.status !== 'fechado') {
+    // As regras abaixo são apenas para leads não fechados e não realizados
+    if (lead.status !== 'fechado' && lead.status !== 'realizado') {
       // Regra: Exatamente ou menos que 30 dias (mas mais de 15) E não enviou o de 30 ainda
       if (diffDays <= 30 && diffDays > 15 && !lead.retarget30Sent) {
         pending30Days.push(lead);
@@ -175,15 +175,22 @@ export default function RetargetAlert() {
         }
       }
 
+      const hasLinkPlaceholder = /\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi.test(scriptObj.text);
+
       let finalText = scriptObj.text
-        .replace(/\{\{nome\}\}/g, lead.nome || '')
-        .replace(/\{\{pacote\}\}/g, lead.pacote || '')
-        .replace(/\{\{dataEvento\}\}/g, lead.dataEvento || '')
-        .replace(/\{\{mes\}\}/g, mesNome)
-        .replace(/\{\{ano\}\}/g, anoEvento)
-        .replace(/\{\{cidade\}\}/g, lead.cidade || '') 
-        .replace(/\{\{linkAvaliacao\}\}/g, linkAvaliacao)
-        + optoutLink;
+        .replace(/\{\{nome\}\}/gi, lead.nome || '')
+        .replace(/\{\{pacote\}\}/gi, lead.pacote || '')
+        .replace(/\{\{dataEvento\}\}/gi, lead.dataEvento || '')
+        .replace(/\{\{mes\}\}/gi, mesNome)
+        .replace(/\{\{ano\}\}/gi, anoEvento)
+        .replace(/\{\{cidade\}\}/gi, lead.cidade || '') 
+        .replace(/\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi, linkAvaliacao);
+
+      if (!hasLinkPlaceholder) {
+        finalText += `\n\nLink para avaliação: ${linkAvaliacao}`;
+      }
+      
+      finalText += optoutLink;
 
       const number = '55' + (lead.telefone || '').replace(/\D/g, '');
       

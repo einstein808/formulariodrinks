@@ -1285,6 +1285,7 @@ body {
 
   .admin-main {
     padding-top: calc(56px + env(safe-area-inset-top, 0px) + 12px) !important;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
     -webkit-overflow-scrolling: touch;
   }
 

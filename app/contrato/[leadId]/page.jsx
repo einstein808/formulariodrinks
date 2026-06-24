@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { ref, get, onValue, update } from 'firebase/database';
+import { ref, get, onValue, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
 import Image from 'next/image';
@@ -599,6 +599,17 @@ export default function ClienteContratoPage() {
         parcela1Valor: financials.parcela_1_valor,
         parcela2Valor: financials.parcela_2_valor,
       });
+
+      // Log contract generation in lead messages
+      try {
+        await push(ref(db, `leads/${leadId}/messages`), {
+          type: 'contrato_gerado',
+          success: true,
+          sentAt: Date.now()
+        });
+      } catch (err) {
+        console.error('Error logging contract generation:', err);
+      }
 
       // 2. Dispatch to the PDF generation Webhook (form details + financials) as JSON
       const mapKeysToNames = (keys) => {
