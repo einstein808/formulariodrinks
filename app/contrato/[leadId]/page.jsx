@@ -51,7 +51,8 @@ export default function ClienteContratoPage() {
     drinks_frozen: [],
     barmans: 1,
     ajudantes: 0,
-    autorizarimagem: true
+    autorizarimagem: true,
+    coposDeVidro: false
   });
 
   const [errors, setErrors] = useState({});
@@ -171,7 +172,8 @@ export default function ClienteContratoPage() {
             drinks_frozen: lead.drinks_frozen || mappedFrozen,
             barmans: barmansVal,
             ajudantes: ajudantesVal,
-            autorizarimagem: lead.autorizarimagem !== undefined ? lead.autorizarimagem : true
+            autorizarimagem: lead.autorizarimagem !== undefined ? lead.autorizarimagem : true,
+            coposDeVidro: lead.coposDeVidro !== undefined ? lead.coposDeVidro : false
           });
         }
       } catch (err) {
@@ -198,7 +200,7 @@ export default function ClienteContratoPage() {
   }, [formData.tipodrink]);
 
   const isPremium = (formData.Servico || '').toLowerCase().includes('premium');
-  const isFrozen = (formData.Servico || '').toLowerCase().includes('frozen');
+  const isFrozen = (formData.Servico || '').toLowerCase().includes('frozen') || isPremium;
   const isMaoDeObra = (formData.Servico || '').toLowerCase().includes('mão de obra');
 
   const DRINKS_ALCOOL = allDrinks.filter(d => d.category === 'alcool');
@@ -292,7 +294,12 @@ export default function ClienteContratoPage() {
     }
 
     const convidadosCobrados = isPerPerson ? Math.max(convidadosInformados, minimoConvidados) : 0;
-    const valorTotal = isPerPerson ? (convidadosCobrados * valorPorConvidado) : valorBase;
+    let valorTotal = isPerPerson ? (convidadosCobrados * valorPorConvidado) : valorBase;
+
+    // Adicional de copos de vidro: R$ 5,00 por convidado
+    if (formData.coposDeVidro) {
+      valorTotal += 5 * convidadosInformados;
+    }
 
     const parcela1 = +(valorTotal / 2).toFixed(2);
     const parcela2 = +(valorTotal - parcela1).toFixed(2);
@@ -570,6 +577,7 @@ export default function ClienteContratoPage() {
         barmans: formData.barmans !== undefined ? parseInt(formData.barmans, 10) : 1,
         ajudantes: formData.ajudantes !== undefined ? parseInt(formData.ajudantes, 10) : 0,
         autorizarimagem: formData.autorizarimagem !== undefined ? formData.autorizarimagem : true,
+        coposDeVidro: formData.coposDeVidro || false,
         // Calculated values
         valorTotal: financials.valor_total,
         valorTotalFormatado: financials.valor_total_formatado,
@@ -1007,6 +1015,36 @@ export default function ClienteContratoPage() {
                       {s}
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* ADICIONAIS / OPCIONAIS */}
+              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Opcionais Adicionais</label>
+                <div
+                  onClick={() => setFormData(prev => ({ ...prev, coposDeVidro: !prev.coposDeVidro }))}
+                  style={{
+                    padding: '14px 16px', borderRadius: '8px', cursor: 'pointer',
+                    border: formData.coposDeVidro ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
+                    background: formData.coposDeVidro ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.02)',
+                    color: formData.coposDeVidro ? 'var(--primary)' : 'var(--text-secondary)',
+                    transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: '12px'
+                  }}
+                >
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '4px', border: '1px solid var(--primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', background: formData.coposDeVidro ? 'var(--primary)' : 'transparent', flexShrink: 0
+                  }}>
+                    {formData.coposDeVidro && <span style={{ color: '#000', fontSize: '0.8rem', fontWeight: 'bold' }}>✓</span>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: formData.coposDeVidro ? 'var(--primary)' : '#FFF' }}>
+                      Adicional de Copos de Vidro 🍷
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Fornecimento de copos de vidro para o evento (5 copos por convidado) • + R$ 5,00 por convidado
+                    </span>
+                  </div>
                 </div>
               </div>
 

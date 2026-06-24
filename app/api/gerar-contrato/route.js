@@ -128,6 +128,7 @@ const getMaoDeObraTemplate = (data) => {
             <li>deslocamento;</li>
             <li>acessórios de bar;</li>
             <li>espuma de gengibre.</li>
+            ${data.coposDeVidro ? `<li>fornecimento de copos de vidro adicional (5 por convidado).</li>` : ''}
         </ul>
         <p class="clausula">
             <span class="highlight">1.4</span> Não estão incluídos: bebidas, frutas, gelo ou quaisquer outros insumos, os quais serão de inteira responsabilidade do CONTRATANTE.
@@ -527,6 +528,11 @@ const getStandardTemplate = (data) => {
       <p>
         1.10 O transporte do CONTRATADO é de inteira responsabilidade do próprio CONTRATADO, não cabendo ao CONTRATANTE o custeio ou a disponibilização de meios de locomoção, salvo ajuste expresso em contrário.
       </p>
+      ${data.coposDeVidro ? `
+      <p>
+        1.11 O presente contrato inclui o fornecimento adicional de copos de vidro para o evento (na proporção de 5 copos por convidado), conforme opção de contratação selecionada pelo CONTRATANTE.
+      </p>
+      ` : ''}
     </div>
 
     <div class="clausula">
@@ -540,6 +546,12 @@ const getStandardTemplate = (data) => {
               <td><strong>Serviço contratado</strong></td>
               <td>${data.Servico || ''}</td>
             </tr>
+            ${data.coposDeVidro ? `
+            <tr>
+              <td><strong>Adicional Copos de Vidro</strong></td>
+              <td>Sim (5 por convidado - R$ 5,00/pessoa)</td>
+            </tr>
+            ` : ''}
             <tr>
               <td><strong>Convidados informados</strong></td>
               <td>${data.convidados_informados || 0}</td>
