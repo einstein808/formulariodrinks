@@ -29,6 +29,7 @@ export default function GeradorContrato() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [allDrinks, setAllDrinks] = useState([]);
+  const [generalConfig, setGeneralConfig] = useState({});
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -102,10 +103,19 @@ export default function GeradorContrato() {
       }
     });
 
+    // General Config
+    const generalRef = ref(db, 'config/general');
+    const unsubscribeGeneral = onValue(generalRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setGeneralConfig(snapshot.val());
+      }
+    });
+
     return () => {
       unsubscribeLeads();
       unsubscribePacotes();
       unsubscribeDrinks();
+      unsubscribeGeneral();
     };
   }, []);
 
@@ -215,9 +225,10 @@ export default function GeradorContrato() {
     const convidadosCobrados = isPerPerson ? Math.max(convidadosInformados, minimoConvidados) : 0;
     let valorTotal = isPerPerson ? (convidadosCobrados * valorPorConvidado) : valorBase;
 
-    // Adicional de copos de vidro: R$ 5,00 por convidado
+    // Adicional de copos de vidro: preço dinâmico por convidado
+    const precoCopo = parseFloat(generalConfig.precoCopoVidro !== undefined ? generalConfig.precoCopoVidro : 5);
     if (formData.coposDeVidro) {
-      valorTotal += 5 * convidadosInformados;
+      valorTotal += precoCopo * convidadosInformados;
     }
 
     const parcela1 = +(valorTotal / 2).toFixed(2);
@@ -611,6 +622,7 @@ export default function GeradorContrato() {
         drinks_sem_alcool: mapKeysToNames(formData.drinks_sem_alcool),
         drinks_sofisticados: mapKeysToNames(formData.drinks_sofisticados),
         drinks_frozen: mapKeysToNames(formData.drinks_frozen || []),
+        precoCopoVidro: parseFloat(generalConfig.precoCopoVidro !== undefined ? generalConfig.precoCopoVidro : 5),
         ...financials
       };
 
@@ -1093,7 +1105,7 @@ export default function GeradorContrato() {
                     Adicional de Copos de Vidro 🍷
                   </span>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Fornecimento de copos de vidro para o evento (5 copos por convidado) • + R$ 5,00 por convidado
+                    Fornecimento de copos de vidro para o evento (5 copos por convidado) • + R$ {parseFloat(generalConfig.precoCopoVidro !== undefined ? generalConfig.precoCopoVidro : 5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por convidado
                   </span>
                 </div>
               </div>

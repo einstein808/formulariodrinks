@@ -27,7 +27,7 @@ export default function ConfigsEditor() {
   
   const [drinks, setDrinks] = useState([]);
   const [pacotes, setPacotes] = useState([]);
-  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '', adminPhone: '' });
+  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '', adminPhone: '', precoCopoVidro: '' });
   const [evolutionApi, setEvolutionApi] = useState({ url: '', instance: '', apikey: '' });
   const [scripts, setScripts] = useState({
     autoridade: { text: '', image: '' },
@@ -486,6 +486,19 @@ export default function ConfigsEditor() {
               <label className="form-label" style={{ color: '#FFD54F' }}>Telefone do Admin (Para receber alertas automáticos de festas próximas)</label>
               <input type="text" className="form-input" value={general.adminPhone || ''} onChange={(e) => setGeneral({ ...general, adminPhone: e.target.value })} placeholder="Ex: 32999999999" />
               <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Apenas números com DDD. O sistema enviará os avisos de 15, 7 e 3 dias para este número automaticamente.</p>
+            </div>
+            <div style={{ marginTop: '16px' }}>
+              <label className="form-label">Preço Adicional de Copos de Vidro (por convidado)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                min="0"
+                className="form-input" 
+                value={general.precoCopoVidro !== undefined ? general.precoCopoVidro : ''} 
+                onChange={(e) => setGeneral({ ...general, precoCopoVidro: e.target.value === '' ? '' : parseFloat(e.target.value) })} 
+                placeholder="Padrão: R$ 5,00" 
+              />
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor cobrado por convidado caso o opcional de Copos de Vidro seja selecionado no contrato (ex: 5.00).</p>
             </div>
           </div>
 

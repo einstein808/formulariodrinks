@@ -549,7 +549,7 @@ const getStandardTemplate = (data) => {
             ${data.coposDeVidro ? `
             <tr>
               <td><strong>Adicional Copos de Vidro</strong></td>
-              <td>Sim (5 por convidado - R$ 5,00/pessoa)</td>
+              <td>Sim (5 por convidado - R$ ${Number(data.precoCopoVidro !== undefined ? data.precoCopoVidro : 5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/pessoa)</td>
             </tr>
             ` : ''}
             <tr>
