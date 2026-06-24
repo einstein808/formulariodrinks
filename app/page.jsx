@@ -18,7 +18,7 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
 
   const [fotoIdx, setFotoIdx] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
-  const [hovered, setHovered] = useState(false);
+  const [pausado, setPausado] = useState(false);
   const intervalRef = useRef(null);
 
   const avancar = () => {
@@ -31,11 +31,12 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
   };
 
   useEffect(() => {
-    if (todasFotos.length <= 1 || !hovered) return;
+    if (todasFotos.length <= 1 || pausado) return;
     intervalRef.current = setInterval(avancar, 3000);
     return () => clearInterval(intervalRef.current);
-  }, [todasFotos.length, hovered, fotoIdx]);
+  }, [todasFotos.length, pausado, fotoIdx]);
 
+  const fotoAtual = todasFotos[fotoIdx]?.url;
   const totalMidias = (evento.midias || []).length;
   const temVideo = (evento.midias || []).some(m => m.tipo === 'video');
   const kenBurnsClass = `kb-${fotoIdx % 4}`; // alterna direção do Ken Burns
@@ -55,50 +56,35 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
         e.currentTarget.style.transform = 'translateY(-8px) scale(1.01)'; 
         e.currentTarget.style.boxShadow = '0 20px 50px rgba(203, 161, 83, 0.25)'; 
         e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.6)'; 
-        setHovered(true); 
+        setPausado(true); 
       }}
       onMouseLeave={(e) => { 
         e.currentTarget.style.transform = 'translateY(0) scale(1)'; 
         e.currentTarget.style.boxShadow = 'none'; 
         e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.15)'; 
-        setHovered(false);
-        setFotoIdx(0); // Volta para a capa ao sair do card
+        setPausado(false);
       }}
     >
       {/* Área da capa com slideshow */}
       <div style={{ height: 240, background: '#111', position: 'relative', overflow: 'hidden' }}>
-        {todasFotos.map((foto, i) => {
-          // Otimização crucial: só renderiza/carrega imagens adicionais se o card estiver sob hover
-          const shouldRender = i === 0 || hovered;
-          if (!shouldRender) return null;
-
-          const isCurrent = i === fotoIdx;
-          return (
-            <div
-              key={foto.url + i}
+        {fotoAtual ? (
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <Image
+              key={fotoAtual + fotoIdx}
+              src={fotoAtual}
+              alt={evento.titulo}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              priority={priority && fotoIdx === 0}
               style={{
-                position: 'absolute',
-                inset: 0,
-                opacity: isCurrent && fadeIn ? 1 : 0,
+                objectFit: 'cover',
+                opacity: fadeIn ? 1 : 0,
                 transition: 'opacity 0.35s ease',
               }}
-            >
-              <Image
-                src={foto.url}
-                alt={evento.titulo}
-                fill
-                sizes="(max-width: 768px) 100vw, 33vw"
-                priority={priority && i === 0}
-                style={{
-                  objectFit: 'cover',
-                }}
-                className={isCurrent ? `ken-burns ${kenBurnsClass}` : ''}
-              />
-            </div>
-          );
-        })}
-
-        {todasFotos.length === 0 && (
+              className={`ken-burns ${kenBurnsClass}`}
+            />
+          </div>
+        ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)' }}>
             <span style={{ fontSize: '4rem' }}>🎉</span>
           </div>
