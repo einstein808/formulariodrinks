@@ -108,7 +108,7 @@ export default function AdminDashboard() {
       )}
 
       {/* ── DESKTOP/MOBILE SIDEBAR ─────────────────────────────────── */}
-      <aside className={`admin-sidebar ${menuOpen ? 'admin-sidebar--open' : ''}`} style={{ background: 'linear-gradient(180deg, #0a140d 0%, #050a06 100%)', borderRight: '1px solid var(--border-color)', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', width: '260px', flexShrink: 0 }}>
+      <aside className={`admin-sidebar ${menuOpen ? 'admin-sidebar--open' : ''}`} style={{ background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-dark) 100%)', borderRight: '1px solid var(--border-color)', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', width: '260px', flexShrink: 0 }}>
         <div style={{ padding: '32px 24px', textAlign: 'center', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', position: 'relative' }}>
           <button
             onClick={() => setMenuOpen(false)}
@@ -247,7 +247,7 @@ export default function AdminDashboard() {
       </header>
 
       {/* ── MAIN CONTENT ────────────────────────────────────── */}
-      <main className="admin-main" style={{ flex: 1, height: '100vh', overflowY: 'auto', padding: '24px', background: '#0a0a0a' }}>
+      <main className="admin-main" style={{ flex: 1, height: '100vh', overflowY: 'auto', padding: '24px', background: 'var(--bg-dark)' }}>
         <RetargetAlert />
         {activeTab === 'leads'     && <LeadsKanban />}
         {activeTab === 'agenda'    && <AgendaEventos />}

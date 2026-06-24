@@ -684,20 +684,20 @@ export default function LeadsKanban() {
           </button>
 
           {/* Simplified Analytics Bar */}
-          <div className="admin-stats" style={{ display: 'flex', gap: '16px', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-around' : 'flex-start' }}>
+          <div className="admin-stats" style={{ display: 'flex', gap: '20px', background: 'var(--bg-card)', padding: '14px 20px', borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-card)', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-around' : 'flex-start' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF' }}>{totalLeads}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Leads</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--text-primary)' }}>{totalLeads}</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '500', letterSpacing: '0.3px' }}>Total Leads</div>
           </div>
-          <div style={{ width: '1px', background: 'var(--border-color)' }} />
+          <div style={{ width: '1px', background: 'rgba(255,255,255,0.06)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>{fechadosCount}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fechados</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#4CAF50' }}>{fechadosCount}</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '500', letterSpacing: '0.3px' }}>Fechados</div>
           </div>
-          <div style={{ width: '1px', background: 'var(--border-color)' }} />
+          <div style={{ width: '1px', background: 'rgba(255,255,255,0.06)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>{conversao}%</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Conversão</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--primary)' }}>{conversao}%</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '500', letterSpacing: '0.3px' }}>Conversão</div>
           </div>
         </div>
       </div>
@@ -714,14 +714,14 @@ export default function LeadsKanban() {
                 key={col.id} 
                 onDragOver={(e) => {
                   e.preventDefault(); // Necessário para permitir o onDrop
-                  e.currentTarget.style.background = '#222'; // Efeito visual ao arrastar por cima
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; // Efeito visual ao arrastar por cima
                 }}
                 onDragLeave={(e) => {
-                  e.currentTarget.style.background = '#1A1A1A'; // Remove efeito
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; // Remove efeito
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  e.currentTarget.style.background = '#1A1A1A';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
                   const leadId = e.dataTransfer.getData('text/plain');
                   if (leadId) {
                     handleStatusChange(leadId, col.id);
@@ -729,13 +729,13 @@ export default function LeadsKanban() {
                 }}
                 className="admin-kanban-col"
                 style={{ 
-                  minWidth: '300px', flex: 1, background: '#1A1A1A', borderRadius: '12px', padding: '16px',
-                  display: 'flex', flexDirection: 'column', borderTop: `4px solid ${col.color}`,
+                  minWidth: '300px', flex: 1, background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '16px',
+                  display: 'flex', flexDirection: 'column', borderTop: `3px solid ${col.color}`,
                   transition: 'background 0.2s'
                 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#FFF' }}>{col.title}</h3>
-                  <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: '600', letterSpacing: '0.2px' }}>{col.title}</h3>
+                  <span style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 10px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
                     {colLeads.length}
                   </span>
                 </div>
@@ -765,27 +765,29 @@ export default function LeadsKanban() {
                         }}
                         onClick={() => setSelectedLead(lead)}
                         style={{
-                          background: 'var(--bg-input)', padding: '16px', borderRadius: '8px',
-                          cursor: isMobile ? 'pointer' : 'grab', border: isStale ? '1px solid #F44336' : '1px solid var(--border-color)',
-                          transition: 'border-color 0.2s', ':hover': { borderColor: 'var(--primary)' }
+                          background: 'var(--bg-card)', padding: '14px 16px', borderRadius: '12px',
+                          cursor: isMobile ? 'pointer' : 'grab', 
+                          border: isStale ? '1px solid rgba(244, 67, 54, 0.4)' : '1px solid transparent',
+                          boxShadow: 'var(--shadow-card)',
+                          transition: 'box-shadow 0.2s, border-color 0.2s'
                         }}
                       >
-                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '4px', color: '#FFF', display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '6px', color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span>{lead.nome} {lead.sobrenome}</span>
-                          {isStale && <span title="Lead parado há mais de 48h!" style={{ fontSize: '0.8rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>🔥 Esfriando</span>}
+                          {isStale && <span title="Lead parado há mais de 48h!" style={{ fontSize: '0.7rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>🔥 Esfriando</span>}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                          <FiCalendar /> {lead.dataEvento || 'Data não inf.'}
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                          <FiCalendar size={12} /> {lead.dataEvento || 'Data não inf.'}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <FiMapPin /> {lead.cidade}
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <FiMapPin size={12} /> {lead.cidade}
                         </div>
                         
-                        <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.8rem', background: 'rgba(203, 161, 83, 0.2)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px' }}>
+                        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', background: 'rgba(203, 161, 83, 0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: '6px', fontWeight: '600', letterSpacing: '0.2px' }}>
                             {lead.pacote}
                           </span>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                             {lead.convidados} conv.
                           </span>
                         </div>
@@ -793,10 +795,10 @@ export default function LeadsKanban() {
                         {/* Badge cerimonialista */}
                         {lead.cerimonialista && cerimonialistas[lead.cerimonialista] && (
                           <div style={{
-                            marginTop: 8, fontSize: '0.75rem', color: '#E91E63',
+                            marginTop: 8, fontSize: '0.72rem', color: '#E91E63',
                             display: 'flex', alignItems: 'center', gap: 4,
-                            background: 'rgba(233,30,99,0.08)', padding: '2px 6px',
-                            borderRadius: 4, border: '1px solid rgba(233,30,99,0.2)'
+                            background: 'rgba(233,30,99,0.06)', padding: '3px 8px',
+                            borderRadius: 6
                           }}>
                             <FiHeart size={10} /> {cerimonialistas[lead.cerimonialista].nome}
                           </div>
@@ -986,14 +988,14 @@ export default function LeadsKanban() {
             onClick={(e) => e.stopPropagation()}
             style={{
               background: '#0a140d', width: '100%', maxWidth: isMobile ? '100%' : '680px',
-            borderRadius: isMobile ? '20px 20px 0 0' : '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.25)',
+            borderRadius: isMobile ? '20px 20px 0 0' : '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.1)',
             maxHeight: isMobile ? '95vh' : '90vh', display: 'flex', flexDirection: 'column',
             boxShadow: '0 -4px 40px rgba(0,0,0,0.7)',
             animation: isMobile ? 'slideUp 0.3s ease' : 'fadeInUp 0.3s ease',
             borderBottom: isMobile ? 'none' : undefined
           }}>
             {/* HEADER */}
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#070e09' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0a1210' }}>
               <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.2rem' }}>Detalhes do Lead</h2>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 {!isEditingLead ? (
@@ -1005,10 +1007,10 @@ export default function LeadsKanban() {
                     <FiSave size={14} /> Salvar
                   </button>
                 )}
-                <button onClick={() => handleDeleteLead(selectedLead.id)} title="Excluir Lead" style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 36, justifyContent: 'center' }}>
+                <button onClick={() => handleDeleteLead(selectedLead.id)} title="Excluir Lead" style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44, justifyContent: 'center' }}>
                   <FiTrash2 size={18} />
                 </button>
-                <button onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 36, justifyContent: 'center' }}>
+                <button onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44, justifyContent: 'center' }}>
                   <FiX size={22} />
                 </button>
               </div>
@@ -1017,8 +1019,8 @@ export default function LeadsKanban() {
             {/* TABS SELECTOR */}
             <div style={{ 
               display: 'flex', 
-              background: '#070e09', 
-              borderBottom: '1px solid rgba(203, 161, 83, 0.12)',
+              background: '#0a1210', 
+              borderBottom: '1px solid rgba(203, 161, 83, 0.08)',
               overflowX: 'auto',
               whiteSpace: 'nowrap',
               WebkitOverflowScrolling: 'touch',
@@ -1074,11 +1076,10 @@ export default function LeadsKanban() {
               
               {/* Quick info header */}
               <div style={{ 
-                background: '#070e09', 
-                borderRadius: '10px', 
+                background: 'rgba(255,255,255,0.02)', 
+                borderRadius: '12px', 
                 padding: '12px 16px', 
                 marginBottom: '20px', 
-                border: '1px solid rgba(203, 161, 83, 0.15)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -1150,7 +1151,7 @@ export default function LeadsKanban() {
                   </div>
 
                   {/* Cerimonialista Parceiro */}
-                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '16px', border: '1px solid rgba(203, 161, 83, 0.12)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '16px', border: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <FiHeart size={16} style={{ color: '#E91E63', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Cerimonialista Parceiro</label>
@@ -1181,8 +1182,8 @@ export default function LeadsKanban() {
                   </div>
 
                   {/* Client & Event Data Forms */}
-                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
-                    <h4 style={{ margin: '0 0 16px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none' }}>
+                    <h4 style={{ margin: '0 0 16px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px' }}>
                       Dados Cadastrais
                     </h4>
                     
@@ -1243,7 +1244,7 @@ export default function LeadsKanban() {
                   </div>
 
                   {/* ✍️ CONTRATO ASSINADO & HISTÓRICO */}
-                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <h4 style={{ margin: 0, color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <FiFileText style={{ color: 'var(--primary)' }} /> Assinatura do Contrato
                     </h4>
@@ -1317,8 +1318,8 @@ export default function LeadsKanban() {
                   </div>
 
                   {/* 📜 HISTÓRICO DE INTERAÇÕES E ENVIOS */}
-                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
-                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <FiList style={{ color: 'var(--primary)' }} /> Histórico de Envios e Interações
                     </h4>
 
@@ -1402,8 +1403,8 @@ export default function LeadsKanban() {
               {modalTab === 'equipe' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
                   {/* Event Team management */}
-                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '18px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '10px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '10px' }}>
                       <h4 style={{ margin: 0, color: '#FFF', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <FiUsers style={{ color: 'var(--primary)' }} /> Equipe do Evento
                       </h4>
@@ -1646,7 +1647,7 @@ export default function LeadsKanban() {
                           background: 'none', 
                           cursor: sendingScript ? 'not-allowed' : 'pointer',
                           border: '1px solid #00E5FF',
-                          minHeight: 40,
+                          minHeight: 46,
                           borderRadius: '8px',
                           fontSize: '0.85rem',
                           fontWeight: 'bold'
@@ -1658,8 +1659,8 @@ export default function LeadsKanban() {
                   </div>
 
                   {/* Chosen drinks */}
-                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
-                    <h4 style={{ margin: '0 0 14px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none' }}>
+                    <h4 style={{ margin: '0 0 14px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
                       Escolhas de Bebidas
                     </h4>
                     <div style={{ fontSize: '0.88rem' }}>
@@ -1691,8 +1692,8 @@ export default function LeadsKanban() {
 
                   {/* Shopping List Results */}
                   {selectedLead.shoppingListFinalizada && selectedLead.shoppingListResult && (
-                    <div style={{ background: '#070e09', borderRadius: '10px', padding: '20px', border: '1px solid rgba(76, 175, 80, 0.15)', borderLeft: '4px solid #4CAF50' }}>
-                      <h4 style={{ margin: '0 0 14px 0', color: '#4CAF50', borderBottom: '1px solid rgba(76, 175, 80, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                    <div style={{ background: 'rgba(76, 175, 80, 0.04)', borderRadius: '12px', padding: '20px', border: 'none', borderLeft: '4px solid #4CAF50' }}>
+                      <h4 style={{ margin: '0 0 14px 0', color: '#4CAF50', borderBottom: '1px solid rgba(76, 175, 80, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
                         🛒 Detalhes dos Insumos (Lista Calculada)
                       </h4>
                       
@@ -1735,8 +1736,8 @@ export default function LeadsKanban() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
                   
                   {/* WhatsApp actions */}
-                  <div style={{ background: '#070e09', borderRadius: '10px', padding: '18px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
-                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
                       Disparador de Mensagens
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1749,7 +1750,7 @@ export default function LeadsKanban() {
                           color: '#000', background: 'var(--primary)', 
                           border: '1px solid var(--primary)', cursor: sendingScript ? 'not-allowed' : 'pointer', 
                           fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
-                          borderRadius: '8px', minHeight: 40
+                          borderRadius: '8px', minHeight: 46
                         }}
                       >
                         <FiPhone size={14} /> Reenviar PDF de Orçamento (Completo)
@@ -1764,7 +1765,7 @@ export default function LeadsKanban() {
                           color: '#000', background: 'var(--primary)', 
                           border: '1px solid var(--primary)', cursor: sendingScript ? 'not-allowed' : 'pointer', 
                           fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
-                          borderRadius: '8px', minHeight: 40
+                          borderRadius: '8px', minHeight: 46
                         }}
                       >
                         <FiFileText size={14} /> Enviar Contrato via WhatsApp
@@ -1778,7 +1779,7 @@ export default function LeadsKanban() {
                           textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
                           color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
                           background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
-                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 40
+                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 46
                         }}
                       >
                         <span style={{ color: '#00E5FF', marginRight: '8px', fontWeight: 'bold' }}>📸 1. Autoridade:</span>
@@ -1793,7 +1794,7 @@ export default function LeadsKanban() {
                           textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
                           color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
                           background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
-                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 40
+                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 46
                         }}
                       >
                         <span style={{ color: '#F44336', marginRight: '8px', fontWeight: 'bold' }}>🔥 2. Escassez:</span>
@@ -1808,7 +1809,7 @@ export default function LeadsKanban() {
                           textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
                           color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
                           background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
-                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 40
+                          borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 46
                         }}
                       >
                         <span style={{ color: '#4CAF50', marginRight: '8px', fontWeight: 'bold' }}>⭐ 3. NPS / Pós:</span>
@@ -1819,8 +1820,8 @@ export default function LeadsKanban() {
 
                   {/* Message history */}
                   {selectedLead.messages && (
-                    <div style={{ background: '#070e09', borderRadius: '10px', padding: '18px', border: '1px solid rgba(0, 229, 255, 0.15)', borderLeft: '4px solid #00E5FF' }}>
-                      <h4 style={{ margin: '0 0 12px 0', color: '#00E5FF', borderBottom: '1px solid rgba(0, 229, 255, 0.1)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                    <div style={{ background: 'rgba(0, 229, 255, 0.04)', borderRadius: '12px', padding: '18px', border: 'none', borderLeft: '4px solid #00E5FF' }}>
+                      <h4 style={{ margin: '0 0 12px 0', color: '#00E5FF', borderBottom: '1px solid rgba(0, 229, 255, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
                         📋 Histórico de Envios
                       </h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
@@ -1880,7 +1881,7 @@ export default function LeadsKanban() {
             </div>
             
             {/* MODAL FOOTER */}
-            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'flex-end', background: '#070e09' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', justifyContent: 'flex-end', background: '#0a1210' }}>
               <button 
                 onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} 
                 style={{
@@ -1890,7 +1891,8 @@ export default function LeadsKanban() {
                   padding: '8px 16px',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '0.85rem'
+                  fontSize: '0.85rem',
+                  minHeight: 44
                 }}
               >
                 Fechar
