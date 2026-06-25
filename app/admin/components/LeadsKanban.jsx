@@ -30,6 +30,40 @@ function formatPhone(value) {
   return v;
 }
 
+const getLeadStatusHelper = (lead) => {
+  let isStale = false;
+  let followUpCount = 0;
+  
+  if (lead) {
+    const successMessages = lead.messages 
+      ? Object.values(lead.messages).filter(m => m.success && m.sentAt)
+      : [];
+      
+    // 1. Calcular a contagem de follow-ups (Autoridade, Escassez e Orçamento)
+    const followUpTypes = ['script_autoridade', 'script_escassez', 'orcamento'];
+    followUpCount = successMessages.filter(m => followUpTypes.includes(m.type)).length;
+    
+    // 2. Calcular inatividade (esfriando por tempo)
+    if (!lead.status || lead.status === 'novo' || lead.status === 'negociacao') {
+      let lastMessageTime = 0;
+      if (successMessages.length > 0) {
+        lastMessageTime = Math.max(...successMessages.map(m => new Date(m.sentAt).getTime()));
+      }
+      
+      const referenceTime = lastMessageTime > 0 
+        ? lastMessageTime 
+        : (lead.criadoEm ? new Date(lead.criadoEm).getTime() : Date.now());
+        
+      // 15 dias = 15 * 24 * 60 * 60 * 1000 = 1296000000 ms
+      if (Date.now() - referenceTime > 1296000000) {
+        isStale = true;
+      }
+    }
+  }
+  
+  return { isStale, followUpCount };
+};
+
 export default function LeadsKanban() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -742,14 +776,8 @@ export default function LeadsKanban() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                   {colLeads.map(lead => {
-                    let isStale = false;
-                    if ((!lead.status || lead.status === 'novo' || lead.status === 'negociacao') && lead.criadoEm) {
-                      const createdTime = new Date(lead.criadoEm).getTime();
-                      // 48 horas = 172800000 ms
-                      if (Date.now() - createdTime > 172800000) {
-                        isStale = true;
-                      }
-                    }
+                    const { isStale, followUpCount } = getLeadStatusHelper(lead);
+                    const isFrozenLead = followUpCount >= 3;
 
                     return (
                       <div 
@@ -767,14 +795,20 @@ export default function LeadsKanban() {
                         style={{
                           background: 'var(--bg-card)', padding: '14px 16px', borderRadius: '12px',
                           cursor: isMobile ? 'pointer' : 'grab', 
-                          border: isStale ? '1px solid rgba(244, 67, 54, 0.4)' : '1px solid transparent',
+                          border: isFrozenLead 
+                            ? '1px solid rgba(0, 229, 255, 0.4)' 
+                            : (isStale ? '1px solid rgba(244, 67, 54, 0.4)' : '1px solid transparent'),
                           boxShadow: 'var(--shadow-card)',
                           transition: 'box-shadow 0.2s, border-color 0.2s'
                         }}
                       >
                         <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '6px', color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span>{lead.nome} {lead.sobrenome}</span>
-                          {isStale && <span title="Lead parado há mais de 48h!" style={{ fontSize: '0.7rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>🔥 Esfriando</span>}
+                          {isFrozenLead ? (
+                            <span title={`Lead com ${followUpCount} tentativas de contato sem fechar. Marque como perdido!`} style={{ fontSize: '0.7rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>❄️ Esfriou</span>
+                          ) : (
+                            isStale && <span title="Lead sem novas interações há mais de 15 dias!" style={{ fontSize: '0.7rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>🔥 Esfriando</span>
+                          )}
                         </div>
                         <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                           <FiCalendar size={12} /> {lead.dataEvento || 'Data não inf.'}
@@ -910,9 +944,22 @@ export default function LeadsKanban() {
                     return <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>;
                   }
 
-                  return paginatedLeads.map(lead => (
-                    <tr key={lead.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
-                      <td style={{ padding: '12px 16px', color: '#FFF' }}>{lead.nome} {lead.sobrenome}</td>
+                  return paginatedLeads.map(lead => {
+                    const { isStale, followUpCount } = getLeadStatusHelper(lead);
+                    const isFrozenLead = followUpCount >= 3;
+
+                    return (
+                      <tr key={lead.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
+                        <td style={{ padding: '12px 16px', color: '#FFF' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>{lead.nome} {lead.sobrenome}</span>
+                            {isFrozenLead ? (
+                              <span title={`Lead com ${followUpCount} tentativas de contato sem fechar.`} style={{ fontSize: '0.65rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: '500' }}>❄️ Esfriou</span>
+                            ) : (
+                              isStale && <span title="Lead sem novas interações há mais de 15 dias!" style={{ fontSize: '0.65rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: '500' }}>🔥 Esfriando</span>
+                            )}
+                          </div>
+                        </td>
                       <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{lead.telefone}</td>
                       <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{lead.dataEvento || '—'}</td>
                       <td style={{ padding: '12px 16px', color: 'var(--primary)' }}>{lead.pacote || '—'}</td>
@@ -934,7 +981,8 @@ export default function LeadsKanban() {
                         </button>
                       </td>
                     </tr>
-                  ));
+                    );
+                  });
                 })()}
               </tbody>
             </table>
@@ -1087,8 +1135,17 @@ export default function LeadsKanban() {
                 gap: '12px'
               }}>
                 <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFF' }}>
-                    {selectedLead.nome} {selectedLead.sobrenome || ''}
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFF', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>{selectedLead.nome} {selectedLead.sobrenome || ''}</span>
+                    {(() => {
+                      const { isStale, followUpCount } = getLeadStatusHelper(selectedLead);
+                      if (followUpCount >= 3) {
+                        return <span title={`Lead com ${followUpCount} tentativas de contato sem fechar.`} style={{ fontSize: '0.7rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>❄️ Esfriou</span>;
+                      } else if (isStale) {
+                        return <span title="Lead sem novas interações há mais de 15 dias!" style={{ fontSize: '0.7rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>🔥 Esfriando</span>;
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                     Telefone: {formatPhone(selectedLead.telefone)}
