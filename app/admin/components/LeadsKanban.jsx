@@ -72,6 +72,30 @@ export default function LeadsKanban() {
   const [drinksMenu, setDrinksMenu] = useState({});
   const [pacotes, setPacotes] = useState([]);
   const [ajudantes, setAjudantes] = useState({});
+
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' | 'warning' }
+  const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm, onCancel }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(prev => prev && prev.message === message ? null : prev);
+    }, 4000);
+  };
+
+  const showConfirm = (message, onConfirm, title = "Confirmação") => {
+    setConfirmModal({
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal(null);
+      },
+      onCancel: () => {
+        setConfirmModal(null);
+      }
+    });
+  };
   
   const [evolutionApi, setEvolutionApi] = useState(null);
   const [scripts, setScripts] = useState(null);
@@ -145,7 +169,7 @@ export default function LeadsKanban() {
   const handleSaveManualLead = async (e) => {
     e.preventDefault();
     if (!newLeadData.nome || !newLeadData.telefone) {
-      alert('Nome e Telefone são obrigatórios.');
+      showToast('Nome e Telefone são obrigatórios.', 'warning');
       return;
     }
     try {
@@ -161,10 +185,10 @@ export default function LeadsKanban() {
         nome: '', sobrenome: '', telefone: '', dataEvento: '', horarioEvento: '', cidade: '',
         convidados: '', tipoEvento: '', pacote: '', cerimonialista: ''
       });
-      alert('Lead criado com sucesso!');
+      showToast('Lead criado com sucesso!', 'success');
     } catch (err) {
       console.error('Erro ao criar lead:', err);
-      alert('Erro ao criar lead manualmente.');
+      showToast('Erro ao criar lead manualmente.', 'error');
     }
   };
 
@@ -186,7 +210,7 @@ export default function LeadsKanban() {
       }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      alert("Erro ao atualizar o status.");
+      showToast("Erro ao atualizar o status.", 'error');
     }
   };
 
@@ -213,15 +237,16 @@ export default function LeadsKanban() {
   };
 
   const handleDeleteLead = async (leadId) => {
-    if (window.confirm("Tem certeza que deseja excluir este lead permanentemente? Essa ação não pode ser desfeita.")) {
+    showConfirm("Tem certeza que deseja excluir este lead permanentemente? Essa ação não pode ser desfeita.", async () => {
       try {
         await remove(ref(db, `leads/${leadId}`));
         setSelectedLead(null);
+        showToast("Lead excluído com sucesso!", "success");
       } catch (error) {
         console.error("Erro ao excluir lead:", error);
-        alert("Erro ao excluir o lead.");
+        showToast("Erro ao excluir o lead.", "error");
       }
-    }
+    }, "Excluir Lead");
   };
 
   const startEditingLead = () => {
@@ -246,7 +271,7 @@ export default function LeadsKanban() {
       setIsEditingLead(false);
     } catch (error) {
       console.error('Erro ao salvar edição:', error);
-      alert('Erro ao salvar alterações.');
+      showToast('Erro ao salvar alterações.', 'error');
     }
   };
 
@@ -288,14 +313,16 @@ export default function LeadsKanban() {
   };
 
   const handleRemoveHelperFromLead = async (helperSlug) => {
-    if (!window.confirm("Remover este ajudante do evento?")) return;
-    const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
-    await remove(ref(db, path));
-    setSelectedLead(prev => {
-      const copy = { ...(prev.ajudantes || {}) };
-      delete copy[helperSlug];
-      return { ...prev, ajudantes: copy };
-    });
+    showConfirm("Remover este ajudante do evento?", async () => {
+      const path = `leads/${selectedLead.id}/ajudantes/${helperSlug}`;
+      await remove(ref(db, path));
+      setSelectedLead(prev => {
+        const copy = { ...(prev.ajudantes || {}) };
+        delete copy[helperSlug];
+        return { ...prev, ajudantes: copy };
+      });
+      showToast("Ajudante removido com sucesso!", "success");
+    }, "Remover Ajudante");
   };
 
   const handleUpdateHelperStatus = async (helperSlug, status) => {
@@ -321,13 +348,13 @@ export default function LeadsKanban() {
       });
     } catch (err) {
       console.error("Erro ao atualizar status do ajudante:", err);
-      alert("Erro ao atualizar status do ajudante: " + err.message);
+      showToast("Erro ao atualizar status do ajudante: " + err.message, 'error');
     }
   };
 
   const handleSendHelperAvailabilityCheck = async (helperSlug, helperInfo) => {
     if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
-      alert('A API do WhatsApp não está configurada corretamente.');
+      showToast('A API do WhatsApp não está configurada corretamente.', 'warning');
       return;
     }
     
@@ -380,10 +407,10 @@ export default function LeadsKanban() {
       }));
       
       await logMessageToLead(selectedLead.id, `availability_check_${helperSlug}`, phoneFormatted, true);
-      alert(`Mensagem de disponibilidade enviada com sucesso para ${helperInfo.nome}!`);
+      showToast(`Mensagem de disponibilidade enviada com sucesso para ${helperInfo.nome}!`, 'success');
     } catch (err) {
       console.error('Erro ao enviar mensagem para ajudante:', err);
-      alert(`Erro ao enviar mensagem: ${err.message}`);
+      showToast(`Erro ao enviar mensagem: ${err.message}`, 'error');
       await logMessageToLead(selectedLead.id, `availability_check_${helperSlug}`, '55' + helperInfo.telefone.replace(/\D/g, ''), false, err.message);
     } finally {
       setSendingScript(false);
@@ -392,7 +419,7 @@ export default function LeadsKanban() {
 
   const handleSendHelperFinalConfirmation = async () => {
     if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
-      alert('A API do WhatsApp não está configurada corretamente.');
+      showToast('A API do WhatsApp não está configurada corretamente.', 'warning');
       return;
     }
     
@@ -402,70 +429,68 @@ export default function LeadsKanban() {
       .map(([slug, _]) => slug);
       
     if (confirmedHelpersSlugs.length === 0) {
-      alert('Nenhum ajudante confirmado para este evento.');
+      showToast('Nenhum ajudante confirmado para este evento.', 'warning');
       return;
     }
     
-    if (!window.confirm(`Enviar confirmação final para os ${confirmedHelpersSlugs.length} ajudantes confirmados?`)) {
-      return;
-    }
-    
-    setSendingScript(true);
-    let successCount = 0;
-    
-    const dataStr = selectedLead.dataEvento ? selectedLead.dataEvento.split('-').reverse().join('/') : '—';
-    const horarioStr = selectedLead.horarioEvento || '—';
-    const cidadeStr = selectedLead.cidade || '—';
-    const clientName = `${selectedLead.nome} ${selectedLead.sobrenome || ''}`.trim();
-    
-    const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
-    const instance = evolutionApi.instance;
-    const apiKey = evolutionApi.apikey;
-    
-    try {
-      for (const slug of confirmedHelpersSlugs) {
-        const helperInfo = ajudantes[slug];
-        if (!helperInfo) continue;
-        
-        const messageText = `Evento confirmado! 🍹\nCliente: ${clientName}\nData: ${dataStr} às ${horarioStr}\nCidade: ${cidadeStr}\nNos vemos lá!`;
-        const phoneFormatted = '55' + helperInfo.telefone.replace(/\D/g, '');
-        
-        try {
-          const response = await fetch(`${baseUrl}/message/sendText/${instance}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': apiKey
-            },
-            body: JSON.stringify({
-              number: phoneFormatted,
-              text: messageText,
-              linkPreview: false
-            })
-          });
-          
-          if (response.ok) {
-            successCount++;
-            await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, true);
-          } else {
-            await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, false, 'API HTTP status: ' + response.status);
-          }
-        } catch (err) {
-          await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, false, err.message);
-        }
-      }
+    showConfirm(`Enviar confirmação final para os ${confirmedHelpersSlugs.length} ajudantes confirmados?`, async () => {
+      setSendingScript(true);
+      let successCount = 0;
       
-      alert(`Confirmação enviada com sucesso para ${successCount} de ${confirmedHelpersSlugs.length} ajudantes!`);
-    } catch (err) {
-      console.error('Erro na confirmação final:', err);
-    } finally {
-      setSendingScript(false);
-    }
+      const dataStr = selectedLead.dataEvento ? selectedLead.dataEvento.split('-').reverse().join('/') : '—';
+      const horarioStr = selectedLead.horarioEvento || '—';
+      const cidadeStr = selectedLead.cidade || '—';
+      const clientName = `${selectedLead.nome} ${selectedLead.sobrenome || ''}`.trim();
+      
+      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+      const instance = evolutionApi.instance;
+      const apiKey = evolutionApi.apikey;
+      
+      try {
+        for (const slug of confirmedHelpersSlugs) {
+          const helperInfo = ajudantes[slug];
+          if (!helperInfo) continue;
+          
+          const messageText = `Evento confirmado! 🍹\nCliente: ${clientName}\nData: ${dataStr} às ${horarioStr}\nCidade: ${cidadeStr}\nNos vemos lá!`;
+          const phoneFormatted = '55' + helperInfo.telefone.replace(/\D/g, '');
+          
+          try {
+            const response = await fetch(`${baseUrl}/message/sendText/${instance}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': apiKey
+              },
+              body: JSON.stringify({
+                number: phoneFormatted,
+                text: messageText,
+                linkPreview: false
+              })
+            });
+            
+            if (response.ok) {
+              successCount++;
+              await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, true);
+            } else {
+              await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, false, 'API HTTP status: ' + response.status);
+            }
+          } catch (err) {
+            await logMessageToLead(selectedLead.id, `final_confirmation_${slug}`, phoneFormatted, false, err.message);
+          }
+        }
+        
+        showToast(`Confirmação enviada com sucesso para ${successCount} de ${confirmedHelpersSlugs.length} ajudantes!`, 'success');
+      } catch (err) {
+        console.error('Erro na confirmação final:', err);
+      } finally {
+        setSendingScript(false);
+      }
+    }, "Confirmação Final");
   };
 
   const handleSendEvolution = async (scriptType) => {
     if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
-      alert("A API Evolution não está configurada corretamente. Vá até a aba 'Pacotes & Drinks' > 'Scripts de Vendas' para configurar.");
+      showToast("A API Evolution não está configurada corretamente. Vá até a aba 'Pacotes & Drinks' > 'Scripts de Vendas' para configurar.", "warning");
       return;
     }
     
@@ -476,188 +501,183 @@ export default function LeadsKanban() {
         image: ""
       };
     } else if (!scriptConfig || !scriptConfig.text) {
-      alert("O texto deste script não está configurado. Vá até as configurações para escrevê-lo.");
+      showToast("O texto deste script não está configurado. Vá até as configurações para escrevê-lo.", "warning");
       return;
     }
 
-    if (!window.confirm("Deseja enviar essa mensagem automaticamente pelo WhatsApp agora?")) {
-      return;
-    }
+    showConfirm("Deseja enviar essa mensagem automaticamente pelo WhatsApp agora?", async () => {
+      setSendingScript(true);
+      try {
+        // Preparar Link de Avaliação
+        const baseSiteUrl = generalConfigs?.siteUrl 
+          ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+          : window.location.origin;
+        const linkAvaliacao = `${baseSiteUrl}/avaliacao/${selectedLead.id}`;
 
-    setSendingScript(true);
-    try {
-      // Preparar Link de Avaliação
-      const baseSiteUrl = generalConfigs?.siteUrl 
-        ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
-        : window.location.origin;
-      const linkAvaliacao = `${baseSiteUrl}/avaliacao/${selectedLead.id}`;
-
-      // Extrair mês e ano
-      let mesNome = '';
-      let anoEvento = '';
-      if (selectedLead.dataEvento) {
-        const parts = selectedLead.dataEvento.split('-');
-        if (parts.length >= 2) {
-          anoEvento = parts[0];
-          const monthIndex = parseInt(parts[1], 10) - 1;
-          const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-          if (monthIndex >= 0 && monthIndex < 12) {
-            mesNome = monthNames[monthIndex];
+        // Extrair mês e ano
+        let mesNome = '';
+        let anoEvento = '';
+        if (selectedLead.dataEvento) {
+          const parts = selectedLead.dataEvento.split('-');
+          if (parts.length >= 2) {
+            anoEvento = parts[0];
+            const monthIndex = parseInt(parts[1], 10) - 1;
+            const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+            if (monthIndex >= 0 && monthIndex < 12) {
+              mesNome = monthNames[monthIndex];
+            }
           }
         }
-      }
 
-      // Preparar Link do Contrato
-      const linkContrato = `${baseSiteUrl}/contrato/${selectedLead.id}`;
+        // Preparar Link do Contrato
+        const linkContrato = `${baseSiteUrl}/contrato/${selectedLead.id}`;
 
-      const hasLinkPlaceholder = /\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi.test(scriptConfig.text);
-      const hasContractPlaceholder = /\{\{linkContrato\}\}/gi.test(scriptConfig.text);
+        const hasLinkPlaceholder = /\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi.test(scriptConfig.text);
+        const hasContractPlaceholder = /\{\{linkContrato\}\}/gi.test(scriptConfig.text);
 
-      // Substituir variáveis
-      let finalText = scriptConfig.text
-        .replace(/\{\{nome\}\}/gi, selectedLead.nome || '')
-        .replace(/\{\{pacote\}\}/gi, selectedLead.pacote || '')
-        .replace(/\{\{dataEvento\}\}/gi, selectedLead.dataEvento || '')
-        .replace(/\{\{mes\}\}/gi, mesNome)
-        .replace(/\{\{ano\}\}/gi, anoEvento)
-        .replace(/\{\{cidade\}\}/gi, selectedLead.cidade || '')
-        .replace(/\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi, linkAvaliacao)
-        .replace(/\{\{linkContrato\}\}/gi, linkContrato);
+        // Substituir variáveis
+        let finalText = scriptConfig.text
+          .replace(/\{\{nome\}\}/gi, selectedLead.nome || '')
+          .replace(/\{\{pacote\}\}/gi, selectedLead.pacote || '')
+          .replace(/\{\{dataEvento\}\}/gi, selectedLead.dataEvento || '')
+          .replace(/\{\{mes\}\}/gi, mesNome)
+          .replace(/\{\{ano\}\}/gi, anoEvento)
+          .replace(/\{\{cidade\}\}/gi, selectedLead.cidade || '')
+          .replace(/\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi, linkAvaliacao)
+          .replace(/\{\{linkContrato\}\}/gi, linkContrato);
 
-      if (scriptType === 'posEvento' && !hasLinkPlaceholder) {
-        finalText += `\n\nLink para avaliação: ${linkAvaliacao}`;
-      }
-      if (scriptType === 'contrato' && !hasContractPlaceholder) {
-        finalText += `\n\nLink do contrato: ${linkContrato}`;
-      }
+        if (scriptType === 'posEvento' && !hasLinkPlaceholder) {
+          finalText += `\n\nLink para avaliação: ${linkAvaliacao}`;
+        }
+        if (scriptType === 'contrato' && !hasContractPlaceholder) {
+          finalText += `\n\nLink do contrato: ${linkContrato}`;
+        }
 
-      const number = '55' + selectedLead.telefone.replace(/\D/g, '');
-      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
-      
-      let endpoint = '';
-      let payload = {};
+        const number = '55' + selectedLead.telefone.replace(/\D/g, '');
+        const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+        
+        let endpoint = '';
+        let payload = {};
 
-      if (scriptConfig.image) {
-        const imgStr = scriptConfig.image.toLowerCase();
-        const isSocialLink = imgStr.includes('instagram.com') || imgStr.includes('youtube.com') || imgStr.includes('tiktok.com') || imgStr.includes('facebook.com') || imgStr.includes('drive.google.com');
+        if (scriptConfig.image) {
+          const imgStr = scriptConfig.image.toLowerCase();
+          const isSocialLink = imgStr.includes('instagram.com') || imgStr.includes('youtube.com') || imgStr.includes('tiktok.com') || imgStr.includes('facebook.com') || imgStr.includes('drive.google.com');
 
-        if (isSocialLink) {
+          if (isSocialLink) {
+            endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
+            payload = {
+              number: number,
+              text: finalText + '\n\n' + scriptConfig.image,
+              linkPreview: false
+            };
+          } else {
+            endpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
+            payload = {
+              number: number,
+              mediatype: "image",
+              media: scriptConfig.image,
+              caption: finalText,
+              linkPreview: false
+            };
+          }
+        } else {
           endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
           payload = {
             number: number,
-            text: finalText + '\n\n' + scriptConfig.image,
-            linkPreview: false
-          };
-        } else {
-          endpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
-          payload = {
-            number: number,
-            mediatype: "image",
-            media: scriptConfig.image,
-            caption: finalText,
+            text: finalText,
             linkPreview: false
           };
         }
-      } else {
-        endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
-        payload = {
-          number: number,
-          text: finalText,
-          linkPreview: false
-        };
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': evolutionApi.apikey
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Status ${response.status} - ${errorText}`);
+        }
+
+        await logMessageToLead(selectedLead.id, `script_${scriptType}`, number, true);
+        showToast("Mensagem enviada com sucesso!", "success");
+      } catch (err) {
+        console.error("Erro ao enviar mensagem:", err);
+        await logMessageToLead(selectedLead.id, `script_${scriptType}`, '55' + selectedLead.telefone.replace(/\D/g, ''), false, err.message);
+        showToast("Erro ao enviar mensagem: " + err.message, "error");
+      } finally {
+        setSendingScript(false);
       }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': evolutionApi.apikey
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Status ${response.status} - ${errorText}`);
-      }
-
-      await logMessageToLead(selectedLead.id, `script_${scriptType}`, number, true);
-      alert("Mensagem enviada com sucesso!");
-    } catch (err) {
-      console.error("Erro ao enviar mensagem:", err);
-      await logMessageToLead(selectedLead.id, `script_${scriptType}`, '55' + selectedLead.telefone.replace(/\D/g, ''), false, err.message);
-      alert("Erro ao enviar. Se você colocou um link na imagem, ele DEVE terminar em .jpg ou .png (ser um link direto da foto). Detalhes do erro: " + err.message);
-    } finally {
-      setSendingScript(false);
-    }
+    }, "Enviar Mensagem");
   };
 
   const handleSendShoppingListViaApi = async (lead) => {
     if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
-      alert("A API Evolution não está configurada corretamente.");
+      showToast("A API Evolution não está configurada corretamente.", "warning");
       return;
     }
     
-    if (!window.confirm("Deseja enviar o link da lista de compras automaticamente pelo WhatsApp via API agora?")) {
-      return;
-    }
+    showConfirm("Deseja enviar o link da lista de compras automaticamente pelo WhatsApp via API agora?", async () => {
+      setSendingScript(true);
+      try {
+        const baseSiteUrl = generalConfigs?.siteUrl 
+          ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+          : window.location.origin;
+        const linkCompras = `${baseSiteUrl}/lista-compras/${lead.id}`;
+        
+        const text = `Olá ${lead.nome}, acesse este link para escolher os drinks do seu evento e gerar a lista de compras exata do que você precisa comprar:\n\n${linkCompras}`;
 
-    setSendingScript(true);
-    try {
-      const baseSiteUrl = generalConfigs?.siteUrl 
-        ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
-        : window.location.origin;
-      const linkCompras = `${baseSiteUrl}/lista-compras/${lead.id}`;
-      
-      const text = `Olá ${lead.nome}, acesse este link para escolher os drinks do seu evento e gerar a lista de compras exata do que você precisa comprar:\n\n${linkCompras}`;
+        const number = '55' + lead.telefone.replace(/\D/g, '');
+        const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
+        const endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
 
-      const number = '55' + lead.telefone.replace(/\D/g, '');
-      const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
-      const endpoint = `${baseUrl}/message/sendText/${evolutionApi.instance}`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': evolutionApi.apikey
+          },
+          body: JSON.stringify({ number, text, linkPreview: false })
+        });
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': evolutionApi.apikey
-        },
-        body: JSON.stringify({ number, text, linkPreview: false })
-      });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Status ${response.status} - ${errorText}`);
+        }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Status ${response.status} - ${errorText}`);
+        await logMessageToLead(lead.id, 'lista_compras', number, true);
+        showToast("Link da lista de compras enviado com sucesso via API!", "success");
+      } catch (err) {
+        console.error("Erro ao enviar link da lista:", err);
+        await logMessageToLead(lead.id, 'lista_compras', '55' + lead.telefone.replace(/\D/g, ''), false, err.message);
+        showToast("Erro ao enviar: " + err.message, "error");
+      } finally {
+        setSendingScript(false);
       }
-
-      await logMessageToLead(lead.id, 'lista_compras', number, true);
-      alert("Link da lista de compras enviado com sucesso via API!");
-    } catch (err) {
-      console.error("Erro ao enviar link da lista:", err);
-      await logMessageToLead(lead.id, 'lista_compras', '55' + lead.telefone.replace(/\D/g, ''), false, err.message);
-      alert("Erro ao enviar. Detalhes: " + err.message);
-    } finally {
-      setSendingScript(false);
-    }
+    }, "Enviar Lista de Compras");
   };
 
   const handleResendQuote = async (lead) => {
-    if (!window.confirm("Deseja reenviar o orçamento deste lead via WhatsApp?")) {
-      return;
-    }
-    setSendingScript(true);
-    try {
-      const result = await sendWhatsAppQuote(lead, pacotes, lead.id);
-      if (result) {
-        alert("Orçamento reenviado com sucesso!");
-      } else {
-        alert("Falha ao reenviar o orçamento. Verifique as configurações da API WhatsApp.");
+    showConfirm("Deseja reenviar o orçamento deste lead via WhatsApp?", async () => {
+      setSendingScript(true);
+      try {
+        const result = await sendWhatsAppQuote(lead, pacotes, lead.id);
+        if (result) {
+          showToast("Orçamento reenviado com sucesso!", "success");
+        } else {
+          showToast("Falha ao reenviar o orçamento. Verifique as configurações da API WhatsApp.", "error");
+        }
+      } catch (err) {
+        console.error("Erro ao reenviar orçamento:", err);
+        showToast("Erro ao reenviar: " + err.message, "error");
+      } finally {
+        setSendingScript(false);
       }
-    } catch (err) {
-      console.error("Erro ao reenviar orçamento:", err);
-      alert("Erro ao reenviar: " + err.message);
-    } finally {
-      setSendingScript(false);
-    }
+    }, "Reenviar Orçamento");
   };
 
   const getLeadsByStatus = (statusId) => {
@@ -1316,8 +1336,8 @@ export default function LeadsKanban() {
                               ✓ Contrato Assinado Anexado
                             </span>
                             <button
-                              onClick={async () => {
-                                if (window.confirm("Deseja remover o contrato assinado deste lead?")) {
+                              onClick={() => {
+                                showConfirm("Deseja remover o contrato assinado deste lead?", async () => {
                                   await update(ref(db, `leads/${selectedLead.id}`), { contratoAssinadoUrl: null });
                                   setSelectedLead(prev => ({ ...prev, contratoAssinadoUrl: null }));
                                   
@@ -1327,7 +1347,8 @@ export default function LeadsKanban() {
                                     success: true,
                                     sentAt: Date.now()
                                   });
-                                }
+                                  showToast("Contrato assinado removido com sucesso!", "success");
+                                }, "Remover Contrato");
                               }}
                               style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}
                             >
@@ -1507,7 +1528,7 @@ export default function LeadsKanban() {
                           if (val) {
                             const overlap = checkHelperOverlap(val);
                             if (overlap) {
-                              alert(`Atenção: Este ajudante já está escalado no mesmo dia em: ${overlap}`);
+                              showToast(`Atenção: Este ajudante já está escalado no mesmo dia em: ${overlap}`, 'warning');
                             }
                             handleAddHelperToLead(val);
                             e.target.value = ""; // reset select
@@ -2054,6 +2075,140 @@ export default function LeadsKanban() {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TOAST NOTIFICATION ───────────────────────────────── */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: 'rgba(14, 26, 18, 0.95)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: `1px solid ${
+            toast.type === 'success' ? '#4CAF50' : 
+            toast.type === 'error' ? '#F44336' : '#FFD54F'
+          }`,
+          borderRadius: '12px',
+          padding: '16px 20px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          maxWidth: '360px',
+          animation: 'slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 
+              toast.type === 'success' ? '#4CAF50' : 
+              toast.type === 'error' ? '#F44336' : '#FFD54F',
+            boxShadow: `0 0 8px ${
+              toast.type === 'success' ? '#4CAF50' : 
+              toast.type === 'error' ? '#F44336' : '#FFD54F'
+            }`,
+            flexShrink: 0
+          }} />
+          <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: '500', lineHeight: 1.4 }}>
+            {toast.message}
+          </div>
+          <button 
+            onClick={() => setToast(null)} 
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              marginLeft: 'auto',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <FiX size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* ── CUSTOM CONFIRM MODAL ─────────────────────────────── */}
+      {confirmModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(5, 10, 6, 0.65)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9998,
+          padding: '20px',
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: '#0e1a12',
+            border: '1px solid rgba(203, 161, 83, 0.15)',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '440px',
+            width: '100%',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            animation: 'scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <h3 style={{ margin: '0 0 12px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.15rem' }}>
+              {confirmModal.title}
+            </h3>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.5 }}>
+              {confirmModal.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={confirmModal.onCancel}
+                className="btn btn--outline"
+                style={{ padding: '8px 16px', fontSize: '0.85rem', minHeight: '40px', height: 'auto', width: 'auto', flex: 'none' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmModal.onConfirm}
+                className="btn btn--primary"
+                style={{ padding: '8px 20px', fontSize: '0.85rem', minHeight: '40px', height: 'auto', width: 'auto', flex: 'none', color: '#050a06' }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SENDING SCRIPT LOADING OVERLAY ───────────────────── */}
+      {sendingScript && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(5, 10, 6, 0.8)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div className="btn__spinner" style={{ width: '50px', height: '50px', borderWidth: '4px', borderColor: 'var(--primary) transparent transparent transparent' }} />
+          <div style={{ color: 'var(--text-primary)', fontWeight: '600', fontFamily: 'Cinzel, serif', letterSpacing: '1px' }}>
+            Enviando Mensagem...
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+            Por favor, aguarde a confirmação da API do WhatsApp
           </div>
         </div>
       )}
