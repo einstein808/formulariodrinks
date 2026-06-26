@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ref, onValue, update, remove, push } from 'firebase/database';
+import { ref, onValue, update, remove, push, set } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck, FiUsers, FiFileText } from 'react-icons/fi';
+import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck, FiUsers, FiFileText, FiTrendingUp, FiDollarSign } from 'react-icons/fi';
 import { FiPackage as FiPackageIcon } from 'react-icons/fi';
 import { sendWhatsAppQuote, logMessageToLead } from '../../../lib/whatsappService';
 import MinioImageUpload from './MinioImageUpload';
@@ -28,6 +28,19 @@ function formatPhone(value) {
   if (v.length > 2) return `(${v.slice(0, 2)}) ${v.slice(2)}`;
   if (v.length > 0) return `(${v}`;
   return v;
+}
+
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^\w\s-]/g, '')        // Remove non-alphanumeric except spaces/hyphens
+    .replace(/\s+/g, '-')           // Replace spaces with hyphens
+    .replace(/--+/g, '-')           // Replace multiple hyphens
+    .trim();
 }
 
 const getLeadStatusHelper = (lead) => {
@@ -110,7 +123,9 @@ export default function LeadsKanban() {
 
   const [isEditingLead, setIsEditingLead] = useState(false);
   const [editLeadData, setEditLeadData] = useState({});
-  const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts'
+  const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts' | 'financeiro'
+  const [financeiroPresets, setFinanceiroPresets] = useState({});
+  const [newCost, setNewCost] = useState({ descricao: '', valor: '' });
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [itemsPerPage, setItemsPerPage] = useState('20');
@@ -118,12 +133,17 @@ export default function LeadsKanban() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isMobile, setIsMobile] = useState(false);
 
-  // Auto reset tab when selecting a different lead
+  const [faturamentoInput, setFaturamentoInput] = useState('');
+
+  // Auto reset tab when selecting a different lead and sync faturamento
   useEffect(() => {
     if (selectedLead) {
       setModalTab('info');
+      setFaturamentoInput(selectedLead.financeiro?.faturamento ?? '');
+    } else {
+      setFaturamentoInput('');
     }
-  }, [selectedLead?.id]);
+  }, [selectedLead?.id, selectedLead?.financeiro?.faturamento]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -157,6 +177,16 @@ export default function LeadsKanban() {
         if (data.drinksMenu) setDrinksMenu(data.drinksMenu);
         if (data.pacotes) setPacotes(firebaseObjToArray(data.pacotes));
         if (data.ajudantes) setAjudantes(data.ajudantes); else setAjudantes({});
+        if (data.financeiroPresets) {
+          setFinanceiroPresets(data.financeiroPresets);
+        } else {
+          setFinanceiroPresets({
+            'barman': { descricao: 'Barman', valor: 150 },
+            'ajudante': { descricao: 'Ajudante', valor: 120 },
+            'transporte': { descricao: 'Transporte', valor: 80 },
+            'outros': { descricao: 'Outros', valor: 0 }
+          });
+        }
       }
     });
 
@@ -350,6 +380,98 @@ export default function LeadsKanban() {
       console.error("Erro ao atualizar status do ajudante:", err);
       showToast("Erro ao atualizar status do ajudante: " + err.message, 'error');
     }
+  };
+
+  const handleUpdateFaturamento = async (valor) => {
+    if (!selectedLead) return;
+    const numValor = parseFloat(valor) || 0;
+    try {
+      const path = `leads/${selectedLead.id}/financeiro`;
+      await update(ref(db, path), { faturamento: numValor });
+      setSelectedLead(prev => ({
+        ...prev,
+        financeiro: {
+          ...(prev.financeiro || {}),
+          faturamento: numValor
+        }
+      }));
+    } catch (err) {
+      console.error("Erro ao atualizar faturamento:", err);
+      showToast("Erro ao atualizar faturamento.", "error");
+    }
+  };
+
+  const handleAddCost = async (descricao, valor) => {
+    if (!selectedLead || !descricao.trim()) {
+      showToast("Descrição do custo é obrigatória.", "warning");
+      return;
+    }
+    const numValor = parseFloat(valor) || 0;
+    const costId = `custo-${Date.now()}`;
+    try {
+      const pathCost = `leads/${selectedLead.id}/financeiro/custos/${costId}`;
+      await set(ref(db, pathCost), {
+        id: costId,
+        descricao: descricao.trim(),
+        valor: numValor
+      });
+
+      const slug = slugify(descricao);
+      if (slug) {
+        const pathPreset = `config/financeiroPresets/${slug}`;
+        await set(ref(db, pathPreset), {
+          descricao: descricao.trim(),
+          valor: numValor
+        });
+      }
+
+      setSelectedLead(prev => {
+        const currentFinanceiro = prev.financeiro || {};
+        const currentCustos = currentFinanceiro.custos || {};
+        return {
+          ...prev,
+          financeiro: {
+            ...currentFinanceiro,
+            custos: {
+              ...currentCustos,
+              [costId]: { id: costId, descricao: descricao.trim(), valor: numValor }
+            }
+          }
+        };
+      });
+
+      setNewCost({ descricao: '', valor: '' });
+      showToast("Custo adicionado com sucesso!", "success");
+    } catch (err) {
+      console.error("Erro ao adicionar custo:", err);
+      showToast("Erro ao adicionar custo.", "error");
+    }
+  };
+
+  const handleRemoveCost = async (costId) => {
+    if (!selectedLead || !costId) return;
+    showConfirm("Remover este custo do evento?", async () => {
+      try {
+        const path = `leads/${selectedLead.id}/financeiro/custos/${costId}`;
+        await remove(ref(db, path));
+        setSelectedLead(prev => {
+          const currentFinanceiro = prev.financeiro || {};
+          const currentCustos = { ...(currentFinanceiro.custos || {}) };
+          delete currentCustos[costId];
+          return {
+            ...prev,
+            financeiro: {
+              ...currentFinanceiro,
+              custos: currentCustos
+            }
+          };
+        });
+        showToast("Custo removido com sucesso!", "success");
+      } catch (err) {
+        console.error("Erro ao remover custo:", err);
+        showToast("Erro ao remover custo.", "error");
+      }
+    }, "Remover Custo");
   };
 
   const handleSendHelperAvailabilityCheck = async (helperSlug, helperInfo) => {
@@ -698,6 +820,13 @@ export default function LeadsKanban() {
   const totalLeads = leads.length;
   const fechadosCount = getLeadsByStatus('fechado').length + getLeadsByStatus('realizado').length;
   const conversao = totalLeads > 0 ? Math.round((fechadosCount / totalLeads) * 100) : 0;
+
+  const faturamento = selectedLead ? (parseFloat(selectedLead.financeiro?.faturamento) || 0) : 0;
+  const custosObj = selectedLead?.financeiro?.custos || {};
+  const custosLista = Object.values(custosObj);
+  const totalCustos = custosLista.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+  const lucro = faturamento - totalCustos;
+  const margem = faturamento > 0 ? (lucro / faturamento) * 100 : 0;
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>;
@@ -1101,7 +1230,8 @@ export default function LeadsKanban() {
                 { id: 'info', label: 'Cadastro', icon: FiList },
                 { id: 'equipe', label: 'Equipe', icon: FiUsers },
                 { id: 'drinks', label: 'Bebidas', icon: FiPackageIcon },
-                { id: 'scripts', label: 'Ações', icon: FiPhone }
+                { id: 'scripts', label: 'Ações', icon: FiPhone },
+                { id: 'financeiro', label: 'Financeiro', icon: FiTrendingUp }
               ].map(tab => {
                 const TabIcon = tab.icon;
                 const isActive = modalTab === tab.id;
@@ -1953,6 +2083,271 @@ export default function LeadsKanban() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* FINANCEIRO TAB PANEL */}
+              {modalTab === 'financeiro' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.25s ease', overflowY: 'auto', paddingRight: '4px' }}>
+                  {/* RESUMO CARDS */}
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '12px' }}>
+                    {/* FATURAMENTO */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: '1px solid rgba(76, 175, 80, 0.15)',
+                      borderRadius: '12px',
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 12px rgba(76, 175, 80, 0.03)'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Faturamento</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamento)}
+                      </div>
+                    </div>
+
+                    {/* CUSTOS */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: '1px solid rgba(244, 67, 54, 0.15)',
+                      borderRadius: '12px',
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 12px rgba(244, 67, 54, 0.03)'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Custos Totais</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#F44336' }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCustos)}
+                      </div>
+                    </div>
+
+                    {/* LUCRO */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: '1px solid rgba(203, 161, 83, 0.2)',
+                      borderRadius: '12px',
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 12px rgba(203, 161, 83, 0.03)'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Lucro Líquido</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lucro)}
+                      </div>
+                    </div>
+
+                    {/* MARGEM */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: '1px solid rgba(203, 161, 83, 0.2)',
+                      borderRadius: '12px',
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 12px rgba(203, 161, 83, 0.03)',
+                      gridColumn: isMobile ? 'span 2' : 'auto'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Margem</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: lucro >= 0 ? '#4CAF50' : '#F44336' }}>
+                        {margem.toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CONFIGURAÇÃO DE FATURAMENTO */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FiDollarSign /> Faturamento do Evento
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor Total Cobrado (R$)</label>
+                      <input 
+                        type="number" 
+                        placeholder="0.00"
+                        value={faturamentoInput}
+                        onChange={(e) => setFaturamentoInput(e.target.value)}
+                        onBlur={() => handleUpdateFaturamento(faturamentoInput)}
+                        style={{
+                          background: '#0c1610',
+                          border: '1px solid rgba(203, 161, 83, 0.12)',
+                          borderRadius: '8px',
+                          color: '#f0f2ec',
+                          padding: '10px 14px',
+                          fontSize: '0.9rem',
+                          outline: 'none',
+                          maxWidth: '220px'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>O valor é salvo automaticamente ao desfocar do campo.</span>
+                    </div>
+                  </div>
+
+                  {/* CUSTOS SECTION */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                      💸 Lançar Custos do Evento
+                    </h4>
+                    
+                    {/* PRESETS */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 'bold' }}>Atalhos de Custos Comuns:</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {Object.entries(financeiroPresets).map(([slug, item]) => (
+                          <button
+                            key={slug}
+                            type="button"
+                            onClick={() => setNewCost({ descricao: item.descricao, valor: item.valor.toString() })}
+                            style={{
+                              background: 'rgba(203, 161, 83, 0.04)',
+                              border: '1px solid rgba(203, 161, 83, 0.2)',
+                              borderRadius: '20px',
+                              color: '#f0f2ec',
+                              padding: '5px 10px',
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(203, 161, 83, 0.12)';
+                              e.currentTarget.style.borderColor = 'var(--primary)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(203, 161, 83, 0.04)';
+                              e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.2)';
+                            }}
+                          >
+                            <span>{item.descricao}</span>
+                            <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>
+                              (R$ {item.valor})
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* ADD COST FORM */}
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '2', minWidth: '180px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Descrição do Custo</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Barman, Ajudante, Gelo, Copos..."
+                          value={newCost.descricao}
+                          onChange={(e) => setNewCost(prev => ({ ...prev, descricao: e.target.value }))}
+                          style={{
+                            background: '#0c1610',
+                            border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px',
+                            color: '#f0f2ec',
+                            padding: '10px 12px',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            width: '100%'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '100px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor (R$)</label>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={newCost.valor}
+                          onChange={(e) => setNewCost(prev => ({ ...prev, valor: e.target.value }))}
+                          style={{
+                            background: '#0c1610',
+                            border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px',
+                            color: '#f0f2ec',
+                            padding: '10px 12px',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            width: '100%'
+                          }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddCost(newCost.descricao, newCost.valor)}
+                        style={{
+                          background: 'var(--primary)',
+                          border: 'none',
+                          color: '#000',
+                          fontWeight: 'bold',
+                          padding: '10px 16px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          minHeight: 40,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <FiPlus /> Adicionar
+                      </button>
+                    </div>
+
+                    {/* COSTS TABLE/LIST */}
+                    {custosLista.length > 0 ? (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)', textAlign: 'left' }}>
+                              <th style={{ padding: '8px' }}>Custo</th>
+                              <th style={{ padding: '8px', textAlign: 'right' }}>Valor</th>
+                              <th style={{ padding: '8px', textAlign: 'center', width: '44px' }}>Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {custosLista.map((custo) => (
+                              <tr key={custo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#FFF' }}>
+                                <td style={{ padding: '10px 8px' }}>{custo.descricao}</td>
+                                <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '500' }}>
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custo.valor)}
+                                </td>
+                                <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveCost(custo.id)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#F44336',
+                                      cursor: 'pointer',
+                                      padding: '4px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      minWidth: 32,
+                                      minHeight: 32
+                                    }}
+                                    title="Excluir custo"
+                                  >
+                                    <FiTrash2 size={15} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                            <tr style={{ background: 'rgba(255, 255, 255, 0.015)', fontWeight: 'bold' }}>
+                              <td style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>Total de Custos</td>
+                              <td style={{ padding: '10px 8px', textAlign: 'right', color: '#F44336' }}>
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCustos)}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                        Nenhum custo lançado para este evento ainda.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
