@@ -39,10 +39,46 @@ export default function AnalyticsDashboard() {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>;
   }
 
+  // Helper to normalize package names across different inputs (ID vs display name, casing, accents)
+  const normalizePackageName = (name) => {
+    if (!name) return 'Não informado';
+    const clean = name.trim().toLowerCase();
+    
+    if (clean.includes('mao') || clean.includes('mão') || clean.includes('obra')) {
+      return 'Mão de Obra';
+    }
+    if (clean.includes('frozen')) {
+      return 'Standard Frozen';
+    }
+    if (clean.includes('standard')) {
+      return 'Standard';
+    }
+    if (clean.includes('premium')) {
+      return 'Premium';
+    }
+    
+    return name.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  };
+
+  // Helper to parse criadoEm dates robustly (handles numeric timestamps, numeric strings, and ISO strings)
+  const parseCriadoEm = (val) => {
+    if (!val) return null;
+    if (typeof val === 'number') {
+      return new Date(val);
+    }
+    if (typeof val === 'string') {
+      if (/^\d+$/.test(val)) {
+        return new Date(parseInt(val, 10));
+      }
+      return new Date(val);
+    }
+    return null;
+  };
+
   // --- Processar Dados: Gráfico de Pizza (Pacotes) ---
   const pacotesCount = {};
   leads.forEach(lead => {
-    const pacote = lead.pacote || 'Não informado';
+    const pacote = normalizePackageName(lead.pacote);
     pacotesCount[pacote] = (pacotesCount[pacote] || 0) + 1;
   });
   
@@ -74,11 +110,13 @@ export default function AnalyticsDashboard() {
   const captacaoCount = {};
   leads.forEach(lead => {
     if (lead.criadoEm) {
-      const date = new Date(lead.criadoEm);
-      const mes = String(date.getMonth() + 1).padStart(2, '0');
-      const ano = date.getFullYear();
-      const mesFormatado = `${mes}/${ano}`;
-      captacaoCount[mesFormatado] = (captacaoCount[mesFormatado] || 0) + 1;
+      const date = parseCriadoEm(lead.criadoEm);
+      if (date && !isNaN(date.getTime())) {
+        const mes = String(date.getMonth() + 1).padStart(2, '0');
+        const ano = date.getFullYear();
+        const mesFormatado = `${mes}/${ano}`;
+        captacaoCount[mesFormatado] = (captacaoCount[mesFormatado] || 0) + 1;
+      }
     }
   });
 
