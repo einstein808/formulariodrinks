@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiPlus, FiTrash2, FiCopy, FiCheck, FiUser, FiPhone, FiLink, FiAlertCircle } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiCopy, FiCheck, FiUser, FiPhone, FiLink, FiAlertCircle, FiX } from 'react-icons/fi';
 
 function slugify(text) {
   return text
@@ -30,6 +30,30 @@ export default function CerimonialstasManager() {
   const [copiedSlug, setCopiedSlug] = useState(null);
   const [errors, setErrors] = useState({});
   const [siteUrl, setSiteUrl] = useState('');
+
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' | 'warning' }
+  const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm, onCancel }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(prev => prev && prev.message === message ? null : prev);
+    }, 4000);
+  };
+
+  const showConfirm = (message, onConfirm, title = "Confirmação") => {
+    setConfirmModal({
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal(null);
+      },
+      onCancel: () => {
+        setConfirmModal(null);
+      }
+    });
+  };
 
   useEffect(() => {
     const r = ref(db, 'config/cerimonialistas');
@@ -86,22 +110,25 @@ export default function CerimonialstasManager() {
       });
       setForm({ nome: '', whatsapp: '' });
       setErrors({});
+      showToast('Parceiro cadastrado com sucesso!', 'success');
     } catch (err) {
       console.error('Erro ao salvar parceiro:', err);
-      alert('Erro ao salvar. Tente novamente.');
+      showToast('Erro ao salvar parceiro. Tente novamente.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (slug, nome) => {
-    if (!window.confirm(`Excluir "${nome}"? Os leads vinculados não serão afetados.`)) return;
-    try {
-      await remove(ref(db, `config/cerimonialistas/${slug}`));
-    } catch (err) {
-      console.error('Erro ao excluir:', err);
-      alert('Erro ao excluir. Tente novamente.');
-    }
+    showConfirm(`Excluir "${nome}"? Os leads vinculados não serão afetados.`, async () => {
+      try {
+        await remove(ref(db, `config/cerimonialistas/${slug}`));
+        showToast('Parceiro excluído com sucesso!', 'success');
+      } catch (err) {
+        console.error('Erro ao excluir:', err);
+        showToast('Erro ao excluir parceiro. Tente novamente.', 'error');
+      }
+    }, 'Excluir Parceiro');
   };
 
   const copyLink = (slug) => {
@@ -282,6 +309,114 @@ export default function CerimonialstasManager() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── TOAST NOTIFICATION ───────────────────────────────── */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: 'rgba(14, 26, 18, 0.95)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: `1px solid ${
+            toast.type === 'success' ? '#4CAF50' : 
+            toast.type === 'error' ? '#F44336' : '#FFD54F'
+          }`,
+          borderRadius: '12px',
+          padding: '16px 20px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          maxWidth: '360px',
+          animation: 'slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 
+              toast.type === 'success' ? '#4CAF50' : 
+              toast.type === 'error' ? '#F44336' : '#FFD54F',
+            boxShadow: `0 0 8px ${
+              toast.type === 'success' ? '#4CAF50' : 
+              toast.type === 'error' ? '#F44336' : '#FFD54F'
+            }`,
+            flexShrink: 0
+          }} />
+          <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: '500', lineHeight: 1.4 }}>
+            {toast.message}
+          </div>
+          <button 
+            onClick={() => setToast(null)} 
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              marginLeft: 'auto',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <FiX size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* ── CUSTOM CONFIRM MODAL ─────────────────────────────── */}
+      {confirmModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(5, 10, 6, 0.65)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9998,
+          padding: '20px',
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: '#0e1a12',
+            border: '1px solid rgba(203, 161, 83, 0.15)',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '440px',
+            width: '100%',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            animation: 'scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <h3 style={{ margin: '0 0 12px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.15rem' }}>
+              {confirmModal.title}
+            </h3>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.5 }}>
+              {confirmModal.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={confirmModal.onCancel}
+                className="btn btn--outline"
+                style={{ padding: '8px 16px', fontSize: '0.85rem', minHeight: '40px', height: 'auto', width: 'auto', flex: 'none' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmModal.onConfirm}
+                className="btn btn--primary"
+                style={{ padding: '8px 20px', fontSize: '0.85rem', minHeight: '40px', height: 'auto', width: 'auto', flex: 'none', color: '#050a06' }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
