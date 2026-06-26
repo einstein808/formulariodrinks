@@ -145,6 +145,7 @@ export default function AnalyticsDashboard() {
 
   // --- Processar Dados: Financeiro ---
   let totalFaturamento = 0;
+  let totalValorPago = 0;
   let totalCustosGlobal = 0;
   const financeiroPorLead = [];
   const financeiroMensal = {};
@@ -154,12 +155,15 @@ export default function AnalyticsDashboard() {
     if (!fin) return;
 
     const fat = parseFloat(fin.faturamento) || 0;
+    const pago = parseFloat(fin.valorPago) || 0;
+    const rest = fat - pago;
     const custos = fin.custos ? Object.values(fin.custos) : [];
     const totCustos = custos.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
     const luc = fat - totCustos;
     const marg = fat > 0 ? (luc / fat) * 100 : 0;
 
     totalFaturamento += fat;
+    totalValorPago += pago;
     totalCustosGlobal += totCustos;
 
     const nomeCliente = `${lead.nome || ''} ${lead.sobrenome || ''}`.trim() || 'Sem nome';
@@ -186,6 +190,8 @@ export default function AnalyticsDashboard() {
       status: lead.status,
       data: lead.dataEvento || '—',
       faturamento: fat,
+      pago: pago,
+      restante: rest,
       custos: totCustos,
       lucro: luc,
       margem: marg,
@@ -209,6 +215,7 @@ export default function AnalyticsDashboard() {
   });
 
   const totalLucroGlobal = totalFaturamento - totalCustosGlobal;
+  const totalValorRestante = totalFaturamento - totalValorPago;
   const margemGlobalMedia = totalFaturamento > 0 ? (totalLucroGlobal / totalFaturamento) * 100 : 0;
 
   const monthlyFinanceData = Object.values(financeiroMensal).sort((a, b) => {
@@ -275,12 +282,28 @@ export default function AnalyticsDashboard() {
       {activeTab === 'financeiro' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* KPI CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
             {/* FATURAMENTO ACUMULADO */}
-            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #4CAF50' }}>
+            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #FFF' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Faturamento Acumulado</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#4CAF50' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#FFF' }}>
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFaturamento)}
+              </div>
+            </div>
+
+            {/* TOTAL RECEBIDO */}
+            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #4CAF50' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Recebido</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValorPago)}
+              </div>
+            </div>
+
+            {/* SALDO A RECEBER */}
+            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: `4px solid ${totalValorRestante > 0 ? '#FFD54F' : '#4CAF50'}` }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Saldo a Receber</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: totalValorRestante > 0 ? '#FFD54F' : '#4CAF50' }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValorRestante)}
               </div>
             </div>
 
@@ -298,13 +321,8 @@ export default function AnalyticsDashboard() {
               <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--primary)' }}>
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalLucroGlobal)}
               </div>
-            </div>
-
-            {/* MARGEM DE LUCRO MÉDIA */}
-            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #00E5FF' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Margem de Lucro Média</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: totalLucroGlobal >= 0 ? '#4CAF50' : '#F44336' }}>
-                {margemGlobalMedia.toFixed(1)}%
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Margem de Lucro Média: <span style={{ color: totalLucroGlobal >= 0 ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>{margemGlobalMedia.toFixed(1)}%</span>
               </div>
             </div>
           </div>
@@ -350,7 +368,7 @@ export default function AnalyticsDashboard() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-                      {['Cliente', 'Data', 'Status', 'Faturamento', 'Custos', 'Lucro Líquido', 'Margem'].map(h => (
+                      {['Cliente', 'Data', 'Status', 'Faturamento', 'Recebido', 'A Receber', 'Custos', 'Lucro', 'Margem'].map(h => (
                         <th key={h} style={{ padding: '10px 12px', textAlign: h === 'Cliente' || h === 'Data' || h === 'Status' ? 'left' : 'right', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                       ))}
                     </tr>
@@ -380,8 +398,17 @@ export default function AnalyticsDashboard() {
                               ● {statusLabels[item.status] || item.status}
                             </span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', color: '#4CAF50', fontWeight: 'bold' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', color: '#FFF', fontWeight: '500' }}>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.faturamento)}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', color: '#4CAF50', fontWeight: '500' }}>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.pago)}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', color: item.restante > 0 ? '#FFD54F' : '#4CAF50', fontWeight: '500' }}>
+                            {item.restante > 0 
+                              ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.restante)
+                              : 'Quitado'
+                            }
                           </td>
                           <td style={{ padding: '12px', textAlign: 'right', color: '#F44336' }}>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.custos)}

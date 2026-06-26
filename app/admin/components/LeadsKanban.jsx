@@ -134,16 +134,19 @@ export default function LeadsKanban() {
   const [isMobile, setIsMobile] = useState(false);
 
   const [faturamentoInput, setFaturamentoInput] = useState('');
+  const [valorPagoInput, setValorPagoInput] = useState('');
 
   // Auto reset tab when selecting a different lead and sync faturamento
   useEffect(() => {
     if (selectedLead) {
       setModalTab('info');
       setFaturamentoInput(selectedLead.financeiro?.faturamento ?? '');
+      setValorPagoInput(selectedLead.financeiro?.valorPago ?? '');
     } else {
       setFaturamentoInput('');
+      setValorPagoInput('');
     }
-  }, [selectedLead?.id, selectedLead?.financeiro?.faturamento]);
+  }, [selectedLead?.id, selectedLead?.financeiro?.faturamento, selectedLead?.financeiro?.valorPago]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -398,6 +401,25 @@ export default function LeadsKanban() {
     } catch (err) {
       console.error("Erro ao atualizar faturamento:", err);
       showToast("Erro ao atualizar faturamento.", "error");
+    }
+  };
+
+  const handleUpdateValorPago = async (valor) => {
+    if (!selectedLead) return;
+    const numValor = parseFloat(valor) || 0;
+    try {
+      const path = `leads/${selectedLead.id}/financeiro`;
+      await update(ref(db, path), { valorPago: numValor });
+      setSelectedLead(prev => ({
+        ...prev,
+        financeiro: {
+          ...(prev.financeiro || {}),
+          valorPago: numValor
+        }
+      }));
+    } catch (err) {
+      console.error("Erro ao atualizar valor pago:", err);
+      showToast("Erro ao atualizar valor pago.", "error");
     }
   };
 
@@ -822,6 +844,8 @@ export default function LeadsKanban() {
   const conversao = totalLeads > 0 ? Math.round((fechadosCount / totalLeads) * 100) : 0;
 
   const faturamento = selectedLead ? (parseFloat(selectedLead.financeiro?.faturamento) || 0) : 0;
+  const valorPago = selectedLead ? (parseFloat(selectedLead.financeiro?.valorPago) || 0) : 0;
+  const valorRestante = faturamento - valorPago;
   const custosObj = selectedLead?.financeiro?.custos || {};
   const custosLista = Object.values(custosObj);
   const totalCustos = custosLista.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
@@ -2090,19 +2114,53 @@ export default function LeadsKanban() {
               {modalTab === 'financeiro' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.25s ease', overflowY: 'auto', paddingRight: '4px' }}>
                   {/* RESUMO CARDS */}
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: '12px' }}>
                     {/* FATURAMENTO */}
                     <div style={{
                       background: 'rgba(255, 255, 255, 0.015)',
-                      border: '1px solid rgba(76, 175, 80, 0.15)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '12px',
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 12px rgba(0, 0, 0, 0.2)'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Faturamento</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF' }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamento)}
+                      </div>
+                    </div>
+
+                    {/* VALOR PAGO */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: '1px solid rgba(76, 175, 80, 0.2)',
                       borderRadius: '12px',
                       padding: '14px 10px',
                       textAlign: 'center',
                       boxShadow: '0 2px 12px rgba(76, 175, 80, 0.03)'
                     }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Faturamento</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#4CAF50' }}>
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamento)}
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Já Pago</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorPago)}
+                      </div>
+                    </div>
+
+                    {/* A RECEBER (FALTA PAGAR) */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: `1px solid ${valorRestante > 0 ? 'rgba(255, 213, 79, 0.25)' : 'rgba(76, 175, 80, 0.2)'}`,
+                      borderRadius: '12px',
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      boxShadow: `0 2px 12px ${valorRestante > 0 ? 'rgba(255, 213, 79, 0.03)' : 'rgba(76, 175, 80, 0.03)'}`,
+                      gridColumn: isMobile ? 'span 2' : 'auto'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Falta Pagar</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: valorRestante > 0 ? '#FFD54F' : '#4CAF50' }}>
+                        {valorRestante > 0 
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorRestante)
+                          : 'Quitado! 🎉'
+                        }
                       </div>
                     </div>
 
@@ -2113,10 +2171,11 @@ export default function LeadsKanban() {
                       borderRadius: '12px',
                       padding: '14px 10px',
                       textAlign: 'center',
-                      boxShadow: '0 2px 12px rgba(244, 67, 54, 0.03)'
+                      boxShadow: '0 2px 12px rgba(244, 67, 54, 0.03)',
+                      gridColumn: isMobile ? 'span 1' : 'auto'
                     }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Custos Totais</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#F44336' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F44336' }}>
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCustos)}
                       </div>
                     </div>
@@ -2128,57 +2187,69 @@ export default function LeadsKanban() {
                       borderRadius: '12px',
                       padding: '14px 10px',
                       textAlign: 'center',
-                      boxShadow: '0 2px 12px rgba(203, 161, 83, 0.03)'
+                      boxShadow: '0 2px 12px rgba(203, 161, 83, 0.03)',
+                      gridColumn: isMobile ? 'span 1' : 'auto'
                     }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Lucro Líquido</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--primary)' }}>
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lucro)}
-                      </div>
-                    </div>
-
-                    {/* MARGEM */}
-                    <div style={{
-                      background: 'rgba(255, 255, 255, 0.015)',
-                      border: '1px solid rgba(203, 161, 83, 0.2)',
-                      borderRadius: '12px',
-                      padding: '14px 10px',
-                      textAlign: 'center',
-                      boxShadow: '0 2px 12px rgba(203, 161, 83, 0.03)',
-                      gridColumn: isMobile ? 'span 2' : 'auto'
-                    }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Margem</div>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: lucro >= 0 ? '#4CAF50' : '#F44336' }}>
-                        {margem.toFixed(1)}%
                       </div>
                     </div>
                   </div>
 
-                  {/* CONFIGURAÇÃO DE FATURAMENTO */}
+                  {/* CONFIGURAÇÃO DE FATURAMENTO E PAGAMENTOS */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FiDollarSign /> Faturamento do Evento
+                    <h4 style={{ margin: '0 0 16px 0', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FiDollarSign /> Valores e Pagamento
                     </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor Total Cobrado (R$)</label>
-                      <input 
-                        type="number" 
-                        placeholder="0.00"
-                        value={faturamentoInput}
-                        onChange={(e) => setFaturamentoInput(e.target.value)}
-                        onBlur={() => handleUpdateFaturamento(faturamentoInput)}
-                        style={{
-                          background: '#0c1610',
-                          border: '1px solid rgba(203, 161, 83, 0.12)',
-                          borderRadius: '8px',
-                          color: '#f0f2ec',
-                          padding: '10px 14px',
-                          fontSize: '0.9rem',
-                          outline: 'none',
-                          maxWidth: '220px'
-                        }}
-                      />
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>O valor é salvo automaticamente ao desfocar do campo.</span>
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      {/* FATURAMENTO */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '160px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Faturamento Total (R$)</label>
+                        <input 
+                          type="number" 
+                          placeholder="0.00"
+                          value={faturamentoInput}
+                          onChange={(e) => setFaturamentoInput(e.target.value)}
+                          onBlur={() => handleUpdateFaturamento(faturamentoInput)}
+                          style={{
+                            background: '#0c1610',
+                            border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px',
+                            color: '#f0f2ec',
+                            padding: '10px 14px',
+                            fontSize: '0.9rem',
+                            outline: 'none',
+                            width: '100%'
+                          }}
+                        />
+                      </div>
+
+                      {/* JÁ PAGO */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '160px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor Já Pago (R$)</label>
+                        <input 
+                          type="number" 
+                          placeholder="0.00"
+                          value={valorPagoInput}
+                          onChange={(e) => setValorPagoInput(e.target.value)}
+                          onBlur={() => handleUpdateValorPago(valorPagoInput)}
+                          style={{
+                            background: '#0c1610',
+                            border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px',
+                            color: '#f0f2ec',
+                            padding: '10px 14px',
+                            fontSize: '0.9rem',
+                            outline: 'none',
+                            width: '100%'
+                          }}
+                        />
+                      </div>
                     </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '8px' }}>
+                      Os valores são salvos automaticamente ao desfocar de qualquer um dos campos.
+                    </span>
                   </div>
 
                   {/* CUSTOS SECTION */}
