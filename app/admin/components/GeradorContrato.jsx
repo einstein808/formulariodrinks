@@ -60,7 +60,8 @@ export default function GeradorContrato() {
     barmans: 1,
     ajudantes: 0,
     autorizarimagem: true,
-    coposDeVidro: false
+    coposDeVidro: false,
+    desconto: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -239,6 +240,10 @@ export default function GeradorContrato() {
       valorTotal += precoCopo * convidadosInformados;
     }
 
+    const descontoValue = parseFloat(formData.desconto) || 0;
+    const valorOriginal = valorTotal;
+    valorTotal = Math.max(0, valorTotal - descontoValue);
+
     const parcela1 = +(valorTotal / 2).toFixed(2);
     const parcela2 = +(valorTotal - parcela1).toFixed(2);
 
@@ -322,6 +327,10 @@ export default function GeradorContrato() {
       convidados_cobrados: isPerPerson ? convidadosCobrados : 0,
       valor_por_convidado: valorPorConvidado,
       valor_por_convidado_formatado: formatBRL(valorPorConvidado),
+      valor_original: valorOriginal,
+      valor_original_formatado: formatBRL(valorOriginal),
+      desconto: descontoValue,
+      desconto_formatado: formatBRL(descontoValue),
       valor_total: valorTotal,
       valor_total_formatado: isPerPerson ? formatBRL(valorTotal) : formatBRLCurrency(valorTotal),
       
@@ -479,7 +488,8 @@ export default function GeradorContrato() {
       barmans: barmansVal,
       ajudantes: ajudantesVal,
       autorizarimagem: lead.autorizarimagem !== undefined ? lead.autorizarimagem : true,
-      coposDeVidro: lead.coposDeVidro !== undefined ? lead.coposDeVidro : false
+      coposDeVidro: lead.coposDeVidro !== undefined ? lead.coposDeVidro : false,
+      desconto: lead.financeiro?.desconto || 0
     });
 
     setErrors({});
@@ -613,6 +623,9 @@ export default function GeradorContrato() {
           valorTotalFormatado: financials.valor_total_formatado,
           parcela1Valor: financials.parcela_1_valor,
           parcela2Valor: financials.parcela_2_valor,
+          // Financeiro sync
+          'financeiro/faturamento': financials.valor_original,
+          'financeiro/desconto': financials.desconto,
         });
       }
 
@@ -1132,6 +1145,30 @@ export default function GeradorContrato() {
               </div>
             </div>
 
+            {/* DESCONTO ESPECIAL */}
+            <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
+              <label htmlFor="desconto" style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '8px' }}>Desconto Especial (R$)</label>
+              <input
+                id="desconto"
+                name="desconto"
+                type="number"
+                placeholder="0.00"
+                className="form-control"
+                value={formData.desconto || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, desconto: e.target.value === '' ? '' : parseFloat(e.target.value) || 0 }))}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '8px',
+                  color: '#FFF',
+                  padding: '12px 16px',
+                  fontSize: '0.9rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
             {/* ESTIMATED FINANCIAL SUMMARY CARD */}
             {formData.Servico && (
               <div style={{
@@ -1154,6 +1191,16 @@ export default function GeradorContrato() {
                   <div>
                     <span style={{ color: 'var(--text-muted)' }}>Valor por Convidado:</span> {financials.valor_por_convidado ? `R$ ${financials.valor_por_convidado_formatado}` : 'N/A'}
                   </div>
+                  {financials.desconto > 0 && (
+                    <>
+                      <div style={{ color: '#FFF' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Valor Bruto:</span> R$ {financials.valor_original_formatado}
+                      </div>
+                      <div style={{ color: '#F44336' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Desconto:</span> - R$ {financials.desconto_formatado}
+                      </div>
+                    </>
+                  )}
                   <div style={{ fontWeight: 'bold', color: '#FFF' }}>
                     <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>Valor Total:</span> {financials.valor_total_formatado.includes('R$') ? financials.valor_total_formatado : `R$ ${financials.valor_total_formatado}`}
                   </div>

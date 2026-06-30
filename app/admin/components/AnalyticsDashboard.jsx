@@ -154,9 +154,11 @@ export default function AnalyticsDashboard() {
     const fin = lead.financeiro;
     if (!fin) return;
 
-    const fat = parseFloat(fin.faturamento) || 0;
+    const fatBruto = parseFloat(fin.faturamento) || 0;
+    const desc = parseFloat(fin.desconto) || 0;
+    const fat = fatBruto - desc; // Net faturamento after discount
     const pago = parseFloat(fin.valorPago) || 0;
-    const rest = fat - pago;
+    const rest = Math.max(0, fat - pago);
     const custos = fin.custos ? Object.values(fin.custos) : [];
     const totCustos = custos.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
     const luc = fat - totCustos;
@@ -190,6 +192,7 @@ export default function AnalyticsDashboard() {
       status: lead.status,
       data: lead.dataEvento || '—',
       faturamento: fat,
+      desconto: desc,
       pago: pago,
       restante: rest,
       custos: totCustos,
@@ -400,6 +403,11 @@ export default function AnalyticsDashboard() {
                           </td>
                           <td style={{ padding: '12px', textAlign: 'right', color: '#FFF', fontWeight: '500' }}>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.faturamento)}
+                            {item.desconto > 0 && (
+                              <div style={{ fontSize: '0.72rem', color: '#F44336', marginTop: '2px', fontWeight: 'normal' }}>
+                                -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.desconto)}
+                              </div>
+                            )}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'right', color: '#4CAF50', fontWeight: '500' }}>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.pago)}

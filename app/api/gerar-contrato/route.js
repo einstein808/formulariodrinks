@@ -136,7 +136,7 @@ const getMaoDeObraTemplate = (data) => {
 
         <h2>Cláusula 2 – Valor e Forma de Pagamento</h2>
         <p class="clausula">
-            <span class="highlight">2.1</span> O valor total deste contrato é de <strong>${data.valor_total_formatado || ''}</strong>.
+            <span class="highlight">2.1</span> O valor total deste contrato é de <strong>${data.valor_total_formatado || ''}</strong>${data.desconto && parseFloat(data.desconto) > 0 ? ` (sendo o valor original de R$ ${data.valor_original_formatado || ''} com R$ ${data.desconto_formatado || ''} de desconto concedido)` : ''}.
         </p>
         <p class="clausula">
             <span class="highlight">2.2</span> O pagamento será realizado da seguinte forma:
@@ -568,6 +568,16 @@ const getStandardTemplate = (data) => {
               <td><strong>Valor por convidado</strong></td>
               <td>R$ ${data.valor_por_convidado_formatado || '0,00'}</td>
             </tr>
+            ${data.desconto && parseFloat(data.desconto) > 0 ? `
+            <tr>
+              <td>Valor bruto</td>
+              <td>R$ ${data.valor_original_formatado || '0,00'}</td>
+            </tr>
+            <tr>
+              <td>Desconto</td>
+              <td style="color: #F44336;">- R$ ${data.desconto_formatado || '0,00'}</td>
+            </tr>
+            ` : ''}
             <tr>
               <td><strong>Valor total</strong></td>
               <td class="valor-destaque">R$ ${data.valor_total_formatado || '0,00'}</td>
@@ -579,7 +589,7 @@ const getStandardTemplate = (data) => {
       <p>
         2.1 O valor deste contrato foi calculado com base em <strong>${data.convidados_cobrados || 0} convidados cobrados</strong>,
         ao valor unitário de <strong>R$ ${data.valor_por_convidado_formatado || '0,00'}</strong> por convidado,
-        totalizando <strong>R$ ${data.valor_total_formatado || '0,00'}</strong>.
+        totalizando <strong>R$ ${data.valor_total_formatado || '0,00'}</strong>${data.desconto && parseFloat(data.desconto) > 0 ? ` (sendo o valor bruto de R$ ${data.valor_original_formatado || '0,00'} com desconto de R$ ${data.desconto_formatado || '0,00'})` : ''}.
       </p>
       <p>
         2.2 Ainda que o CONTRATANTE informe número inferior de participantes, fica estabelecido o mínimo contratual de

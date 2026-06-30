@@ -576,35 +576,95 @@ export default function App() {
 
       /* ---- Step 3: Choose Drinks ---- */
       case 3:
+        const getCategory = (d) => {
+          if (d.category) return d.category;
+          return d.isNonAlcoholic ? 'sem_alcool' : 'alcool';
+        };
+
+        const drinksAlcool = drinksMenu.filter(d => getCategory(d) === 'alcool');
+        const drinksPremium = drinksMenu.filter(d => getCategory(d) === 'sofisticado');
+        const drinksFrozen = drinksMenu.filter(d => getCategory(d) === 'frozen');
+        const drinksSemAlcool = drinksMenu.filter(d => getCategory(d) === 'sem_alcool');
+
+        const renderDrinkCard = (d) => (
+          <button
+            key={d.id}
+            type="button"
+            id={`drink-${d.id}`}
+            className={`drink-card ${formData.drinksEscolhidos.includes(d.id) ? 'drink-card--selected' : ''}`}
+            onClick={() => toggleArrayField('drinksEscolhidos', d.id)}
+          >
+            {d.image ? (
+              <div className="drink-card__image-container" style={{
+                width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', 
+                marginBottom: 8, border: '1px solid var(--primary)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.5)', zIndex: 1, flexShrink: 0
+              }}>
+                <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            ) : (
+              <span className="drink-card__emoji">{d.emoji}</span>
+            )}
+            <span className="drink-card__name">{d.name}</span>
+          </button>
+        );
+
         return (
           <div className="step-enter" key="step-3">
             <div className="form-group">
-              <label className="form-label">Escolha até {maxDrinks} drinks</label>
-              <div className="drinks-grid">
-                {drinksMenu.map(d => (
-                  <button
-                    key={d.id}
-                    type="button"
-                    id={`drink-${d.id}`}
-                    className={`drink-card ${formData.drinksEscolhidos.includes(d.id) ? 'drink-card--selected' : ''}`}
-                    onClick={() => toggleArrayField('drinksEscolhidos', d.id)}
-                  >
-                    {d.image ? (
-                      <div className="drink-card__image-container" style={{
-                        width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', 
-                        marginBottom: 8, border: '1px solid var(--primary)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.5)', zIndex: 1, flexShrink: 0
-                      }}>
-                        <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    ) : (
-                      <span className="drink-card__emoji">{d.emoji}</span>
-                    )}
-                    <span className="drink-card__name">{d.name}</span>
-                  </button>
-                ))}
+              <label className="form-label" style={{ marginBottom: 24 }}>Escolha até {maxDrinks} drinks</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                {/* 🍸 Alcoólicos */}
+                {drinksAlcool.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🍸 Alcoólicos
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksAlcool.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ✨ Premium */}
+                {drinksPremium.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      ✨ Premium
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksPremium.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ❄️ Frozen */}
+                {drinksFrozen.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      ❄️ Frozen
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksFrozen.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 🧃 Sem Álcool */}
+                {drinksSemAlcool.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🧃 Sem Álcool
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksSemAlcool.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="drinks-counter">
+
+              <div className="drinks-counter" style={{ marginTop: '32px' }}>
                 <strong>{formData.drinksEscolhidos.length}</strong> de <strong>{maxDrinks}</strong> drinks selecionados
               </div>
               {errors.drinksEscolhidos && <span className="form-error">{errors.drinksEscolhidos}</span>}

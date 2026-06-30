@@ -60,7 +60,8 @@ export default function ClienteContratoPage() {
     barmans: 1,
     ajudantes: 0,
     autorizarimagem: true,
-    coposDeVidro: false
+    coposDeVidro: false,
+    desconto: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -187,7 +188,8 @@ export default function ClienteContratoPage() {
             barmans: barmansVal,
             ajudantes: ajudantesVal,
             autorizarimagem: lead.autorizarimagem !== undefined ? lead.autorizarimagem : true,
-            coposDeVidro: lead.coposDeVidro !== undefined ? lead.coposDeVidro : false
+            coposDeVidro: lead.coposDeVidro !== undefined ? lead.coposDeVidro : false,
+            desconto: lead.financeiro?.desconto || 0
           });
         }
       } catch (err) {
@@ -316,6 +318,10 @@ export default function ClienteContratoPage() {
       valorTotal += precoCopo * convidadosInformados;
     }
 
+    const descontoValue = parseFloat(formData.desconto) || 0;
+    const valorOriginal = valorTotal;
+    valorTotal = Math.max(0, valorTotal - descontoValue);
+
     const parcela1 = +(valorTotal / 2).toFixed(2);
     const parcela2 = +(valorTotal - parcela1).toFixed(2);
 
@@ -399,6 +405,10 @@ export default function ClienteContratoPage() {
       convidados_cobrados: isPerPerson ? convidadosCobrados : 0,
       valor_por_convidado: valorPorConvidado,
       valor_por_convidado_formatado: formatBRL(valorPorConvidado),
+      valor_original: valorOriginal,
+      valor_original_formatado: formatBRL(valorOriginal),
+      desconto: descontoValue,
+      desconto_formatado: formatBRL(descontoValue),
       valor_total: valorTotal,
       valor_total_formatado: isPerPerson ? formatBRL(valorTotal) : formatBRLCurrency(valorTotal),
       
@@ -598,6 +608,9 @@ export default function ClienteContratoPage() {
         valorTotalFormatado: financials.valor_total_formatado,
         parcela1Valor: financials.parcela_1_valor,
         parcela2Valor: financials.parcela_2_valor,
+        // Financeiro sync
+        'financeiro/faturamento': financials.valor_original,
+        'financeiro/desconto': financials.desconto,
       });
 
       // Log contract generation in lead messages
@@ -1097,6 +1110,16 @@ export default function ClienteContratoPage() {
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Valor por Convidado:</span> {financials.valor_por_convidado ? `R$ ${financials.valor_por_convidado_formatado}` : 'N/A'}
                     </div>
+                    {financials.desconto > 0 && (
+                      <>
+                        <div style={{ color: '#FFF' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Valor Bruto:</span> R$ {financials.valor_original_formatado}
+                        </div>
+                        <div style={{ color: '#F44336' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Desconto:</span> - R$ {financials.desconto_formatado}
+                        </div>
+                      </>
+                    )}
                     <div style={{ fontWeight: 'bold', color: '#FFF' }}>
                       <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>Valor Total:</span> {financials.valor_total_formatado.includes('R$') ? financials.valor_total_formatado : `R$ ${financials.valor_total_formatado}`}
                     </div>

@@ -134,19 +134,22 @@ export default function LeadsKanban() {
   const [isMobile, setIsMobile] = useState(false);
 
   const [faturamentoInput, setFaturamentoInput] = useState('');
+  const [descontoInput, setDescontoInput] = useState('');
   const [valorPagoInput, setValorPagoInput] = useState('');
 
-  // Auto reset tab when selecting a different lead and sync faturamento
+  // Auto reset tab when selecting a different lead and sync faturamento/desconto/pago
   useEffect(() => {
     if (selectedLead) {
       setModalTab('info');
       setFaturamentoInput(selectedLead.financeiro?.faturamento ?? '');
+      setDescontoInput(selectedLead.financeiro?.desconto ?? '');
       setValorPagoInput(selectedLead.financeiro?.valorPago ?? '');
     } else {
       setFaturamentoInput('');
+      setDescontoInput('');
       setValorPagoInput('');
     }
-  }, [selectedLead?.id, selectedLead?.financeiro?.faturamento, selectedLead?.financeiro?.valorPago]);
+  }, [selectedLead?.id, selectedLead?.financeiro?.faturamento, selectedLead?.financeiro?.valorPago, selectedLead?.financeiro?.desconto]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -401,6 +404,25 @@ export default function LeadsKanban() {
     } catch (err) {
       console.error("Erro ao atualizar faturamento:", err);
       showToast("Erro ao atualizar faturamento.", "error");
+    }
+  };
+
+  const handleUpdateDesconto = async (valor) => {
+    if (!selectedLead) return;
+    const numValor = parseFloat(valor) || 0;
+    try {
+      const path = `leads/${selectedLead.id}/financeiro`;
+      await update(ref(db, path), { desconto: numValor });
+      setSelectedLead(prev => ({
+        ...prev,
+        financeiro: {
+          ...(prev.financeiro || {}),
+          desconto: numValor
+        }
+      }));
+    } catch (err) {
+      console.error("Erro ao atualizar desconto:", err);
+      showToast("Erro ao atualizar desconto.", "error");
     }
   };
 
@@ -748,6 +770,10 @@ export default function LeadsKanban() {
         }
 
         await logMessageToLead(selectedLead.id, `script_${scriptType}`, number, true);
+        if (scriptType === 'posEvento') {
+          await update(ref(db, `leads/${selectedLead.id}`), { npsSent: true });
+          setSelectedLead(prev => ({ ...prev, npsSent: true }));
+        }
         showToast("Mensagem enviada com sucesso!", "success");
       } catch (err) {
         console.error("Erro ao enviar mensagem:", err);
@@ -844,13 +870,14 @@ export default function LeadsKanban() {
   const conversao = totalLeads > 0 ? Math.round((fechadosCount / totalLeads) * 100) : 0;
 
   const faturamento = selectedLead ? (parseFloat(selectedLead.financeiro?.faturamento) || 0) : 0;
+  const desconto = selectedLead ? (parseFloat(selectedLead.financeiro?.desconto) || 0) : 0;
   const valorPago = selectedLead ? (parseFloat(selectedLead.financeiro?.valorPago) || 0) : 0;
-  const valorRestante = faturamento - valorPago;
+  const valorRestante = Math.max(0, (faturamento - desconto) - valorPago);
   const custosObj = selectedLead?.financeiro?.custos || {};
   const custosLista = Object.values(custosObj);
   const totalCustos = custosLista.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
-  const lucro = faturamento - totalCustos;
-  const margem = faturamento > 0 ? (lucro / faturamento) * 100 : 0;
+  const lucro = (faturamento - desconto) - totalCustos;
+  const margem = (faturamento - desconto) > 0 ? (lucro / (faturamento - desconto)) * 100 : 0;
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>;
@@ -2114,7 +2141,7 @@ export default function LeadsKanban() {
               {modalTab === 'financeiro' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.25s ease', overflowY: 'auto', paddingRight: '4px' }}>
                   {/* RESUMO CARDS */}
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(6, 1fr)', gap: '12px' }}>
                     {/* FATURAMENTO */}
                     <div style={{
                       background: 'rgba(255, 255, 255, 0.015)',
@@ -2127,6 +2154,21 @@ export default function LeadsKanban() {
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Faturamento</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF' }}>
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamento)}
+                      </div>
+                    </div>
+
+                    {/* DESCONTO */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: '1px solid rgba(244, 67, 54, 0.15)',
+                      borderRadius: '12px',
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 12px rgba(244, 67, 54, 0.03)'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Desconto</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F44336' }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(desconto)}
                       </div>
                     </div>
 
@@ -2212,6 +2254,28 @@ export default function LeadsKanban() {
                           value={faturamentoInput}
                           onChange={(e) => setFaturamentoInput(e.target.value)}
                           onBlur={() => handleUpdateFaturamento(faturamentoInput)}
+                          style={{
+                            background: '#0c1610',
+                            border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px',
+                            color: '#f0f2ec',
+                            padding: '10px 14px',
+                            fontSize: '0.9rem',
+                            outline: 'none',
+                            width: '100%'
+                          }}
+                        />
+                      </div>
+
+                      {/* DESCONTO */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '160px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Desconto Concedido (R$)</label>
+                        <input 
+                          type="number" 
+                          placeholder="0.00"
+                          value={descontoInput}
+                          onChange={(e) => setDescontoInput(e.target.value)}
+                          onBlur={() => handleUpdateDesconto(descontoInput)}
                           style={{
                             background: '#0c1610',
                             border: '1px solid rgba(203, 161, 83, 0.12)',

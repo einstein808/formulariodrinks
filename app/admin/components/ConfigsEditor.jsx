@@ -483,9 +483,9 @@ export default function ConfigsEditor() {
               <input type="text" className="form-input" value={general.googleReviewLink || ''} onChange={(e) => setGeneral({ ...general, googleReviewLink: e.target.value })} placeholder="Ex: https://g.page/r/.../review" />
             </div>
             <div style={{ marginTop: '16px', background: 'rgba(255, 213, 79, 0.1)', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #FFD54F' }}>
-              <label className="form-label" style={{ color: '#FFD54F' }}>Telefone do Admin (Para receber alertas automáticos de festas próximas)</label>
-              <input type="text" className="form-input" value={general.adminPhone || ''} onChange={(e) => setGeneral({ ...general, adminPhone: e.target.value })} placeholder="Ex: 32999999999" />
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Apenas números com DDD. O sistema enviará os avisos de 15, 7 e 3 dias para este número automaticamente.</p>
+              <label className="form-label" style={{ color: '#FFD54F' }}>Telefones do Admin (Para receber alertas automáticos de festas próximas)</label>
+              <input type="text" className="form-input" value={general.adminPhone || ''} onChange={(e) => setGeneral({ ...general, adminPhone: e.target.value })} placeholder="Ex: 32999999999, 32988888888" />
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Apenas números com DDD. Você pode adicionar múltiplos números separados por vírgula. O sistema enviará os avisos de 15, 7 e 3 dias para todos automaticamente.</p>
             </div>
             <div style={{ marginTop: '16px' }}>
               <label className="form-label">Preço Adicional de Copos de Vidro (por convidado)</label>

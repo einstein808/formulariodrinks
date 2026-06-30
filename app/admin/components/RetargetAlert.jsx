@@ -123,7 +123,15 @@ export default function RetargetAlert() {
     if (!configs?.general?.adminPhone || !configs?.evolutionApi?.url || upcomingEvents.length === 0) return;
 
     const baseUrl = configs.evolutionApi.url.endsWith('/') ? configs.evolutionApi.url.slice(0, -1) : configs.evolutionApi.url;
-    const adminPhone = '55' + configs.general.adminPhone.replace(/\D/g, '');
+    
+    // Processar múltiplos números separados por vírgula
+    const adminPhones = configs.general.adminPhone
+      .split(',')
+      .map(num => num.replace(/\D/g, '').trim())
+      .filter(num => num.length > 0)
+      .map(num => num.startsWith('55') ? num : '55' + num);
+
+    if (adminPhones.length === 0) return;
 
     upcomingEvents.forEach(async (lead) => {
       let shouldAlert = false;
@@ -141,19 +149,25 @@ export default function RetargetAlert() {
       if (shouldAlert) {
         const text = `🚨 *Alerta de Evento Próximo!* 🚨\n\nO evento de *${lead.nome}* (${lead.tipoEvento || 'Festa'}) com o pacote *${lead.pacote || 'Não inf.'}* será em *${daysStr}* (Data: ${lead.dataEvento}).\n\nVerifique se o estoque e os parceiros já estão confirmados!`;
         
-        try {
-          const endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': configs.evolutionApi.apikey },
-            body: JSON.stringify({ number: adminPhone, text, linkPreview: false })
-          });
-          
-          if (response.ok) {
-            await update(ref(db, `leads/${lead.id}`), { [updateField]: true });
+        let sentAny = false;
+        for (const phone of adminPhones) {
+          try {
+            const endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'apikey': configs.evolutionApi.apikey },
+              body: JSON.stringify({ number: phone, text, linkPreview: false })
+            });
+            if (response.ok) {
+              sentAny = true;
+            }
+          } catch (err) {
+            console.error(`Erro ao enviar alerta automático para o admin no número ${phone}`, err);
           }
-        } catch (err) {
-          console.error("Erro ao enviar alerta automático para o admin", err);
+        }
+
+        if (sentAny) {
+          await update(ref(db, `leads/${lead.id}`), { [updateField]: true });
         }
       }
     });
