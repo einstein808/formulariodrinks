@@ -459,8 +459,14 @@ export default function GeradorContrato() {
 
     const isMaoDeObraPkg = (servicoText || '').toLowerCase().includes('mão de obra');
     let barmansVal = lead.barmans !== undefined ? lead.barmans : 1;
-    let ajudantesVal = lead.ajudantes !== undefined ? lead.ajudantes : 0;
-    if (isMaoDeObraPkg && lead.barmans === undefined && lead.ajudantes === undefined && lead.convidados) {
+    let ajudantesVal = 0;
+    if (lead.ajudantesCount !== undefined) {
+      ajudantesVal = parseInt(lead.ajudantesCount, 10) || 0;
+    } else if (lead.ajudantes !== undefined && typeof lead.ajudantes !== 'object') {
+      ajudantesVal = parseInt(lead.ajudantes, 10) || 0;
+    }
+
+    if (isMaoDeObraPkg && lead.barmans === undefined && lead.ajudantesCount === undefined && typeof lead.ajudantes !== 'number' && lead.convidados) {
       const rec = getRecommendation(lead.convidados);
       barmansVal = rec.barmans;
       ajudantesVal = rec.ajudantes;
@@ -615,7 +621,7 @@ export default function GeradorContrato() {
           drinksEscolhidos: chosenDrinks,
           drinks_frozen: formData.drinks_frozen || [],
           barmans: formData.barmans !== undefined ? parseInt(formData.barmans, 10) : 1,
-          ajudantes: formData.ajudantes !== undefined ? parseInt(formData.ajudantes, 10) : 0,
+          ajudantesCount: formData.ajudantes !== undefined ? parseInt(formData.ajudantes, 10) : 0,
           autorizarimagem: formData.autorizarimagem !== undefined ? formData.autorizarimagem : true,
           coposDeVidro: formData.coposDeVidro || false,
           // Calculated values
