@@ -125,7 +125,7 @@ export default function LeadsKanban() {
   const [editLeadData, setEditLeadData] = useState({});
   const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts' | 'financeiro'
   const [financeiroPresets, setFinanceiroPresets] = useState({});
-  const [newCost, setNewCost] = useState({ descricao: '', valor: '' });
+  const [newCost, setNewCost] = useState({ descricao: '', valor: '', categoria: 'insumos' });
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [itemsPerPage, setItemsPerPage] = useState('20');
@@ -445,19 +445,38 @@ export default function LeadsKanban() {
     }
   };
 
-  const handleAddCost = async (descricao, valor) => {
+  const detectCategoryByDescription = (desc) => {
+    const normalized = (desc || '').toLowerCase().trim();
+    if (normalized.includes('barman') || normalized.includes('ajudante') || normalized.includes('equipe') || normalized.includes('garçom') || normalized.includes('staff')) {
+      return 'equipe';
+    }
+    if (normalized.includes('transporte') || normalized.includes('carreto') || normalized.includes('logistica') || normalized.includes('logística') || normalized.includes('combustivel') || normalized.includes('combustível') || normalized.includes('viagem') || normalized.includes('frete')) {
+      return 'logistica';
+    }
+    if (normalized.includes('copo') || normalized.includes('canudo') || normalized.includes('guardanapo') || normalized.includes('descartavel') || normalized.includes('descartáveis')) {
+      return 'descartaveis';
+    }
+    if (normalized.includes('gelo') || normalized.includes('fruta') || normalized.includes('bebida') || normalized.includes('vodka') || normalized.includes('gin') || normalized.includes('insumo') || normalized.includes('suco') || normalized.includes('xarope') || normalized.includes('gengibre') || normalized.includes('limao') || normalized.includes('limão')) {
+      return 'insumos';
+    }
+    return 'outros';
+  };
+
+  const handleAddCost = async (descricao, valor, categoriaInput) => {
     if (!selectedLead || !descricao.trim()) {
       showToast("Descrição do custo é obrigatória.", "warning");
       return;
     }
     const numValor = parseFloat(valor) || 0;
+    const cat = categoriaInput || detectCategoryByDescription(descricao);
     const costId = `custo-${Date.now()}`;
     try {
       const pathCost = `leads/${selectedLead.id}/financeiro/custos/${costId}`;
       await set(ref(db, pathCost), {
         id: costId,
         descricao: descricao.trim(),
-        valor: numValor
+        valor: numValor,
+        categoria: cat
       });
 
       const slug = slugify(descricao);
@@ -465,7 +484,8 @@ export default function LeadsKanban() {
         const pathPreset = `config/financeiroPresets/${slug}`;
         await set(ref(db, pathPreset), {
           descricao: descricao.trim(),
-          valor: numValor
+          valor: numValor,
+          categoria: cat
         });
       }
 
@@ -478,13 +498,13 @@ export default function LeadsKanban() {
             ...currentFinanceiro,
             custos: {
               ...currentCustos,
-              [costId]: { id: costId, descricao: descricao.trim(), valor: numValor }
+              [costId]: { id: costId, descricao: descricao.trim(), valor: numValor, categoria: cat }
             }
           }
         };
       });
 
-      setNewCost({ descricao: '', valor: '' });
+      setNewCost({ descricao: '', valor: '', categoria: 'insumos' });
       showToast("Custo adicionado com sucesso!", "success");
     } catch (err) {
       console.error("Erro ao adicionar custo:", err);
@@ -2330,7 +2350,10 @@ export default function LeadsKanban() {
                           <button
                             key={slug}
                             type="button"
-                            onClick={() => setNewCost({ descricao: item.descricao, valor: item.valor.toString() })}
+                            onClick={() => {
+                              const cat = detectCategoryByDescription(item.descricao);
+                              setNewCost({ descricao: item.descricao, valor: item.valor.toString(), categoria: cat });
+                            }}
                             style={{
                               background: 'rgba(203, 161, 83, 0.04)',
                               border: '1px solid rgba(203, 161, 83, 0.2)',
@@ -2370,7 +2393,11 @@ export default function LeadsKanban() {
                           type="text"
                           placeholder="Ex: Barman, Ajudante, Gelo, Copos..."
                           value={newCost.descricao}
-                          onChange={(e) => setNewCost(prev => ({ ...prev, descricao: e.target.value }))}
+                          onChange={(e) => {
+                            const desc = e.target.value;
+                            const cat = detectCategoryByDescription(desc);
+                            setNewCost(prev => ({ ...prev, descricao: desc, categoria: cat }));
+                          }}
                           style={{
                             background: '#0c1610',
                             border: '1px solid rgba(203, 161, 83, 0.12)',
@@ -2382,6 +2409,32 @@ export default function LeadsKanban() {
                             width: '100%'
                           }}
                         />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1.5', minWidth: '140px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Categoria</label>
+                        <select
+                          value={newCost.categoria}
+                          onChange={(e) => setNewCost(prev => ({ ...prev, categoria: e.target.value }))}
+                          style={{
+                            background: '#0c1610',
+                            border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px',
+                            color: '#f0f2ec',
+                            padding: '10px 12px',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            width: '100%',
+                            height: '38px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="insumos">🧃 Insumos / Bebidas</option>
+                          <option value="equipe">👥 Mão de Obra / Equipe</option>
+                          <option value="logistica">🚚 Logística / Transporte</option>
+                          <option value="descartaveis">🥤 Descartáveis / Copos</option>
+                          <option value="outros">✨ Outros / Diversos</option>
+                        </select>
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '100px' }}>
@@ -2406,7 +2459,7 @@ export default function LeadsKanban() {
 
                       <button
                         type="button"
-                        onClick={() => handleAddCost(newCost.descricao, newCost.valor)}
+                        onClick={() => handleAddCost(newCost.descricao, newCost.valor, newCost.categoria)}
                         style={{
                           background: 'var(--primary)',
                           border: 'none',
@@ -2433,6 +2486,7 @@ export default function LeadsKanban() {
                           <thead>
                             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)', textAlign: 'left' }}>
                               <th style={{ padding: '8px' }}>Custo</th>
+                              <th style={{ padding: '8px' }}>Categoria</th>
                               <th style={{ padding: '8px', textAlign: 'right' }}>Valor</th>
                               <th style={{ padding: '8px', textAlign: 'center', width: '44px' }}>Ações</th>
                             </tr>
@@ -2441,6 +2495,33 @@ export default function LeadsKanban() {
                             {custosLista.map((custo) => (
                               <tr key={custo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#FFF' }}>
                                 <td style={{ padding: '10px 8px' }}>{custo.descricao}</td>
+                                <td style={{ padding: '10px 8px' }}>
+                                  {(() => {
+                                    const categories = {
+                                      insumos: { label: 'Insumos / Bebidas', bg: 'rgba(0, 229, 255, 0.08)', border: 'rgba(0, 229, 255, 0.25)', color: '#00E5FF' },
+                                      equipe: { label: 'Mão de Obra', bg: 'rgba(255, 213, 79, 0.08)', border: 'rgba(255, 213, 79, 0.25)', color: '#FFD54F' },
+                                      logistica: { label: 'Logística', bg: 'rgba(255, 138, 101, 0.08)', border: 'rgba(255, 138, 101, 0.25)', color: '#FF8A65' },
+                                      descartaveis: { label: 'Descartáveis', bg: 'rgba(239, 83, 80, 0.08)', border: 'rgba(239, 83, 80, 0.25)', color: '#EF5350' },
+                                      outros: { label: 'Outros', bg: 'rgba(255, 255, 255, 0.04)', border: 'rgba(255, 255, 255, 0.1)', color: '#a8b8aa' }
+                                    };
+                                    const cat = custo.categoria || detectCategoryByDescription(custo.descricao);
+                                    const current = categories[cat] || categories.outros;
+                                    return (
+                                      <span style={{
+                                        background: current.bg,
+                                        border: `1px solid ${current.border}`,
+                                        color: current.color,
+                                        padding: '2px 8px',
+                                        borderRadius: '20px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: '600',
+                                        display: 'inline-block'
+                                      }}>
+                                        {current.label}
+                                      </span>
+                                    );
+                                  })()}
+                                </td>
                                 <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '500' }}>
                                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custo.valor)}
                                 </td>
@@ -2468,7 +2549,7 @@ export default function LeadsKanban() {
                               </tr>
                             ))}
                             <tr style={{ background: 'rgba(255, 255, 255, 0.015)', fontWeight: 'bold' }}>
-                              <td style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>Total de Custos</td>
+                              <td colSpan={2} style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>Total de Custos</td>
                               <td style={{ padding: '10px 8px', textAlign: 'right', color: '#F44336' }}>
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCustos)}
                               </td>

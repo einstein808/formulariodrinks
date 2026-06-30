@@ -150,6 +150,31 @@ export default function AnalyticsDashboard() {
   const financeiroPorLead = [];
   const financeiroMensal = {};
 
+  const custosPorCategoria = {
+    insumos: 0,
+    equipe: 0,
+    logistica: 0,
+    descartaveis: 0,
+    outros: 0
+  };
+
+  const detectCategoryByDescription = (desc) => {
+    const normalized = (desc || '').toLowerCase().trim();
+    if (normalized.includes('barman') || normalized.includes('ajudante') || normalized.includes('equipe') || normalized.includes('garçom') || normalized.includes('staff')) {
+      return 'equipe';
+    }
+    if (normalized.includes('transporte') || normalized.includes('carreto') || normalized.includes('logistica') || normalized.includes('logística') || normalized.includes('combustivel') || normalized.includes('combustível') || normalized.includes('viagem') || normalized.includes('frete')) {
+      return 'logistica';
+    }
+    if (normalized.includes('copo') || normalized.includes('canudo') || normalized.includes('guardanapo') || normalized.includes('descartavel') || normalized.includes('descartáveis')) {
+      return 'descartaveis';
+    }
+    if (normalized.includes('gelo') || normalized.includes('fruta') || normalized.includes('bebida') || normalized.includes('vodka') || normalized.includes('gin') || normalized.includes('insumo') || normalized.includes('suco') || normalized.includes('xarope') || normalized.includes('gengibre') || normalized.includes('limao') || normalized.includes('limão')) {
+      return 'insumos';
+    }
+    return 'outros';
+  };
+
   leads.forEach(lead => {
     const fin = lead.financeiro;
     if (!fin) return;
@@ -167,6 +192,17 @@ export default function AnalyticsDashboard() {
     totalFaturamento += fat;
     totalValorPago += pago;
     totalCustosGlobal += totCustos;
+
+    // Accumulate by category
+    custos.forEach(c => {
+      const valor = parseFloat(c.valor) || 0;
+      const cat = c.categoria || detectCategoryByDescription(c.descricao);
+      if (custosPorCategoria[cat] !== undefined) {
+        custosPorCategoria[cat] += valor;
+      } else {
+        custosPorCategoria.outros += valor;
+      }
+    });
 
     const nomeCliente = `${lead.nome || ''} ${lead.sobrenome || ''}`.trim() || 'Sem nome';
     
@@ -220,6 +256,43 @@ export default function AnalyticsDashboard() {
   const totalLucroGlobal = totalFaturamento - totalCustosGlobal;
   const totalValorRestante = totalFaturamento - totalValorPago;
   const margemGlobalMedia = totalFaturamento > 0 ? (totalLucroGlobal / totalFaturamento) * 100 : 0;
+
+  // Cost categories breakdown logic
+  const COST_CATEGORIES = {
+    insumos: { label: 'Insumos / Bebidas', color: '#00E5FF' },
+    equipe: { label: 'Mão de Obra / Equipe', color: '#FFD54F' },
+    logistica: { label: 'Logística / Transporte', color: '#FF8A65' },
+    descartaveis: { label: 'Descartáveis / Copos', color: '#EF5350' },
+    outros: { label: 'Outros / Diversos', color: '#a8b8aa' }
+  };
+
+  const sortedCategories = Object.entries(custosPorCategoria)
+    .map(([key, value]) => ({
+      key,
+      value,
+      label: COST_CATEGORIES[key]?.label || key,
+      color: COST_CATEGORIES[key]?.color || '#FFF',
+      percentage: totalCustosGlobal > 0 ? (value / totalCustosGlobal) * 100 : 0
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  let insightOtimizacao = "";
+  if (totalCustosGlobal === 0) {
+    insightOtimizacao = "Nenhum custo lançado no sistema ainda. Adicione custos aos leads do Kanban para visualizar análises de otimização.";
+  } else {
+    const topCategory = sortedCategories[0];
+    if (topCategory.key === 'insumos') {
+      insightOtimizacao = `Sua maior fonte de despesa é **Insumos / Bebidas** (${topCategory.percentage.toFixed(1)}% dos custos totais). Para otimizar sua margem:\n1. Considere comprar destilados em atacado ou estabelecer parceria direta com distribuidores.\n2. Revise o desperdício de frutas e insumos perecíveis nos eventos.\n3. Ajuste o preço por convidado dos seus pacotes caso o custo de insumos continue subindo.`;
+    } else if (topCategory.key === 'equipe') {
+      insightOtimizacao = `Sua maior fonte de despesa é **Mão de Obra / Equipe** (${topCategory.percentage.toFixed(1)}% dos custos totais). Para otimizar sua margem:\n1. Utilize a recomendação de equipe inteligente do sistema para não contratar ajudantes além do necessário.\n2. Planeje escalas regionalizadas para reduzir custos extras de deslocamento e diárias de equipe.\n3. Avalie se o tempo de evento padrão (ex: 5h) justifica o valor pago de diária completa aos ajudantes.`;
+    } else if (topCategory.key === 'logistica') {
+      insightOtimizacao = `Sua maior fonte de despesa é **Logística / Transporte** (${topCategory.percentage.toFixed(1)}% dos custos totais). Para otimizar sua margem:\n1. Adicione uma taxa de deslocamento extra para eventos em cidades mais distantes no gerador de contratos.\n2. Agrupe compras e coletas de materiais para reduzir o número de viagens.\n3. Estabeleça acordos de transporte mensal ou fixo com ajudantes locais da região do evento.`;
+    } else if (topCategory.key === 'descartaveis') {
+      insightOtimizacao = `Sua maior fonte de despesa é **Descartáveis / Copos** (${topCategory.percentage.toFixed(1)}% dos custos totais). Para otimizar sua margem:\n1. Verifique se vale a pena incentivar o aluguel de copos de vidro (cobrando a taxa por convidado) para reduzir descartáveis.\n2. Compre copos e canudos descartáveis/biodegradáveis em grandes lotes diretamente de fabricantes.\n3. Monitore a distribuição de copos por convidado para evitar desperdícios durante a festa.`;
+    } else {
+      insightOtimizacao = `Suas despesas estão distribuídas, com **Outros / Diversos** liderando os custos (${topCategory.percentage.toFixed(1)}%). Recomendamos descrever os custos detalhadamente para identificar padrões de despesas ocultas em insumos ou logística.`;
+    }
+  }
 
   const monthlyFinanceData = Object.values(financeiroMensal).sort((a, b) => {
     return a.sortKey.localeCompare(b.sortKey);
@@ -355,6 +428,61 @@ export default function AnalyticsDashboard() {
                 Nenhum dado financeiro mensal disponível. Lance faturamento ou custos nos leads do Kanban.
               </div>
             )}
+          </div>
+
+          {/* DISTRIBUIÇÃO DE CUSTOS E INSIGHTS DE OTIMIZAÇÃO */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            {/* PROGRESS BARS BREAKDOWN */}
+            <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#FFF', fontSize: '1.1rem' }}>📊 Distribuição de Custos por Categoria</h3>
+              {totalCustosGlobal > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {sortedCategories.map(cat => (
+                    <div key={cat.key}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>{cat.label}</span>
+                        <span style={{ color: '#FFF', fontWeight: 'bold' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cat.value)} 
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.78rem', marginLeft: '6px' }}>
+                            ({cat.percentage.toFixed(1)}%)
+                          </span>
+                        </span>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div style={{ width: `${cat.percentage}%`, height: '100%', background: cat.color, borderRadius: '10px', transition: 'width 0.5s ease-out' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  Nenhum custo lançado no sistema ainda.
+                </div>
+              )}
+            </div>
+
+            {/* RECOMMENDATION INSIGHT */}
+            <div style={{
+              background: 'rgba(203, 161, 83, 0.03)',
+              border: '1px solid rgba(203, 161, 83, 0.15)',
+              padding: '24px',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <h3 style={{ margin: '0 0 14px 0', color: 'var(--primary)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                💡 Sugestão para Otimizar sua Margem
+              </h3>
+              <div style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.88rem',
+                lineHeight: '1.6',
+                whiteSpace: 'pre-line'
+              }}>
+                {insightOtimizacao}
+              </div>
+            </div>
           </div>
 
           {/* TABELA DE DEMONSTRATIVO POR LEAD */}
