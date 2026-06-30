@@ -322,6 +322,7 @@ export default function GeradorContrato() {
     }
 
     return {
+      is_per_person: isPerPerson,
       convidados_informados: convidadosInformados,
       minimo_convidados: isPerPerson ? minimoConvidados : 0,
       convidados_cobrados: isPerPerson ? convidadosCobrados : 0,
@@ -1188,15 +1189,23 @@ export default function GeradorContrato() {
                   💰 Resumo Financeiro Estimado
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Mínimo de Convidados:</span> {financials.minimo_convidados || 'N/A (Fixo)'}
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Convidados Cobrados:</span> {financials.convidados_cobrados || 'N/A (Fixo)'}
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Valor por Convidado:</span> {financials.valor_por_convidado ? `R$ ${financials.valor_por_convidado_formatado}` : 'N/A'}
-                  </div>
+                  {financials.is_per_person ? (
+                    <>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Mínimo de Convidados:</span> {financials.minimo_convidados}
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Convidados Cobrados:</span> {financials.convidados_cobrados}
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Valor por Convidado:</span> R$ {financials.valor_por_convidado_formatado}
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <span style={{ color: 'var(--text-muted)' }}>Convidados do Evento:</span> {financials.convidados_informados}
+                    </div>
+                  )}
                   {financials.desconto > 0 && (
                     <>
                       <div style={{ color: '#FFF' }}>
