@@ -242,7 +242,7 @@ export default function GeradorContrato() {
       valorTotal += precoCopo * convidadosInformados;
     }
 
-    const descontoValue = parseFloat(formData.desconto) || 0;
+    const descontoValue = isMaoDeObra ? 0 : (parseFloat(formData.desconto) || 0);
     const valorOriginal = valorTotal;
     valorTotal = Math.max(0, valorTotal - descontoValue);
 
