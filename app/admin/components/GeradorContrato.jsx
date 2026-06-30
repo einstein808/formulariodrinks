@@ -151,10 +151,12 @@ export default function GeradorContrato() {
   const limitSofisticado = isPremium ? 1 : 0;
   const limitFrozen = isFrozen ? 2 : 0;
 
-  const countAlcool = formData.drinks_alcool.length + formData.drinks_sofisticados.length + (formData.drinks_frozen || []).length;
+  const countAlcool = formData.drinks_alcool.length + 
+    (limitSofisticado > 0 ? formData.drinks_sofisticados.length : 0) + 
+    (limitFrozen > 0 ? (formData.drinks_frozen || []).length : 0);
   const countNA = formData.drinks_sem_alcool.length;
-  const countSofisticados = formData.drinks_sofisticados.length;
-  const countFrozen = (formData.drinks_frozen || []).length;
+  const countSofisticados = limitSofisticado > 0 ? formData.drinks_sofisticados.length : 0;
+  const countFrozen = limitFrozen > 0 ? (formData.drinks_frozen || []).length : 0;
 
   const showAlcoolGroup = formData.tipodrink === 'Com álcool' || formData.tipodrink === 'Com e sem álcool' || formData.tipodrink === '';
   const showNAGroup = formData.tipodrink === 'Sem álcool' || formData.tipodrink === 'Com e sem álcool' || formData.tipodrink === '';
@@ -600,7 +602,12 @@ export default function GeradorContrato() {
 
     try {
       // 1. Save all data (including calculations) back to lead in Firebase Database
-      const chosenDrinks = [...formData.drinks_alcool, ...formData.drinks_sofisticados, ...formData.drinks_sem_alcool, ...(formData.drinks_frozen || [])];
+      const chosenDrinks = [
+        ...formData.drinks_alcool,
+        ...(limitSofisticado > 0 ? formData.drinks_sofisticados : []),
+        ...formData.drinks_sem_alcool,
+        ...(limitFrozen > 0 ? (formData.drinks_frozen || []) : [])
+      ];
       let databaseTiposDrinks = 'alcool_sem_alcool';
       if (formData.tipodrink === 'Com álcool') databaseTiposDrinks = 'alcool';
       else if (formData.tipodrink === 'Sem álcool') databaseTiposDrinks = 'sem_alcool';
