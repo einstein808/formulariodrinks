@@ -532,7 +532,7 @@ export default function ConfigsEditor() {
                 <strong>Variáveis Mágicas:</strong> Você pode usar as tags abaixo no meio do texto e o sistema vai substituir pelos dados do cliente automaticamente:
               </p>
               <code style={{ display: 'block', marginTop: '8px', color: '#00E5FF', fontSize: '0.85rem', lineHeight: '1.5' }}>
-                {`{{nome}}`} | {`{{pacote}}`} | {`{{dataEvento}}`} | {`{{mes}}`} | {`{{ano}}`} | {`{{cidade}}`} | {`{{linkAvaliacao}}`}
+                {`{{nome}}`} | {`{{pacote}}`} | {`{{dataEvento}}`} | {`{{mes}}`} | {`{{ano}}`} | {`{{cidade}}`} | {`{{duracao}}`} | {`{{horarioEvento}}`} | {`{{linkAvaliacao}}`}
               </code>
             </div>
 
@@ -629,6 +629,54 @@ export default function ConfigsEditor() {
               />
               <label className="form-label">URL da Imagem/Foto ou Link (opcional)</label>
               <input type="text" className="form-input" value={scripts.retarget15?.image || ''} onChange={(e) => setScripts({ ...scripts, retarget15: { ...scripts.retarget15, image: e.target.value } })} placeholder="https://..." />
+            </div>
+
+            <hr style={{ borderColor: 'var(--border-color)', margin: '32px 0' }} />
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--primary)' }}>Disparos Automáticos do Sistema</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
+              Edite as mensagens que o sistema envia de forma automática para os clientes ao gerar orçamentos e emitir contratos.
+            </p>
+
+            {/* Envio de Orçamento - Introdução */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{ color: '#FFF', marginBottom: '8px' }}>💬 Envio de Orçamento: Introdução</h4>
+              <textarea 
+                className="form-input" 
+                rows={4} 
+                value={general.orcamentoIntro || ''} 
+                onChange={(e) => setGeneral({ ...general, orcamentoIntro: e.target.value })} 
+                style={{ resize: 'vertical' }}
+                placeholder={`Olá, *{{nome}}*! Tudo bem? 😊\nAgradecemos o interesse no *Laboratório de Drinks*. Para o seu evento com *{{convidados}} convidados*, preparamos os seguintes orçamentos baseados nos nossos pacotes para facilitar sua decisão:\n\n`}
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Esta frase é enviada antes de listar os pacotes e preços. Suporta: {`{{nome}}`}, {`{{convidados}}`}, {`{{cidade}}`}.</p>
+            </div>
+
+            {/* Envio de Orçamento - Conclusão */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{ color: '#FFF', marginBottom: '8px' }}>💬 Envio de Orçamento: Conclusão</h4>
+              <textarea 
+                className="form-input" 
+                rows={3} 
+                value={general.orcamentoFim || ''} 
+                onChange={(e) => setGeneral({ ...general, orcamentoFim: e.target.value })} 
+                style={{ resize: 'vertical' }}
+                placeholder={`Qualquer dúvida ou quando quiser fechar um pacote, é só me responder aqui! 🥂`}
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Esta frase é enviada ao final do orçamento. Suporta: {`{{nome}}`}, {`{{convidados}}`}, {`{{cidade}}`}.</p>
+            </div>
+
+            {/* Legenda do Contrato (Caption do PDF) */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{ color: '#FFF', marginBottom: '8px' }}>📄 Legenda do PDF do Contrato</h4>
+              <textarea 
+                className="form-input" 
+                rows={3} 
+                value={general.contratoLegenda || ''} 
+                onChange={(e) => setGeneral({ ...general, contratoLegenda: e.target.value })} 
+                style={{ resize: 'vertical' }}
+                placeholder={`Segue seu contrato, por gentileza , confira os dados e se estiverem corretos assine e me encaminhe`}
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Esta legenda acompanha o arquivo PDF do contrato quando ele é gerado/assinado. Suporta: {`{{nome}}`}, {`{{dataEvento}}`}, {`{{cidade}}`}, {`{{pacote}}`}.</p>
             </div>
 
           </div>

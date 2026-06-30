@@ -842,10 +842,18 @@ export async function POST(request) {
     const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
     const evolutionEndpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
 
+    const general = config?.general;
+    let contratoLegenda = general?.contratoLegenda || 'Segue seu contrato, por gentileza , confira os dados e se estiverem corretos assine e me encaminhe';
+    contratoLegenda = contratoLegenda
+      .replace(/\{\{nome\}\}/gi, data.nome || '')
+      .replace(/\{\{dataEvento\}\}/gi, data.dataEvento || data.Data || '')
+      .replace(/\{\{cidade\}\}/gi, data.cidade || data.Cidade || '')
+      .replace(/\{\{pacote\}\}/gi, data.pacote || data.Pacote || data.Servico || '');
+
     const evolutionPayload = {
       number: cleanNumber,
       mediatype: 'document',
-      caption: 'Segue seu contrato, por gentileza , confira os dados e se estiverem corretos assine e me encaminhe',
+      caption: contratoLegenda,
       media: base64Pdf,
       fileName: 'contrato.pdf'
     };

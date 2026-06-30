@@ -129,6 +129,8 @@ export default function App() {
     convidados: 40,
     dataEvento: '',
     tipoEvento: '',
+    duracao: 5,
+    horarioEvento: '',
     tiposDrinks: [],
     drinksEscolhidos: [],
     upsellChopp: false,
@@ -281,6 +283,7 @@ export default function App() {
       case 1: // Evento
         if (!formData.dataEvento) e.dataEvento = 'Data é obrigatória'
         if (!formData.tipoEvento) e.tipoEvento = 'Selecione o tipo de evento'
+        if (!formData.horarioEvento) e.horarioEvento = 'Horário de início é obrigatório'
         break
       case 2: // Tipos de Drinks
         if (formData.tiposDrinks.length === 0) e.tiposDrinks = 'Selecione pelo menos uma categoria'
@@ -377,6 +380,7 @@ export default function App() {
     setFormData({
       pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '', novaCidade: '',
       convidados: 40, dataEvento: '', tipoEvento: '',
+      duracao: 5, horarioEvento: '',
       tiposDrinks: [], drinksEscolhidos: [],
       upsellChopp: false, upsellFrozen: false,
       cerimonialista: '',
@@ -489,8 +493,39 @@ export default function App() {
                 min={new Date().toISOString().split('T')[0]}
               />
               {errors.dataEvento && <span className="form-error">{errors.dataEvento}</span>}
-              
+            </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="duracao" className="form-label">Duração do Evento</label>
+                <select
+                  id="duracao"
+                  className={`form-input ${errors.duracao ? 'form-input--error' : ''}`}
+                  value={formData.duracao || 5}
+                  onChange={e => updateField('duracao', Number(e.target.value))}
+                  style={{ width: '100%' }}
+                >
+                  <option value={4}>4 Horas</option>
+                  <option value={5}>5 Horas</option>
+                  <option value={6}>6 Horas</option>
+                  <option value={7}>7 Horas</option>
+                  <option value={8}>8 Horas</option>
+                </select>
+                {errors.duracao && <span className="form-error">{errors.duracao}</span>}
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="horarioEvento" className="form-label">Horário de Início</label>
+                <input
+                  id="horarioEvento"
+                  type="time"
+                  className={`form-input ${errors.horarioEvento ? 'form-input--error' : ''}`}
+                  value={formData.horarioEvento || ''}
+                  onChange={e => updateField('horarioEvento', e.target.value)}
+                  style={{ width: '100%' }}
+                />
+                {errors.horarioEvento && <span className="form-error">{errors.horarioEvento}</span>}
+              </div>
             </div>
 
             <div className="form-group">
