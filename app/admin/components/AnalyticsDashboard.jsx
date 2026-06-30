@@ -15,6 +15,7 @@ export default function AnalyticsDashboard() {
   const [cerimonialistas, setCerimonialistas] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('geral'); // 'geral' | 'financeiro'
+  const [custosCategorias, setCustosCategorias] = useState([]);
 
   useEffect(() => {
     const leadsRef = ref(db, 'leads');
@@ -33,7 +34,25 @@ export default function AnalyticsDashboard() {
       setCerimonialistas(snap.exists() ? snap.val() : {});
     });
 
-    return () => { unsubLeads(); unsubCerim(); };
+    const catsRef = ref(db, 'config/custosCategorias');
+    const unsubCats = onValue(catsRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        // Convert to array and sort by order
+        const arr = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        setCustosCategorias(arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+      } else {
+        setCustosCategorias([
+          { id: 'insumos', label: 'Insumos / Bebidas', color: '#00E5FF', emoji: '🧃', order: 0 },
+          { id: 'equipe', label: 'Mão de Obra / Equipe', color: '#FFD54F', emoji: '👥', order: 1 },
+          { id: 'logistica', label: 'Logística / Transporte', color: '#FF8A65', emoji: '🚚', order: 2 },
+          { id: 'descartaveis', label: 'Descartáveis / Copos', color: '#EF5350', emoji: '🥤', order: 3 },
+          { id: 'outros', label: 'Outros / Diversos', color: '#a8b8aa', emoji: '✨', order: 4 }
+        ]);
+      }
+    });
+
+    return () => { unsubLeads(); unsubCerim(); unsubCats(); };
   }, []);
 
   if (loading) {
@@ -150,13 +169,13 @@ export default function AnalyticsDashboard() {
   const financeiroPorLead = [];
   const financeiroMensal = {};
 
-  const custosPorCategoria = {
-    insumos: 0,
-    equipe: 0,
-    logistica: 0,
-    descartaveis: 0,
-    outros: 0
-  };
+  const custosPorCategoria = {};
+  custosCategorias.forEach(c => {
+    custosPorCategoria[c.id] = 0;
+  });
+  if (custosPorCategoria.outros === undefined) {
+    custosPorCategoria.outros = 0;
+  }
 
   const detectCategoryByDescription = (desc) => {
     const normalized = (desc || '').toLowerCase().trim();
@@ -258,22 +277,22 @@ export default function AnalyticsDashboard() {
   const margemGlobalMedia = totalFaturamento > 0 ? (totalLucroGlobal / totalFaturamento) * 100 : 0;
 
   // Cost categories breakdown logic
-  const COST_CATEGORIES = {
-    insumos: { label: 'Insumos / Bebidas', color: '#00E5FF' },
-    equipe: { label: 'Mão de Obra / Equipe', color: '#FFD54F' },
-    logistica: { label: 'Logística / Transporte', color: '#FF8A65' },
-    descartaveis: { label: 'Descartáveis / Copos', color: '#EF5350' },
-    outros: { label: 'Outros / Diversos', color: '#a8b8aa' }
-  };
-
   const sortedCategories = Object.entries(custosPorCategoria)
-    .map(([key, value]) => ({
-      key,
-      value,
-      label: COST_CATEGORIES[key]?.label || key,
-      color: COST_CATEGORIES[key]?.color || '#FFF',
-      percentage: totalCustosGlobal > 0 ? (value / totalCustosGlobal) * 100 : 0
-    }))
+    .map(([key, value]) => {
+      const matched = custosCategorias.find(c => c.id === key) || {
+        label: key === 'outros' ? 'Outros / Diversos' : key,
+        color: '#a8b8aa',
+        emoji: '✨'
+      };
+      return {
+        key,
+        value,
+        label: matched.label,
+        emoji: matched.emoji || '✨',
+        color: matched.color || '#a8b8aa',
+        percentage: totalCustosGlobal > 0 ? (value / totalCustosGlobal) * 100 : 0
+      };
+    })
     .sort((a, b) => b.value - a.value);
 
   let insightOtimizacao = "";
@@ -290,7 +309,7 @@ export default function AnalyticsDashboard() {
     } else if (topCategory.key === 'descartaveis') {
       insightOtimizacao = `Sua maior fonte de despesa é **Descartáveis / Copos** (${topCategory.percentage.toFixed(1)}% dos custos totais). Para otimizar sua margem:\n1. Verifique se vale a pena incentivar o aluguel de copos de vidro (cobrando a taxa por convidado) para reduzir descartáveis.\n2. Compre copos e canudos descartáveis/biodegradáveis em grandes lotes diretamente de fabricantes.\n3. Monitore a distribuição de copos por convidado para evitar desperdícios durante a festa.`;
     } else {
-      insightOtimizacao = `Suas despesas estão distribuídas, com **Outros / Diversos** liderando os custos (${topCategory.percentage.toFixed(1)}%). Recomendamos descrever os custos detalhadamente para identificar padrões de despesas ocultas em insumos ou logística.`;
+      insightOtimizacao = `Suas despesas estão distribuídas, com **${topCategory.label}** liderando os custos (${topCategory.percentage.toFixed(1)}%). Recomendamos descrever os custos detalhadamente para identificar padrões de despesas ocultas em insumos ou logística.`;
     }
   }
 
@@ -301,6 +320,58 @@ export default function AnalyticsDashboard() {
   const sortedFinancePorLead = financeiroPorLead.sort((a, b) => {
     return b.sortKey.localeCompare(a.sortKey) || b.nome.localeCompare(a.nome);
   });
+
+  const exportToCSV = () => {
+    if (sortedFinancePorLead.length === 0) {
+      alert("Nenhum dado financeiro para exportar.");
+      return;
+    }
+    
+    const headers = [
+      "Cliente",
+      "Data do Evento",
+      "Status",
+      "Faturamento Bruto (R$)",
+      "Desconto (R$)",
+      "Faturamento Liquido (R$)",
+      "Valor Recebido (R$)",
+      "Saldo Restante (R$)",
+      "Custos Totais (R$)",
+      "Lucro Liquido (R$)",
+      "Margem de Lucro (%)"
+    ];
+
+    const rows = sortedFinancePorLead.map(lead => {
+      const bruto = lead.faturamento + lead.desconto;
+      return [
+        `"${lead.nome.replace(/"/g, '""')}"`,
+        `"${lead.data}"`,
+        `"${lead.status}"`,
+        bruto.toFixed(2),
+        lead.desconto.toFixed(2),
+        lead.faturamento.toFixed(2),
+        lead.pago.toFixed(2),
+        lead.restante.toFixed(2),
+        lead.custos.toFixed(2),
+        lead.lucro.toFixed(2),
+        lead.margem.toFixed(1)
+      ];
+    });
+
+    const csvContent = "\uFEFF" + [
+      headers.join(","),
+      ...rows.map(e => e.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `balanco_financeiro_laboratorio_drinks_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div style={{ paddingBottom: '40px' }}>
@@ -440,7 +511,7 @@ export default function AnalyticsDashboard() {
                   {sortedCategories.map(cat => (
                     <div key={cat.key}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>{cat.label}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>{cat.emoji} {cat.label}</span>
                         <span style={{ color: '#FFF', fontWeight: 'bold' }}>
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cat.value)} 
                           <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.78rem', marginLeft: '6px' }}>
@@ -487,8 +558,19 @@ export default function AnalyticsDashboard() {
 
           {/* TABELA DE DEMONSTRATIVO POR LEAD */}
           <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
-            <h3 style={{ margin: '0 0 8px 0', color: '#FFF' }}>Demonstrativo Financeiro por Festa</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Lista detalhada de receitas, custos e margem de lucro por cliente cadastrado.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#FFF' }}>Demonstrativo Financeiro por Festa</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>Lista detalhada de receitas, custos e margem de lucro por cliente cadastrado.</p>
+              </div>
+              <button 
+                onClick={exportToCSV}
+                className="btn btn--outline" 
+                style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem' }}
+              >
+                📥 Exportar CSV (Excel)
+              </button>
+            </div>
 
             {sortedFinancePorLead.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>

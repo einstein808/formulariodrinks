@@ -37,6 +37,7 @@ export default function ConfigsEditor() {
   });
   const [galeria, setGaleria] = useState([]);
   const [tiposEvento, setTiposEvento] = useState([]);
+  const [custosCategorias, setCustosCategorias] = useState([]);
   
   // Shopping List Config
   const [shoppingConfig, setShoppingConfig] = useState({
@@ -58,6 +59,17 @@ export default function ConfigsEditor() {
         if (data.galeriaEventos) setGaleria(firebaseObjToArray(data.galeriaEventos));
         if (data.shoppingConfig) setShoppingConfig(data.shoppingConfig);
         if (data.tiposEvento) setTiposEvento(firebaseObjToArray(data.tiposEvento));
+        if (data.custosCategorias) {
+          setCustosCategorias(firebaseObjToArray(data.custosCategorias));
+        } else {
+          setCustosCategorias([
+            { id: 'insumos', label: 'Insumos / Bebidas', color: '#00E5FF', emoji: '🧃', order: 0 },
+            { id: 'equipe', label: 'Mão de Obra / Equipe', color: '#FFD54F', emoji: '👥', order: 1 },
+            { id: 'logistica', label: 'Logística / Transporte', color: '#FF8A65', emoji: '🚚', order: 2 },
+            { id: 'descartaveis', label: 'Descartáveis / Copos', color: '#EF5350', emoji: '🥤', order: 3 },
+            { id: 'outros', label: 'Outros / Diversos', color: '#a8b8aa', emoji: '✨', order: 4 }
+          ]);
+        }
       }
       setLoading(false);
     });
@@ -86,6 +98,9 @@ export default function ConfigsEditor() {
       } else if (activeTab === 'eventos') {
         const sorted = tiposEvento.map((t, i) => ({ ...t, order: i }));
         await set(ref(db, 'config/tiposEvento'), arrayToFirebaseObj(sorted));
+      } else if (activeTab === 'financeiro') {
+        const sorted = custosCategorias.map((c, i) => ({ ...c, order: i }));
+        await set(ref(db, 'config/custosCategorias'), arrayToFirebaseObj(sorted));
       }
       alert('Configurações salvas com sucesso!');
     } catch (err) {
@@ -93,6 +108,30 @@ export default function ConfigsEditor() {
       alert('Erro ao salvar as configurações.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* Costs Categories Handlers */
+  const addCustoCategoria = () => {
+    const newId = `cat-${Date.now()}`;
+    setCustosCategorias([...custosCategorias, { id: newId, label: 'Nova Categoria', color: '#ffd54f', emoji: '✨', order: custosCategorias.length }]);
+  };
+  const updateCustoCategoria = (id, field, value) => {
+    setCustosCategorias(custosCategorias.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+  const removeCustoCategoria = (id) => {
+    if (confirm('Tem certeza que deseja excluir esta categoria? Os custos associados a ela serão marcados com a categoria padrão.')) {
+      setCustosCategorias(custosCategorias.filter(c => c.id !== id));
+    }
+  };
+  const moveCustoCategoria = (index, direction) => {
+    const list = [...custosCategorias];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < list.length) {
+      const temp = list[index];
+      list[index] = list[targetIndex];
+      list[targetIndex] = temp;
+      setCustosCategorias(list);
     }
   };
 
@@ -299,6 +338,16 @@ export default function ConfigsEditor() {
           }}
         >
           🛒 Lista de Compras
+        </button>
+        <button
+          onClick={() => setActiveTab('financeiro')}
+          style={{
+            background: activeTab === 'financeiro' ? 'var(--primary)' : 'transparent',
+            color: activeTab === 'financeiro' ? '#000' : '#FFF',
+            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
+          }}
+        >
+          💸 Categorias de Custos
         </button>
       </div>
 
@@ -957,6 +1006,77 @@ export default function ConfigsEditor() {
                     style={{ minHeight: '100px', resize: 'vertical' }}
                     placeholder="Descreva a experiência de bar para este tipo de evento..."
                   />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'financeiro' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Gerencie as categorias de custos dos eventos. Estas categorias aparecerão no Kanban do Lead e no Analytics para agrupamento de despesas e insights de margem de lucro.
+            </span>
+            <button className="btn btn--outline" onClick={addCustoCategoria} style={{ width: 'auto' }}>
+              <FiPlus /> Nova Categoria
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {custosCategorias.map((cat, index) => (
+              <div key={cat.id} className="admin-config-row" style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+                <div style={{ width: '60px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Emoji</label>
+                  <input type="text" className="form-input" value={cat.emoji || ''} onChange={(e) => updateCustoCategoria(cat.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
+                </div>
+
+                <div style={{ flex: 2, minWidth: '150px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Nome da Categoria</label>
+                  <input type="text" className="form-input" value={cat.label || ''} onChange={(e) => updateCustoCategoria(cat.id, 'label', e.target.value)} placeholder="Ex: Mão de Obra, Insumos..." />
+                </div>
+
+                <div style={{ width: '130px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Cor de Destaque</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input type="color" className="form-input" value={cat.color || '#ffffff'} onChange={(e) => updateCustoCategoria(cat.id, 'color', e.target.value)} style={{ width: '40px', padding: '0', height: '36px', cursor: 'pointer' }} />
+                    <input type="text" className="form-input" value={cat.color || ''} onChange={(e) => updateCustoCategoria(cat.id, 'color', e.target.value)} style={{ fontSize: '0.8rem', flex: 1 }} />
+                  </div>
+                </div>
+
+                <div style={{ width: '140px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>ID (Referência)</label>
+                  <input type="text" className="form-input" value={cat.id} disabled style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }} />
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '18px' }}>
+                  <button
+                    className="btn btn--outline"
+                    onClick={() => moveCustoCategoria(index, 'up')}
+                    disabled={index === 0}
+                    style={{ padding: '6px 10px', minWidth: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Mover para Cima"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    className="btn btn--outline"
+                    onClick={() => moveCustoCategoria(index, 'down')}
+                    disabled={index === custosCategorias.length - 1}
+                    style={{ padding: '6px 10px', minWidth: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Mover para Baixo"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    className="btn btn--danger"
+                    onClick={() => removeCustoCategoria(cat.id)}
+                    style={{ padding: '6px 10px', minWidth: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', background: '#F44336', border: 'none' }}
+                    title="Excluir Categoria"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             ))}

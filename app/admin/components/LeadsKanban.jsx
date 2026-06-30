@@ -126,6 +126,7 @@ export default function LeadsKanban() {
   const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts' | 'financeiro'
   const [financeiroPresets, setFinanceiroPresets] = useState({});
   const [newCost, setNewCost] = useState({ descricao: '', valor: '', categoria: 'insumos' });
+  const [custosCategorias, setCustosCategorias] = useState([]);
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [itemsPerPage, setItemsPerPage] = useState('20');
@@ -192,6 +193,17 @@ export default function LeadsKanban() {
             'transporte': { descricao: 'Transporte', valor: 80 },
             'outros': { descricao: 'Outros', valor: 0 }
           });
+        }
+        if (data.custosCategorias) {
+          setCustosCategorias(firebaseObjToArray(data.custosCategorias));
+        } else {
+          setCustosCategorias([
+            { id: 'insumos', label: 'Insumos / Bebidas', color: '#00E5FF', emoji: '🧃' },
+            { id: 'equipe', label: 'Mão de Obra / Equipe', color: '#FFD54F', emoji: '👥' },
+            { id: 'logistica', label: 'Logística / Transporte', color: '#FF8A65', emoji: '🚚' },
+            { id: 'descartaveis', label: 'Descartáveis / Copos', color: '#EF5350', emoji: '🥤' },
+            { id: 'outros', label: 'Outros / Diversos', color: '#a8b8aa', emoji: '✨' }
+          ]);
         }
       }
     });
@@ -2393,10 +2405,23 @@ export default function LeadsKanban() {
                           type="text"
                           placeholder="Ex: Barman, Ajudante, Gelo, Copos..."
                           value={newCost.descricao}
+                          list="custos-autocomplete-list"
                           onChange={(e) => {
                             const desc = e.target.value;
-                            const cat = detectCategoryByDescription(desc);
-                            setNewCost(prev => ({ ...prev, descricao: desc, categoria: cat }));
+                            const matchedPreset = Object.values(financeiroPresets).find(
+                              p => p.descricao.toLowerCase().trim() === desc.toLowerCase().trim()
+                            );
+                            if (matchedPreset) {
+                              const cat = detectCategoryByDescription(matchedPreset.descricao);
+                              setNewCost({
+                                descricao: matchedPreset.descricao,
+                                valor: matchedPreset.valor.toString(),
+                                categoria: cat
+                              });
+                            } else {
+                              const cat = detectCategoryByDescription(desc);
+                              setNewCost(prev => ({ ...prev, descricao: desc, categoria: cat }));
+                            }
                           }}
                           style={{
                             background: '#0c1610',
@@ -2429,11 +2454,11 @@ export default function LeadsKanban() {
                             cursor: 'pointer'
                           }}
                         >
-                          <option value="insumos">🧃 Insumos / Bebidas</option>
-                          <option value="equipe">👥 Mão de Obra / Equipe</option>
-                          <option value="logistica">🚚 Logística / Transporte</option>
-                          <option value="descartaveis">🥤 Descartáveis / Copos</option>
-                          <option value="outros">✨ Outros / Diversos</option>
+                          {custosCategorias.map(cat => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.emoji || '✨'} {cat.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
@@ -2477,6 +2502,15 @@ export default function LeadsKanban() {
                       >
                         <FiPlus /> Adicionar
                       </button>
+
+                      <datalist id="custos-autocomplete-list">
+                        {Object.values(financeiroPresets).map((preset, idx) => (
+                          <option key={`preset-${idx}`} value={preset.descricao} />
+                        ))}
+                        {custosLista.map((cost, idx) => (
+                          <option key={`cost-${idx}-${cost.id}`} value={cost.descricao} />
+                        ))}
+                      </datalist>
                     </div>
 
                     {/* COSTS TABLE/LIST */}
@@ -2497,27 +2531,38 @@ export default function LeadsKanban() {
                                 <td style={{ padding: '10px 8px' }}>{custo.descricao}</td>
                                 <td style={{ padding: '10px 8px' }}>
                                   {(() => {
-                                    const categories = {
-                                      insumos: { label: 'Insumos / Bebidas', bg: 'rgba(0, 229, 255, 0.08)', border: 'rgba(0, 229, 255, 0.25)', color: '#00E5FF' },
-                                      equipe: { label: 'Mão de Obra', bg: 'rgba(255, 213, 79, 0.08)', border: 'rgba(255, 213, 79, 0.25)', color: '#FFD54F' },
-                                      logistica: { label: 'Logística', bg: 'rgba(255, 138, 101, 0.08)', border: 'rgba(255, 138, 101, 0.25)', color: '#FF8A65' },
-                                      descartaveis: { label: 'Descartáveis', bg: 'rgba(239, 83, 80, 0.08)', border: 'rgba(239, 83, 80, 0.25)', color: '#EF5350' },
-                                      outros: { label: 'Outros', bg: 'rgba(255, 255, 255, 0.04)', border: 'rgba(255, 255, 255, 0.1)', color: '#a8b8aa' }
+                                    const catId = custo.categoria || detectCategoryByDescription(custo.descricao);
+                                    const matched = custosCategorias.find(c => c.id === catId) || {
+                                      label: 'Outros',
+                                      color: '#a8b8aa',
+                                      emoji: '✨'
                                     };
-                                    const cat = custo.categoria || detectCategoryByDescription(custo.descricao);
-                                    const current = categories[cat] || categories.outros;
+                                    
+                                    const hexToRgb = (hex) => {
+                                      const clean = (hex || '#ffffff').replace('#', '');
+                                      const r = parseInt(clean.substring(0, 2), 16) || 255;
+                                      const g = parseInt(clean.substring(2, 4), 16) || 255;
+                                      const b = parseInt(clean.substring(4, 6), 16) || 255;
+                                      return `${r}, ${g}, ${b}`;
+                                    };
+                                    
+                                    const rgb = hexToRgb(matched.color);
+                                    const bg = `rgba(${rgb}, 0.08)`;
+                                    const border = `rgba(${rgb}, 0.25)`;
+                                    const color = matched.color;
+                                    
                                     return (
                                       <span style={{
-                                        background: current.bg,
-                                        border: `1px solid ${current.border}`,
-                                        color: current.color,
+                                        background: bg,
+                                        border: `1px solid ${border}`,
+                                        color: color,
                                         padding: '2px 8px',
                                         borderRadius: '20px',
                                         fontSize: '0.72rem',
                                         fontWeight: '600',
                                         display: 'inline-block'
                                       }}>
-                                        {current.label}
+                                        {matched.emoji || '✨'} {matched.label}
                                       </span>
                                     );
                                   })()}
