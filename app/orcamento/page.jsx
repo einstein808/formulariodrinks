@@ -28,6 +28,7 @@ function firebaseObjToArray(obj) {
 const STEPS = [
   { title: 'Escolha seu Pacote', desc: 'Selecione o pacote ideal para seu evento' },
   { title: 'Detalhes do Evento', desc: 'Informações sobre seu evento' },
+  { title: 'Conheça nossos Drinks', desc: 'Dê uma olhada em nossas opções exclusivas' },
   { title: 'Turbine seu Evento', desc: 'Adicione experiências exclusivas ao seu bar' },
   { title: 'Dados Pessoais', desc: 'Para onde enviamos seu orçamento?' },
 ]
@@ -257,10 +258,12 @@ export default function App() {
         if (!formData.tipoEvento) e.tipoEvento = 'Selecione o tipo de evento'
         if (!formData.horarioEvento) e.horarioEvento = 'Horário de início é obrigatório'
         break
-      case 2: // Upsell
+      case 2: // Conheça nossos Drinks
+        break;
+      case 3: // Upsell
         // Opcional, sem validação
         break
-      case 3: // Dados Pessoais
+      case 4: // Dados Pessoais
         if (!formData.nome.trim()) e.nome = 'Nome é obrigatório'
         if (!formData.sobrenome.trim()) e.sobrenome = 'Sobrenome é obrigatório'
         if (!formData.telefone || formData.telefone.replace(/\D/g, '').length < 10)
@@ -448,36 +451,18 @@ export default function App() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="dataEvento" className="form-label">Data do Evento</label>
-              <input
-                id="dataEvento"
-                type="date"
-                className={`form-input ${errors.dataEvento ? 'form-input--error' : ''}`}
-                value={formData.dataEvento}
-                onChange={e => updateField('dataEvento', e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
-              {errors.dataEvento && <span className="form-error">{errors.dataEvento}</span>}
-            </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="duracao" className="form-label">Duração do Evento</label>
-                <select
-                  id="duracao"
-                  className={`form-input ${errors.duracao ? 'form-input--error' : ''}`}
-                  value={formData.duracao || 5}
-                  onChange={e => updateField('duracao', Number(e.target.value))}
-                  style={{ width: '100%' }}
-                >
-                  <option value={4}>4 Horas</option>
-                  <option value={5}>5 Horas</option>
-                  <option value={6}>6 Horas</option>
-                  <option value={7}>7 Horas</option>
-                  <option value={8}>8 Horas</option>
-                </select>
-                {errors.duracao && <span className="form-error">{errors.duracao}</span>}
+                <label htmlFor="dataEvento" className="form-label">Data do Evento</label>
+                <input
+                  id="dataEvento"
+                  type="date"
+                  className={`form-input ${errors.dataEvento ? 'form-input--error' : ''}`}
+                  value={formData.dataEvento}
+                  onChange={e => updateField('dataEvento', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                {errors.dataEvento && <span className="form-error">{errors.dataEvento}</span>}
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
@@ -515,10 +500,101 @@ export default function App() {
           </div>
         )
 
-      /* ---- Step 2: Upsell ---- */
+      /* ---- Step 2: Conheça nossos Drinks ---- */
       case 2:
+        const getCategory = (d) => {
+          if (d.category) return d.category;
+          return d.isNonAlcoholic ? 'sem_alcool' : 'alcool';
+        };
+
+        const drinksAlcool = drinksMenu.filter(d => getCategory(d) === 'alcool');
+        const drinksPremium = drinksMenu.filter(d => getCategory(d) === 'sofisticado');
+        const drinksFrozen = drinksMenu.filter(d => getCategory(d) === 'frozen');
+        const drinksSemAlcool = drinksMenu.filter(d => getCategory(d) === 'sem_alcool');
+
+        const renderDrinkCard = (d) => (
+          <div
+            key={d.id}
+            className="drink-card"
+            style={{ cursor: 'default', userSelect: 'none' }}
+          >
+            {d.image ? (
+              <div className="drink-card__image-container" style={{
+                width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', 
+                marginBottom: 8, border: '1px solid rgba(203, 161, 83, 0.1)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 1, flexShrink: 0
+              }}>
+                <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            ) : (
+              <span className="drink-card__emoji">{d.emoji}</span>
+            )}
+            <span className="drink-card__name">{d.name}</span>
+          </div>
+        );
+
         return (
           <div className="step-enter" key="step-2">
+            <div className="form-group">
+              <label className="form-label" style={{ marginBottom: 24 }}>Opções de Drinks Disponíveis (Sua escolha oficial será na assinatura do contrato)</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                {/* 🍸 Alcoólicos */}
+                {drinksAlcool.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🍸 Alcoólicos
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksAlcool.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ✨ Premium */}
+                {drinksPremium.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      ✨ Premium
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksPremium.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ❄️ Frozen */}
+                {drinksFrozen.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      ❄️ Frozen
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksFrozen.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 🧃 Sem Álcool */}
+                {drinksSemAlcool.length > 0 && (
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🧃 Sem Álcool
+                    </h3>
+                    <div className="drinks-grid">
+                      {drinksSemAlcool.map(d => renderDrinkCard(d))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      /* ---- Step 3: Upsell ---- */
+      case 3:
+        return (
+          <div className="step-enter" key="step-3">
             <div className="upsell-container" style={{display:'flex', flexDirection:'column', gap:24}}>
               
               {/* Highlighted Frozen Upsell - Hidden only for standard-frozen */}
@@ -623,10 +699,10 @@ export default function App() {
           </div>
         )
 
-      /* ---- Step 3: Personal Info ---- */
-      case 3:
+      /* ---- Step 4: Personal Info ---- */
+      case 4:
         return (
-          <div className="step-enter" key="step-3">
+          <div className="step-enter" key="step-4">
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="nome" className="form-label">Nome</label>
