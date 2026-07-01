@@ -11,33 +11,7 @@ import { MdCelebration } from 'react-icons/md'
 import { sendWhatsAppQuote } from '../../lib/whatsappService'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
-/* ============================
-   TrustIndex Widget
-   ============================ */
-function TrustIndexWidget() {
-  const containerRef = useRef(null)
 
-  useEffect(() => {
-    // Evita duplicar o script se já foi carregado
-    const SCRIPT_ID = 'trustindex-loader'
-    if (!document.getElementById(SCRIPT_ID)) {
-      const script = document.createElement('script')
-      script.id = SCRIPT_ID
-      script.defer = true
-      script.async = true
-      script.src = 'https://cdn.trustindex.io/loader.js?afe2f8237e8d85830116f94e6ea'
-      document.body.appendChild(script)
-    }
-  }, [])
-
-  return (
-    <div
-      ref={containerRef}
-      id="trustindex-widget-container"
-      style={{ marginTop: 24, width: '100%' }}
-    />
-  )
-}
 
 /* ============================
    Helpers
@@ -858,10 +832,7 @@ export default function App() {
               </div>
             )}
 
-            {/* TrustIndex Reviews Widget */}
-            <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-color)' }}>
-              <TrustIndexWidget />
-            </div>
+
           </div>
         )
       default:
@@ -1118,10 +1089,7 @@ export default function App() {
                 </button>
               </div>
 
-              {/* TrustIndex Reviews — reforça credibilidade pós-conversão */}
-              <div style={{ marginTop: 32, width: '100%' }}>
-                <TrustIndexWidget />
-              </div>
+
             </div>
           </main>
         )}
