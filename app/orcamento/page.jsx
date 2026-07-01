@@ -28,8 +28,6 @@ function firebaseObjToArray(obj) {
 const STEPS = [
   { title: 'Escolha seu Pacote', desc: 'Selecione o pacote ideal para seu evento' },
   { title: 'Detalhes do Evento', desc: 'Informações sobre seu evento' },
-  { title: 'Tipos de Drinks', desc: 'Selecione as categorias desejadas' },
-  { title: 'Escolha seus Drinks', desc: 'Selecione até 5 drinks favoritos' },
   { title: 'Turbine seu Evento', desc: 'Adicione experiências exclusivas ao seu bar' },
   { title: 'Dados Pessoais', desc: 'Para onde enviamos seu orçamento?' },
 ]
@@ -146,7 +144,7 @@ export default function App() {
             // Aplica cerimonialista imediatamente (independente da escolha do cliente)
             setFormData(prev => ({ ...prev, cerimonialista: cerimSlug }));
             // Guarda rascunho para o cliente decidir
-            setPendingDraft({ formData: { ...saved, cerimonialista: cerimSlug }, step: savedStep });
+            setPendingDraft({ formData: { ...saved, cerimonialista: cerimSlug }, step: Math.min(savedStep, STEPS.length - 1) });
             return;
           }
         }
@@ -259,16 +257,10 @@ export default function App() {
         if (!formData.tipoEvento) e.tipoEvento = 'Selecione o tipo de evento'
         if (!formData.horarioEvento) e.horarioEvento = 'Horário de início é obrigatório'
         break
-      case 2: // Tipos de Drinks
-        if (formData.tiposDrinks.length === 0) e.tiposDrinks = 'Selecione pelo menos uma categoria'
-        break
-      case 3: // Drinks
-        if (formData.drinksEscolhidos.length === 0) e.drinksEscolhidos = 'Selecione pelo menos 1 drink'
-        break
-      case 4: // Upsell
+      case 2: // Upsell
         // Opcional, sem validação
         break
-      case 5: // Dados Pessoais
+      case 3: // Dados Pessoais
         if (!formData.nome.trim()) e.nome = 'Nome é obrigatório'
         if (!formData.sobrenome.trim()) e.sobrenome = 'Sobrenome é obrigatório'
         if (!formData.telefone || formData.telefone.replace(/\D/g, '').length < 10)
@@ -523,133 +515,10 @@ export default function App() {
           </div>
         )
 
-      /* ---- Step 2: Drink Types ---- */
+      /* ---- Step 2: Upsell ---- */
       case 2:
         return (
           <div className="step-enter" key="step-2">
-            <div className="form-group">
-              <label className="form-label">Selecione os tipos de drinks desejados</label>
-              <div className="chips-grid">
-                {tiposDrinks.map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    id={`drink-type-${t.id}`}
-                    className={`chip ${formData.tiposDrinks.includes(t.id) ? 'chip--selected' : ''}`}
-                    onClick={() => toggleArrayField('tiposDrinks', t.id)}
-                  >
-                    <span className="chip__icon">{t.icon}</span>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              {errors.tiposDrinks && <span className="form-error">{errors.tiposDrinks}</span>}
-            </div>
-          </div>
-        )
-
-      /* ---- Step 3: Choose Drinks ---- */
-      case 3:
-        const getCategory = (d) => {
-          if (d.category) return d.category;
-          return d.isNonAlcoholic ? 'sem_alcool' : 'alcool';
-        };
-
-        const drinksAlcool = drinksMenu.filter(d => getCategory(d) === 'alcool');
-        const drinksPremium = drinksMenu.filter(d => getCategory(d) === 'sofisticado');
-        const drinksFrozen = drinksMenu.filter(d => getCategory(d) === 'frozen');
-        const drinksSemAlcool = drinksMenu.filter(d => getCategory(d) === 'sem_alcool');
-
-        const renderDrinkCard = (d) => (
-          <button
-            key={d.id}
-            type="button"
-            id={`drink-${d.id}`}
-            className={`drink-card ${formData.drinksEscolhidos.includes(d.id) ? 'drink-card--selected' : ''}`}
-            onClick={() => toggleArrayField('drinksEscolhidos', d.id)}
-          >
-            {d.image ? (
-              <div className="drink-card__image-container" style={{
-                width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', 
-                marginBottom: 8, border: '1px solid var(--primary)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.5)', zIndex: 1, flexShrink: 0
-              }}>
-                <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            ) : (
-              <span className="drink-card__emoji">{d.emoji}</span>
-            )}
-            <span className="drink-card__name">{d.name}</span>
-          </button>
-        );
-
-        return (
-          <div className="step-enter" key="step-3">
-            <div className="form-group">
-              <label className="form-label" style={{ marginBottom: 24 }}>Escolha até {maxDrinks} drinks</label>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                {/* 🍸 Alcoólicos */}
-                {drinksAlcool.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🍸 Alcoólicos
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksAlcool.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ✨ Premium */}
-                {drinksPremium.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      ✨ Premium
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksPremium.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ❄️ Frozen */}
-                {drinksFrozen.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      ❄️ Frozen
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksFrozen.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 🧃 Sem Álcool */}
-                {drinksSemAlcool.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🧃 Sem Álcool
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksSemAlcool.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="drinks-counter" style={{ marginTop: '32px' }}>
-                <strong>{formData.drinksEscolhidos.length}</strong> de <strong>{maxDrinks}</strong> drinks selecionados
-              </div>
-              {errors.drinksEscolhidos && <span className="form-error">{errors.drinksEscolhidos}</span>}
-            </div>
-          </div>
-        )
-
-      /* ---- Step 4: Upsell ---- */
-      case 4:
-        return (
-          <div className="step-enter" key="step-4">
             <div className="upsell-container" style={{display:'flex', flexDirection:'column', gap:24}}>
               
               {/* Highlighted Frozen Upsell - Hidden only for standard-frozen */}
@@ -754,10 +623,10 @@ export default function App() {
           </div>
         )
 
-      /* ---- Step 5: Personal Info ---- */
-      case 5:
+      /* ---- Step 3: Personal Info ---- */
+      case 3:
         return (
-          <div className="step-enter" key="step-5">
+          <div className="step-enter" key="step-3">
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="nome" className="form-label">Nome</label>
@@ -965,7 +834,7 @@ export default function App() {
                       className="btn btn--primary"
                       onClick={() => {
                         setFormData(pendingDraft.formData);
-                        setCurrentStep(pendingDraft.step);
+                        setCurrentStep(Math.min(pendingDraft.step, STEPS.length - 1));
                         setPendingDraft(null);
                       }}
                     >
