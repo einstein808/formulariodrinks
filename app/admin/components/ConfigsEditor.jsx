@@ -28,6 +28,7 @@ export default function ConfigsEditor() {
   const [drinks, setDrinks] = useState([]);
   const [pacotes, setPacotes] = useState([]);
   const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '', adminPhone: '', precoCopoVidro: '', googleReviewsPrint: '' });
+  const [avaliacoes, setAvaliacoes] = useState([]);
   const [evolutionApi, setEvolutionApi] = useState({ url: '', instance: '', apikey: '' });
   const [scripts, setScripts] = useState({
     autoridade: { text: '', image: '' },
@@ -73,7 +74,21 @@ export default function ConfigsEditor() {
       }
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    const avaliacoesRef = ref(db, 'avaliacoes');
+    const unsubAvaliacoes = onValue(avaliacoesRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const val = snapshot.val();
+        setAvaliacoes(firebaseObjToArray(val));
+      } else {
+        setAvaliacoes([]);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubAvaliacoes();
+    };
   }, []);
 
   const handleSave = async () => {
@@ -101,6 +116,8 @@ export default function ConfigsEditor() {
       } else if (activeTab === 'financeiro') {
         const sorted = custosCategorias.map((c, i) => ({ ...c, order: i }));
         await set(ref(db, 'config/custosCategorias'), arrayToFirebaseObj(sorted));
+      } else if (activeTab === 'avaliacoes') {
+        await set(ref(db, 'avaliacoes'), arrayToFirebaseObj(avaliacoes));
       }
       alert('Configurações salvas com sucesso!');
     } catch (err) {
@@ -108,6 +125,29 @@ export default function ConfigsEditor() {
       alert('Erro ao salvar as configurações.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* NPS / Google Reviews Handlers */
+  const addReview = () => {
+    const newId = `review-${Date.now()}`;
+    setAvaliacoes([...avaliacoes, { 
+      id: newId, 
+      nome: 'Novo Cliente', 
+      sobrenome: '', 
+      feedback: 'Muito bom!', 
+      stars: 5, 
+      printUrl: '', 
+      destacado: false, 
+      data: Date.now() 
+    }]);
+  };
+  const updateReview = (id, field, value) => {
+    setAvaliacoes(avaliacoes.map(r => r.id === id ? { ...r, [field]: value } : r));
+  };
+  const deleteReview = (id) => {
+    if (confirm('Deseja realmente excluir esta avaliação?')) {
+      setAvaliacoes(avaliacoes.filter(r => r.id !== id));
     }
   };
 
@@ -348,6 +388,16 @@ export default function ConfigsEditor() {
           }}
         >
           💸 Categorias de Custos
+        </button>
+        <button
+          onClick={() => setActiveTab('avaliacoes')}
+          style={{
+            background: activeTab === 'avaliacoes' ? 'var(--primary)' : 'transparent',
+            color: activeTab === 'avaliacoes' ? '#000' : '#FFF',
+            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
+          }}
+        >
+          ⭐ Avaliações
         </button>
       </div>
 
@@ -1091,6 +1141,70 @@ export default function ConfigsEditor() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {activeTab === 'avaliacoes' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Gerencie as avaliações dos clientes do site. Cada item permite adicionar o feedback (texto completo/reduzido), a foto/print do Google Reviews, e marcar se é um item destacado para aparecer no site de orçamentos.
+            </span>
+            <button className="btn btn--outline" onClick={addReview} style={{ width: 'auto' }}>
+              <FiPlus /> Novo Depoimento
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {avaliacoes.map((rev) => (
+              <div key={rev.id} className="admin-config-row" style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-input)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '150px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Nome do Cliente</label>
+                    <input type="text" className="form-input" value={rev.nome || ''} onChange={(e) => updateReview(rev.id, 'nome', e.target.value)} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: '150px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Sobrenome (Opcional)</label>
+                    <input type="text" className="form-input" value={rev.sobrenome || ''} onChange={(e) => updateReview(rev.id, 'sobrenome', e.target.value)} />
+                  </div>
+                  <div style={{ width: '130px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Estrelas</label>
+                    <select className="form-select" value={rev.stars || 5} onChange={(e) => updateReview(rev.id, 'stars', Number(e.target.value))} style={{ padding: '8px', fontSize: '0.85rem', width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-color)', color: '#fff', borderRadius: '4px' }}>
+                      <option value={5}>⭐⭐⭐⭐⭐</option>
+                      <option value={4}>⭐⭐⭐⭐</option>
+                      <option value={3}>⭐⭐⭐</option>
+                      <option value={2}>⭐⭐</option>
+                      <option value={1}>⭐</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '22px' }}>
+                    <input type="checkbox" id={`destacado-${rev.id}`} checked={rev.destacado || false} onChange={(e) => updateReview(rev.id, 'destacado', e.target.checked)} style={{ cursor: 'pointer', width: '16px', height: '16px' }} />
+                    <label htmlFor={`destacado-${rev.id}`} className="form-label" style={{ margin: 0, fontSize: '0.85rem', cursor: 'pointer' }}>Destaque no Site</label>
+                  </div>
+                  <div style={{ marginTop: '22px' }}>
+                    <button className="btn btn--danger" onClick={() => deleteReview(rev.id)} style={{ padding: '8px 12px', height: '36px', display: 'flex', alignItems: 'center', color: '#FFF', background: '#F44336', border: 'none', borderRadius: '4px' }}>
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', flexWrap: 'wrap' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Texto Completo / Feedback (Reduzido)</label>
+                    <textarea className="form-input" value={rev.feedback || ''} onChange={(e) => updateReview(rev.id, 'feedback', e.target.value)} style={{ minHeight: '80px', resize: 'vertical' }} placeholder="Texto da avaliação..." />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Print da Avaliação do Google (Upload para o Minio)</label>
+                    <MinioImageUpload value={rev.printUrl} onChange={(url) => updateReview(rev.id, 'printUrl', url)} placeholder="Clique para subir o print desta avaliação" />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {avaliacoes.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                Nenhuma avaliação encontrada. Clique em "Novo Depoimento" para adicionar manualmente.
+              </div>
+            )}
           </div>
         </div>
       )}
