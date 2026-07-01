@@ -141,7 +141,7 @@ function GoogleReviews({ printUrl, reviewsList = [] }) {
                       {r.nome ? r.nome[0].toUpperCase() : 'C'}
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#fff', fontWeight: 'bold' }}>{r.nome} {r.sobrenome || ''}</h4>
+                      <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#fff', fontWeight: 'bold' }}>{(r.nome || '').trim().split(' ')[0]}</h4>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Cliente</span>
                     </div>
                   </div>

@@ -199,7 +199,7 @@ export default function Portfolio() {
         if (avaliacoesSnap.exists()) {
           const avaArray = Object.entries(avaliacoesSnap.val())
             .map(([id, val]) => ({ id, ...val }))
-            .filter(a => a.stars >= 4 && a.feedback); // Puxa apenas as boas com texto
+            .filter(a => a.stars >= 4 && (a.feedback || a.printUrl)); // Puxa apenas as boas com texto ou print
           setAvaliacoes(avaArray);
         }
       } catch (err) {
@@ -236,6 +236,9 @@ export default function Portfolio() {
     return `${parseInt(dia, 10)} de ${meses[parseInt(mes, 10) - 1]} de ${ano}`;
   };
 
+  const featuredReviews = avaliacoes.filter(ava => ava.destacado === true);
+  const reviewsToDisplay = featuredReviews.length > 0 ? featuredReviews : avaliacoes;
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 100 }}>
       <BackgroundEffects />
@@ -254,50 +257,75 @@ export default function Portfolio() {
           Barman em Juiz de Fora: Transforme seu evento com o Laboratório de Drinks
         </h1>
         
-        {/* Trust Badge - SEO Social Proof */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255, 255, 255, 0.05)', padding: '8px 16px', borderRadius: 30, marginBottom: 24, border: '1px solid rgba(255,255,255,0.1)' }}>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 18, height: 18 }} />
-          <div style={{ display: 'flex', gap: 2 }}>
-            {[1,2,3,4,5].map(s => <FiStar key={s} size={14} fill="#FFC107" color="#FFC107" />)}
-          </div>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>Avaliação totalizada Google 5.0 de 5</span>
-        </div>
 
-        <p style={{ fontSize: 'clamp(0.95rem, 3vw, 1.1rem)', color: 'var(--text-secondary)', lineHeight: 1.6, padding: '0 4px' }}>
-          Surpreenda seus convidados com uma experiência inesquecível. Da alquimia da fumaça do Laboratório Frozen aos clássicos da coquetelaria reinventados.
-        </p>
+
+
       </header>
 
       {/* 1. Testimonials */}
-      {avaliacoes.length > 0 && (
+      {reviewsToDisplay.length > 0 && (
         <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ maxWidth: 800, margin: '0 auto' }}>
-            <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
-              O Melhor Serviço de Bartender de JF
-              <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
-            </h2>
+          <div style={{ maxWidth: 850, margin: '0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40 }}>
+              <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%' }}>
+                <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+                O Melhor Serviço de Bartender de JF
+                <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
+              </h2>
+              
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255, 255, 255, 0.03)', padding: '10px 20px', borderRadius: 30, border: '1px solid rgba(203, 161, 83, 0.15)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 22, height: 22 }} />
+                <div style={{ display: 'flex', gap: 3 }}>
+                  {[1,2,3,4,5].map(s => <FiStar key={s} size={20} fill="#FFC107" color="#FFC107" />)}
+                </div>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>Avaliação totalizada Google 5.0 de 5</span>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
-              {avaliacoes.map((ava, idx) => (
+              {reviewsToDisplay.map((ava, idx) => (
                 <div key={idx} style={{ 
-                  minWidth: 300, flex: '0 0 300px', background: 'var(--bg-card)', padding: 24, borderRadius: 16, 
+                  minWidth: 320, flex: '0 0 320px', background: 'var(--bg-card)', padding: ava.printUrl ? 12 : 24, borderRadius: 16, 
                   border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 16
                 }}>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {[...Array(ava.stars)].map((_, i) => <FiStar key={i} size={18} fill="#FFC107" color="#FFC107" />)}
-                  </div>
-                  <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, flex: 1, lineHeight: 1.5 }}>
-                    "{ava.feedback}"
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
-                    <div style={{ width: 40, height: 40, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
-                      {ava.nome.charAt(0)}
+                  {ava.printUrl ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', width: '100%' }}>
+                      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', flex: 1, maxHeight: '200px', width: '100%' }}>
+                        <img src={ava.printUrl} alt={ava.nome} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                      </div>
+                      {ava.feedback && ava.feedback !== 'Redirecionado para Google Reviews' && (
+                        <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, fontSize: '0.85rem', lineHeight: 1.4, textAlign: 'center' }}>
+                          "{ava.feedback}"
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto', paddingTop: 8 }}>
+                        <div style={{ width: 32, height: 32, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                          {ava.nome ? ava.nome.trim().charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '0.85rem' }}>{(ava.nome || '').trim().split(' ')[0]}</div>
+                          {ava.pacote && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>{ava.nome}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {[...Array(ava.stars || 5)].map((_, i) => <FiStar key={i} size={18} fill="#FFC107" color="#FFC107" />)}
+                      </div>
+                      <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, flex: 1, lineHeight: 1.5 }}>
+                        "{ava.feedback}"
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
+                        <div style={{ width: 40, height: 40, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
+                          {ava.nome ? ava.nome.trim().charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 'bold', color: '#FFF' }}>{(ava.nome || '').trim().split(' ')[0]}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
