@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel' });
 
 export const metadata = {
-  metadataBase: new URL('https://barmanjf.gabryelamaro.com'),
+  metadataBase: new URL('https://laboratorio.gabryelamaro.com'),
   title: 'Barman Juiz de Fora | Laboratório de Drinks para Casamentos e Festas',
   description: 'Serviço premium de bartender e coquetelaria para casamentos e festas em Juiz de Fora e região. Drinks exclusivos e experiência inesquecível.',
   keywords: ['barman juiz de fora', 'bartender juiz de fora', 'drinks para casamento jf', 'bar para festas jf', 'laboratório de drinks', 'coquetelaria juiz de fora', 'barman para eventos'],
@@ -32,11 +32,11 @@ export const metadata = {
   openGraph: {
     title: 'Barman em Juiz de Fora | Laboratório de Drinks',
     description: 'Serviço premium de barman para casamentos e festas em Juiz de Fora. Drinks exclusivos e experiência inesquecível.',
-    url: 'https://barmanjf.gabryelamaro.com',
+    url: 'https://laboratorio.gabryelamaro.com',
     siteName: 'Laboratório de Drinks',
     images: [
       {
-        url: 'https://barmanjf.gabryelamaro.com/logo.webp',
+        url: 'https://laboratorio.gabryelamaro.com/logo.webp',
         width: 800,
         height: 600,
         alt: 'Logo Laboratório de Drinks - Barman em Juiz de Fora',
@@ -49,7 +49,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Barman em Juiz de Fora | Laboratório de Drinks',
     description: 'Serviço premium de barman para casamentos e festas em Juiz de Fora.',
-    images: ['https://barmanjf.gabryelamaro.com/logo.webp'],
+    images: ['https://laboratorio.gabryelamaro.com/logo.webp'],
   },
 };
 
@@ -58,7 +58,7 @@ export default function RootLayout({ children }) {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": "Laboratório de Drinks",
-    "image": "https://barmanjf.gabryelamaro.com/logo.webp",
+    "image": "https://laboratorio.gabryelamaro.com/logo.webp",
     "description": "Serviço premium de bartender e coquetelaria para casamentos e festas em Juiz de Fora e região.",
     "address": {
       "@type": "PostalAddress",
@@ -66,7 +66,7 @@ export default function RootLayout({ children }) {
       "addressRegion": "MG",
       "addressCountry": "BR"
     },
-    "url": "https://barmanjf.gabryelamaro.com",
+    "url": "https://laboratorio.gabryelamaro.com",
     "telephone": "+5532999999999",
     "priceRange": "$$"
   };

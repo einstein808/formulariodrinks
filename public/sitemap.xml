@@ -1,13 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://barmanjf.gabryelamaro.com/</loc>
+    <loc>https://laboratorio.gabryelamaro.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://barmanjf.gabryelamaro.com/orcamento</loc>
+    <loc>https://laboratorio.gabryelamaro.com/orcamento</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://laboratorio.gabryelamaro.com/eventos/casamento</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://laboratorio.gabryelamaro.com/eventos/aniversario</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://laboratorio.gabryelamaro.com/eventos/corporativo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://laboratorio.gabryelamaro.com/eventos/formatura</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://laboratorio.gabryelamaro.com/eventos/confraternizacao</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://laboratorio.gabryelamaro.com/eventos/cha-bar</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://laboratorio.gabryelamaro.com/eventos/debutante</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

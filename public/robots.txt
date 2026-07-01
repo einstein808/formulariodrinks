@@ -3,5 +3,10 @@ Allow: /
 Allow: /portfolio
 Disallow: /admin/
 Disallow: /sair/
+Disallow: /avaliacao/
+Disallow: /contrato/
+Disallow: /escala/
+Disallow: /lista-compras/
+Disallow: /calendario
 
-Sitemap: https://seusite.com.br/sitemap.xml
+Sitemap: https://laboratorio.gabryelamaro.com/sitemap.xml
