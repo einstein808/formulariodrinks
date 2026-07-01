@@ -27,7 +27,7 @@ export default function ConfigsEditor() {
   
   const [drinks, setDrinks] = useState([]);
   const [pacotes, setPacotes] = useState([]);
-  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '', adminPhone: '', precoCopoVidro: '' });
+  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '', adminPhone: '', precoCopoVidro: '', googleReviewsPrint: '' });
   const [evolutionApi, setEvolutionApi] = useState({ url: '', instance: '', apikey: '' });
   const [scripts, setScripts] = useState({
     autoridade: { text: '', image: '' },
@@ -530,6 +530,17 @@ export default function ConfigsEditor() {
             <div style={{ marginTop: '16px' }}>
               <label className="form-label">Link de Avaliação do Google Meu Negócio</label>
               <input type="text" className="form-input" value={general.googleReviewLink || ''} onChange={(e) => setGeneral({ ...general, googleReviewLink: e.target.value })} placeholder="Ex: https://g.page/r/.../review" />
+            </div>
+            <div style={{ marginTop: '16px' }}>
+              <label className="form-label">Print das Avaliações do Google (Upload para o Minio)</label>
+              <MinioImageUpload 
+                value={general.googleReviewsPrint || ''} 
+                onChange={(url) => setGeneral({ ...general, googleReviewsPrint: url })} 
+                placeholder="Clique ou arraste para subir o print do Google Reviews" 
+              />
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Se você subir um print, o site de orçamento usará essa imagem no lugar dos depoimentos em texto.
+              </p>
             </div>
             <div style={{ marginTop: '16px', background: 'rgba(255, 213, 79, 0.1)', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #FFD54F' }}>
               <label className="form-label" style={{ color: '#FFD54F' }}>Telefones do Admin (Para receber alertas automáticos de festas próximas)</label>

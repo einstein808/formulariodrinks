@@ -11,6 +11,122 @@ import { MdCelebration } from 'react-icons/md'
 import { sendWhatsAppQuote } from '../../lib/whatsappService'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
+/* ============================
+   Google Reviews Cards
+   ============================ */
+function GoogleReviews({ printUrl }) {
+  if (printUrl) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#fff' }}>Avaliações do Google</span>
+          <span style={{ background: 'rgba(203, 161, 83, 0.15)', color: 'var(--primary)', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid rgba(203, 161, 83, 0.25)' }}>5.0 ★</span>
+        </div>
+        <div style={{ 
+          width: '100%', 
+          borderRadius: '12px', 
+          overflow: 'hidden', 
+          border: '1px solid rgba(203, 161, 83, 0.15)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          background: 'rgba(255,255,255,0.01)'
+        }}>
+          <img 
+            src={printUrl} 
+            alt="Google Reviews" 
+            style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '500px', objectFit: 'contain' }} 
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const reviews = [
+    {
+      author: 'Mariana Silva',
+      initials: 'MS',
+      time: 'Há 2 semanas',
+      text: 'Sem dúvidas a melhor escolha para o nosso casamento! Os drinks frozen fizeram muito sucesso e a equipe foi extremamente ágil e simpática. Nota 1000!',
+    },
+    {
+      author: 'Lucas Oliveira',
+      initials: 'LO',
+      time: 'Há 1 mês',
+      text: 'Super profissionais! Contratei o pacote Standard para meu aniversário e todos os convidados elogiaram a qualidade dos insumos e a organização do bar. Recomendo!',
+    },
+    {
+      author: 'Juliana Mendes',
+      initials: 'JM',
+      time: 'Há 3 meses',
+      text: 'Cardápio muito variado e apresentação impecável. A caipirinha de morango e o Moscow Mule estavam divinos. Já quero contratar para o próximo evento!',
+    }
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', marginTop: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#fff' }}>Avaliações do Google</span>
+          <span style={{ background: 'rgba(203, 161, 83, 0.15)', color: 'var(--primary)', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid rgba(203, 161, 83, 0.25)' }}>5.0 ★</span>
+        </div>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Excelente</span>
+      </div>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+        {reviews.map((r, i) => (
+          <div 
+            key={i} 
+            style={{ 
+              background: 'rgba(255, 255, 255, 0.015)', 
+              border: '1px solid rgba(203, 161, 83, 0.06)', 
+              borderRadius: '12px', 
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '50%', 
+                  background: 'var(--primary)', 
+                  color: '#000', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem'
+                }}>
+                  {r.initials}
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#fff', fontWeight: 'bold' }}>{r.author}</h4>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.time}</span>
+                </div>
+              </div>
+              <div style={{ color: '#FFD54F', fontSize: '0.8rem' }}>
+                ⭐⭐⭐⭐⭐
+              </div>
+            </div>
+            <p style={{ 
+              margin: 0, 
+              fontSize: '0.8rem', 
+              color: 'var(--text-secondary)', 
+              lineHeight: '1.5',
+              fontStyle: 'italic'
+            }}>
+              "{r.text}"
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 
 /* ============================
@@ -56,6 +172,7 @@ export default function App() {
   const [isPriceUnlocked, setIsPriceUnlocked] = useState(false)
   const [showUnlockModal, setShowUnlockModal] = useState(false)
   const [currentLeadId, setCurrentLeadId] = useState(null)
+  const [googleReviewsPrint, setGoogleReviewsPrint] = useState('')
 
   useEffect(() => {
     get(ref(db, 'config'))
@@ -87,6 +204,9 @@ export default function App() {
           setCidades([...topList, ...othersList, 'Outra cidade...']);
         }
         if (d.maxDrinks) setMaxDrinks(d.maxDrinks)
+        if (d.general && d.general.googleReviewsPrint) {
+          setGoogleReviewsPrint(d.general.googleReviewsPrint);
+        }
       })
       .catch((err) => console.error('Erro ao carregar config:', err))
       .finally(() => setConfigLoading(false))
@@ -496,6 +616,11 @@ export default function App() {
                 ))}
               </div>
               {errors.tipoEvento && <span className="form-error">{errors.tipoEvento}</span>}
+            </div>
+
+            {/* Google Reviews Cards */}
+            <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-color)' }}>
+              <GoogleReviews printUrl={googleReviewsPrint} />
             </div>
           </div>
         )
@@ -1034,7 +1159,10 @@ export default function App() {
                 </button>
               </div>
 
-
+              {/* Google Reviews Cards */}
+              <div style={{ marginTop: 32, width: '100%' }}>
+                <GoogleReviews printUrl={googleReviewsPrint} />
+              </div>
             </div>
           </main>
         )}
