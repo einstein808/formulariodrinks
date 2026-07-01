@@ -264,7 +264,7 @@ export default function Portfolio() {
 
       {/* 1. Testimonials */}
       {reviewsToDisplay.length > 0 && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <section style={{ position: 'relative', zIndex: 10, padding: '40px 16px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ maxWidth: 850, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40 }}>
               <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%' }}>
@@ -281,10 +281,10 @@ export default function Portfolio() {
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>Avaliação totalizada Google 5.0 de 5</span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
+            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
               {reviewsToDisplay.map((ava, idx) => (
                 <div key={idx} style={{ 
-                  minWidth: 320, flex: '0 0 320px', background: 'var(--bg-card)', padding: ava.printUrl ? 12 : 24, borderRadius: 16, 
+                  minWidth: 280, flex: '0 0 clamp(280px, 80vw, 320px)', background: 'var(--bg-card)', padding: ava.printUrl ? 12 : 24, borderRadius: 16, 
                   border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 16
                 }}>
                   {ava.printUrl ? (
