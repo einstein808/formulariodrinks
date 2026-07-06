@@ -61,7 +61,8 @@ export default function GeradorContrato() {
     ajudantes: 0,
     autorizarimagem: true,
     coposDeVidro: false,
-    desconto: 0
+    desconto: 0,
+    aplicarDescontoMaoDeObra: false
   });
 
   const [errors, setErrors] = useState({});
@@ -273,7 +274,7 @@ export default function GeradorContrato() {
       valorTotal += precoCopo * convidadosInformados;
     }
 
-    const descontoValue = isMaoDeObra ? 0 : (parseFloat(formData.desconto) || 0);
+    const descontoValue = (isMaoDeObra && !formData.aplicarDescontoMaoDeObra) ? 0 : (parseFloat(formData.desconto) || 0);
     const valorOriginal = valorTotal;
     valorTotal = Math.max(0, valorTotal - descontoValue);
 
@@ -529,7 +530,8 @@ export default function GeradorContrato() {
       ajudantes: ajudantesVal,
       autorizarimagem: lead.autorizarimagem !== undefined ? lead.autorizarimagem : true,
       coposDeVidro: lead.coposDeVidro !== undefined ? lead.coposDeVidro : false,
-      desconto: lead.financeiro?.desconto || 0
+      desconto: lead.financeiro?.desconto || 0,
+      aplicarDescontoMaoDeObra: lead.financeiro?.aplicarDescontoMaoDeObra || false
     });
 
     setErrors({});
@@ -671,6 +673,7 @@ export default function GeradorContrato() {
           // Financeiro sync
           'financeiro/faturamento': financials.valor_original,
           'financeiro/desconto': financials.desconto,
+          'financeiro/aplicarDescontoMaoDeObra': formData.aplicarDescontoMaoDeObra || false
         });
       }
 

@@ -545,6 +545,25 @@ export default function LeadsKanban() {
     }
   };
 
+  const handleUpdateAplicarDescontoMaoDeObra = async (checked) => {
+    if (!selectedLead) return;
+    try {
+      const path = `leads/${selectedLead.id}/financeiro`;
+      await update(ref(db, path), { aplicarDescontoMaoDeObra: checked });
+      setSelectedLead(prev => ({
+        ...prev,
+        financeiro: {
+          ...(prev.financeiro || {}),
+          aplicarDescontoMaoDeObra: checked
+        }
+      }));
+      showToast(checked ? "Desconto ativado para Mão de Obra!" : "Desconto desativado para Mão de Obra.", "success");
+    } catch (err) {
+      console.error("Erro ao atualizar desconto de Mão de Obra:", err);
+      showToast("Erro ao atualizar desconto de Mão de Obra.", "error");
+    }
+  };
+
   const handleUpdateValorPago = async (valor) => {
     if (!selectedLead) return;
     const numValor = parseFloat(valor) || 0;
@@ -2698,6 +2717,15 @@ export default function LeadsKanban() {
                             width: '100%'
                           }}
                         />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '6px' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedLead?.financeiro?.aplicarDescontoMaoDeObra || false}
+                            onChange={(e) => handleUpdateAplicarDescontoMaoDeObra(e.target.checked)}
+                            style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Aplicar desconto na Mão de Obra</span>
+                        </label>
                       </div>
                     </div>
 
