@@ -12,162 +12,6 @@ import { sendWhatsAppQuote } from '../../lib/whatsappService'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
 /* ============================
-   Google Reviews Cards
-   ============================ */
-function GoogleReviews({ printUrl, reviewsList = [] }) {
-  // If the admin uploaded a global printUrl, we show that (highest priority)
-  if (printUrl) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#fff' }}>Avaliações do Google</span>
-          <span style={{ background: 'rgba(203, 161, 83, 0.15)', color: 'var(--primary)', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid rgba(203, 161, 83, 0.25)' }}>5.0 ★</span>
-        </div>
-        <div style={{ 
-          width: '100%', 
-          borderRadius: '12px', 
-          overflow: 'hidden', 
-          border: '1px solid rgba(203, 161, 83, 0.15)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-          background: 'rgba(255,255,255,0.01)'
-        }}>
-          <img 
-            src={printUrl} 
-            alt="Google Reviews" 
-            style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '500px', objectFit: 'contain' }} 
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Filter reviews that are highlighted/destacado
-  let reviewsToDisplay = reviewsList.filter(r => r.destacado === true);
-
-  // Fallback: If no reviews are explicitly highlighted, load the first 3 reviews from the database
-  if (reviewsToDisplay.length === 0 && reviewsList.length > 0) {
-    reviewsToDisplay = reviewsList.slice(0, 3);
-  }
-
-  // Fallback: If there are no reviews in the database at all, load the beautiful default 3 text-based review cards
-  if (reviewsToDisplay.length === 0) {
-    reviewsToDisplay = [
-      {
-        id: 'default-1',
-        nome: 'Mariana Silva',
-        sobrenome: '',
-        feedback: 'Sem dúvidas a melhor escolha para o nosso casamento! Os drinks frozen fizeram muito sucesso e a equipe foi extremamente ágil e simpática. Nota 1000!',
-        stars: 5,
-        printUrl: ''
-      },
-      {
-        id: 'default-2',
-        nome: 'Lucas Oliveira',
-        sobrenome: '',
-        feedback: 'Super profissionais! Contratei o pacote Standard para meu aniversário e todos os convidados elogiaram a qualidade dos insumos e a organização do bar. Recomendo!',
-        stars: 5,
-        printUrl: ''
-      },
-      {
-        id: 'default-3',
-        nome: 'Juliana Mendes',
-        sobrenome: '',
-        feedback: 'Cardápio muito variado e apresentação impecável. A caipirinha de morango e o Moscow Mule estavam divinos. Já quero contratar para o próximo evento!',
-        stars: 5,
-        printUrl: ''
-      }
-    ];
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', marginTop: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#fff' }}>Avaliações do Google</span>
-          <span style={{ background: 'rgba(203, 161, 83, 0.15)', color: 'var(--primary)', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid rgba(203, 161, 83, 0.25)' }}>5.0 ★</span>
-        </div>
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Excelente</span>
-      </div>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-        {reviewsToDisplay.map((r) => (
-          <div 
-            key={r.id} 
-            style={{ 
-              background: 'rgba(255, 255, 255, 0.015)', 
-              border: '1px solid rgba(203, 161, 83, 0.06)', 
-              borderRadius: '12px', 
-              padding: r.printUrl ? '8px' : '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            }}
-          >
-            {r.printUrl ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', width: '100%' }}>
-                  <img src={r.printUrl} alt={r.nome} style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '200px', objectFit: 'contain' }} />
-                </div>
-                {r.feedback && (
-                  <p style={{ 
-                    margin: '4px 0 0 0', 
-                    fontSize: '0.8rem', 
-                    color: 'var(--text-secondary)', 
-                    lineHeight: '1.4',
-                    fontStyle: 'italic',
-                    textAlign: 'center'
-                  }}>
-                    "{r.feedback}"
-                  </p>
-                )}
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      borderRadius: '50%', 
-                      background: 'var(--primary)', 
-                      color: '#000', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem'
-                    }}>
-                      {r.nome ? r.nome[0].toUpperCase() : 'C'}
-                    </div>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#fff', fontWeight: 'bold' }}>{(r.nome || '').trim().split(' ')[0]}</h4>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Cliente</span>
-                    </div>
-                  </div>
-                  <div style={{ color: '#FFD54F', fontSize: '0.85rem' }}>
-                    {'⭐'.repeat(r.stars || 5)}
-                  </div>
-                </div>
-                <p style={{ 
-                  margin: 0, 
-                  fontSize: '0.8rem', 
-                  color: 'var(--text-secondary)', 
-                  lineHeight: '1.5',
-                  fontStyle: 'italic'
-                }}>
-                  "{r.feedback}"
-                </p>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
 
 /* ============================
    Helpers
@@ -212,18 +56,9 @@ export default function App() {
   const [isPriceUnlocked, setIsPriceUnlocked] = useState(false)
   const [showUnlockModal, setShowUnlockModal] = useState(false)
   const [currentLeadId, setCurrentLeadId] = useState(null)
-  const [googleReviewsPrint, setGoogleReviewsPrint] = useState('')
-  const [dbReviews, setDbReviews] = useState([])
+  const [general, setGeneral] = useState(null)
 
   useEffect(() => {
-    get(ref(db, 'avaliacoes'))
-      .then((snap) => {
-        if (snap.exists()) {
-          setDbReviews(firebaseObjToArray(snap.val()));
-        }
-      })
-      .catch((err) => console.error('Erro ao carregar avaliacoes:', err));
-
     get(ref(db, 'config'))
       .then((snap) => {
         if (!snap.exists()) return
@@ -253,13 +88,66 @@ export default function App() {
           setCidades([...topList, ...othersList, 'Outra cidade...']);
         }
         if (d.maxDrinks) setMaxDrinks(d.maxDrinks)
-        if (d.general && d.general.googleReviewsPrint) {
-          setGoogleReviewsPrint(d.general.googleReviewsPrint);
+        if (d.general) {
+          setGeneral(d.general)
         }
       })
       .catch((err) => console.error('Erro ao carregar config:', err))
       .finally(() => setConfigLoading(false))
   }, [])
+
+  const lastStepRef = useRef(0);
+
+  // Initialize history state on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.history.state === null || window.history.state.step === undefined) {
+        window.history.replaceState({ step: 0 }, '');
+      } else {
+        setCurrentStep(window.history.state.step);
+      }
+    }
+  }, []);
+
+  // Listen to popstate (back/forward browser buttons)
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state) {
+        // If the unlock modal was open and popped, close it
+        if (showUnlockModal && e.state.modal !== 'unlock') {
+          setShowUnlockModal(false);
+        }
+        
+        // Sync the step
+        if (typeof e.state.step === 'number') {
+          lastStepRef.current = e.state.step;
+          setCurrentStep(e.state.step);
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showUnlockModal]);
+
+  // Sync state when currentStep changes
+  useEffect(() => {
+    if (currentStep !== lastStepRef.current) {
+      window.history.pushState({ step: currentStep }, '');
+      lastStepRef.current = currentStep;
+    }
+  }, [currentStep]);
+
+  const handleOpenUnlockModal = () => {
+    setShowUnlockModal(true);
+    window.history.pushState({ step: currentStep, modal: 'unlock' }, '');
+  };
+
+  const handleCloseUnlockModal = () => {
+    setShowUnlockModal(false);
+    if (window.history.state?.modal === 'unlock') {
+      window.history.back();
+    }
+  };
 
   const [formData, setFormData] = useState({
     pacote: '',
@@ -400,7 +288,7 @@ export default function App() {
       
       setCurrentLeadId(newLeadRef.key);
       setIsPriceUnlocked(true);
-      setShowUnlockModal(false);
+      handleCloseUnlockModal();
       
       try {
         localStorage.setItem('DRINKS_UNLOCKED', 'true');
@@ -454,8 +342,12 @@ export default function App() {
   }, [currentStep, validateStep])
 
   const prevStep = useCallback(() => {
-    setCurrentStep(s => Math.max(s - 1, 0))
-  }, [])
+    if (window.history.state?.step !== undefined && window.history.state.step > 0) {
+      window.history.back();
+    } else {
+      setCurrentStep(s => Math.max(s - 1, 0));
+    }
+  }, []);
 
   /* ---- Submit ---- */
   const handleSubmit = useCallback(async () => {
@@ -547,7 +439,7 @@ export default function App() {
                   className={`package-card ${formData.pacote === p.id ? 'package-card--selected' : ''} ${p.popular && p.id !== 'standard-frozen' ? 'package-card--popular' : ''} ${p.id === 'standard-frozen' ? 'package-card--frozen' : ''}`}
                   onClick={() => {
                     if (!isPriceUnlocked) {
-                      setShowUnlockModal(true);
+                      handleOpenUnlockModal();
                     } else {
                       updateField('pacote', p.id);
                     }
@@ -667,10 +559,7 @@ export default function App() {
               {errors.tipoEvento && <span className="form-error">{errors.tipoEvento}</span>}
             </div>
 
-            {/* Google Reviews Cards */}
-            <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-color)' }}>
-              <GoogleReviews printUrl={googleReviewsPrint} reviewsList={dbReviews} />
-            </div>
+
           </div>
         )
 
@@ -977,7 +866,7 @@ export default function App() {
         <>
         <header className="header">
           <img 
-            src="/logo.webp" 
+            src={general?.logoUrl || "/logo.webp"} 
             alt="Logo" 
             style={{ 
               width: 140, 
@@ -986,8 +875,8 @@ export default function App() {
               filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' 
             }} 
           />
-          <h1 className="header__title">Laboratório de Drinks</h1>
-          <p className="header__subtitle">Desperte a química perfeita no seu evento com drinks inovadores</p>
+          <h1 className="header__title">{general?.companyName || "Laboratório de Drinks"}</h1>
+          <p className="header__subtitle">{general?.siteSubtitle || "Desperte a química perfeita no seu evento com drinks inovadores"}</p>
         </header>
 
         {!isSuccess ? (
@@ -1047,7 +936,7 @@ export default function App() {
                     </div>
                     
                     <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                      <button type="button" className="btn btn--secondary" onClick={() => setShowUnlockModal(false)} disabled={isSubmitting}>
+                      <button type="button" className="btn btn--secondary" onClick={handleCloseUnlockModal} disabled={isSubmitting}>
                         Voltar
                       </button>
                       <button type="submit" className="btn btn--primary" disabled={isSubmitting} style={{ flex: 1 }}>
@@ -1208,10 +1097,7 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Google Reviews Cards */}
-              <div style={{ marginTop: 32, width: '100%' }}>
-                <GoogleReviews printUrl={googleReviewsPrint} reviewsList={dbReviews} />
-              </div>
+
             </div>
           </main>
         )}

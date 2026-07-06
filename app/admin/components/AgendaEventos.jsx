@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, FiPackage, FiX, FiPhone, FiClock, FiUsers, FiHeart, FiUserCheck } from 'react-icons/fi';
@@ -19,6 +19,33 @@ export default function AgendaEventos() {
   const [selectedEvento, setSelectedEvento] = useState(null);
   const [cerimonialistas, setCerimonialistas] = useState({});
   const [ajudantes, setAjudantes] = useState({});
+
+  const modalOpenRef = useRef(false);
+
+  // Sync selectedEvento with history
+  useEffect(() => {
+    if (selectedEvento && !modalOpenRef.current) {
+      window.history.pushState({ modal: 'eventoDetail' }, '');
+      modalOpenRef.current = true;
+    } else if (!selectedEvento && modalOpenRef.current) {
+      modalOpenRef.current = false;
+      if (window.history.state?.modal === 'eventoDetail') {
+        window.history.back();
+      }
+    }
+  }, [selectedEvento]);
+
+  // Listen to popstate to close modal on mobile back button
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (selectedEvento && e.state?.modal !== 'eventoDetail') {
+        modalOpenRef.current = false;
+        setSelectedEvento(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedEvento]);
 
   useEffect(() => {
     const leadsRef = ref(db, 'leads');

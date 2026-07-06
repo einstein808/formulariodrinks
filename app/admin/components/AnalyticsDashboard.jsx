@@ -258,17 +258,37 @@ export default function AnalyticsDashboard() {
 
     if (mesFormatado !== 'Sem Data') {
       if (!financeiroMensal[mesFormatado]) {
-        financeiroMensal[mesFormatado] = {
+        const initialMonth = {
           name: mesFormatado,
+          FaturamentoBruto: 0,
+          Desconto: 0,
           Faturamento: 0,
           Custos: 0,
           Lucro: 0,
-          sortKey
+          sortKey,
+          outros: 0
         };
+        custosCategorias.forEach(c => {
+          initialMonth[c.id] = 0;
+        });
+        financeiroMensal[mesFormatado] = initialMonth;
       }
-      financeiroMensal[mesFormatado].Faturamento += fat;
-      financeiroMensal[mesFormatado].Custos += totCustos;
-      financeiroMensal[mesFormatado].Lucro += luc;
+      const entry = financeiroMensal[mesFormatado];
+      entry.FaturamentoBruto += fatBruto;
+      entry.Desconto += desc;
+      entry.Faturamento += fat;
+      entry.Custos += totCustos;
+      entry.Lucro += luc;
+
+      custos.forEach(c => {
+        const valor = parseFloat(c.valor) || 0;
+        const cat = c.categoria || detectCategoryByDescription(c.descricao);
+        if (entry[cat] !== undefined) {
+          entry[cat] += valor;
+        } else {
+          entry.outros += valor;
+        }
+      });
     }
   });
 
@@ -554,6 +574,113 @@ export default function AnalyticsDashboard() {
                 {insightOtimizacao}
               </div>
             </div>
+          </div>
+
+          {/* TABELA DRE MENSAL DETALHADA */}
+          <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
+            <h3 style={{ margin: 0, color: '#FFF' }}>📊 Demonstrativo de Resultados (DRE Mensal)</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '4px 0 20px 0' }}>Estrutura de faturamento e custos detalhada por mês de ocorrência dos eventos.</p>
+            {monthlyFinanceData.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                Nenhum dado mensal disponível.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold' }}>Estrutura Financeira (R$)</th>
+                      {monthlyFinanceData.map(m => (
+                        <th key={m.name} style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>{m.name}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Faturamento Bruto */}
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td style={{ padding: '10px', color: '#FFF', fontWeight: '500' }}>(+) Receita Bruta (Faturamento)</td>
+                      {monthlyFinanceData.map(m => (
+                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: '#FFF' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.FaturamentoBruto || 0)}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Desconto */}
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td style={{ padding: '10px', color: '#F44336' }}>(-) Descontos Concedidos</td>
+                      {monthlyFinanceData.map(m => (
+                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: '#F44336' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.Desconto || 0)}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Receita Líquida */}
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.01)', fontWeight: 'bold' }}>
+                      <td style={{ padding: '10px', color: '#4CAF50' }}>(=) Receita Líquida</td>
+                      {monthlyFinanceData.map(m => (
+                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: '#4CAF50' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.Faturamento || 0)}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Custos por Categorias */}
+                    {custosCategorias.map(cat => (
+                      <tr key={cat.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        <td style={{ padding: '10px', color: 'var(--text-secondary)', paddingLeft: '20px' }}>
+                          (-) Custos: {cat.emoji || '📦'} {cat.label}
+                        </td>
+                        {monthlyFinanceData.map(m => (
+                          <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m[cat.id] || 0)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    {/* Outros custos */}
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td style={{ padding: '10px', color: 'var(--text-secondary)', paddingLeft: '20px' }}>
+                        (-) Custos: ✨ Outros / Diversos
+                      </td>
+                      {monthlyFinanceData.map(m => (
+                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.outros || 0)}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Custos Totais */}
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', fontWeight: '500' }}>
+                      <td style={{ padding: '10px', color: '#F44336' }}>(=) Total de Custos Operacionais</td>
+                      {monthlyFinanceData.map(m => (
+                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: '#F44336' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.Custos || 0)}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Lucro Líquido */}
+                    <tr style={{ borderBottom: '2px solid var(--border-color)', background: 'rgba(203,161,83,0.04)', fontWeight: 'bold' }}>
+                      <td style={{ padding: '10px', color: 'var(--primary)' }}>(=) Lucro Líquido Operacional</td>
+                      {monthlyFinanceData.map(m => (
+                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: 'var(--primary)' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.Lucro || 0)}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Margem Operacional */}
+                    <tr style={{ background: 'rgba(255,255,255,0.015)', fontWeight: 'bold' }}>
+                      <td style={{ padding: '10px', color: 'var(--text-secondary)' }}>Margem Operacional (%)</td>
+                      {monthlyFinanceData.map(m => {
+                        const marg = m.Faturamento > 0 ? (m.Lucro / m.Faturamento) * 100 : 0;
+                        return (
+                          <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: marg >= 0 ? '#4CAF50' : '#F44336' }}>
+                            {marg.toFixed(1)}%
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* TABELA DE DEMONSTRATIVO POR LEAD */}

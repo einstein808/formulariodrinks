@@ -27,7 +27,11 @@ export default function ConfigsEditor() {
   
   const [drinks, setDrinks] = useState([]);
   const [pacotes, setPacotes] = useState([]);
-  const [general, setGeneral] = useState({ siteUrl: '', googleReviewLink: '', adminPhone: '', precoCopoVidro: '', googleReviewsPrint: '' });
+  const [general, setGeneral] = useState({ 
+    siteUrl: '', googleReviewLink: '', adminPhone: '', precoCopoVidro: '', googleReviewsPrint: '',
+    companyName: '', companyCity: '', primaryColor: '', instagramUrl: '', whatsappNumber: '', 
+    logoUrl: '', siteTitle: '', siteSubtitle: '' 
+  });
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [evolutionApi, setEvolutionApi] = useState({ url: '', instance: '', apikey: '' });
   const [scripts, setScripts] = useState({
@@ -347,7 +351,7 @@ export default function ConfigsEditor() {
             border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
           }}
         >
-          Scripts de Vendas (WhatsApp)
+          Configurações & Scripts
         </button>
         <button
           onClick={() => setActiveTab('galeria')}
@@ -567,12 +571,70 @@ export default function ConfigsEditor() {
       {activeTab === 'scripts' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           
-          {/* Configurações Gerais do Site */}
+          {/* Configurações Gerais do Site e White-Label */}
           <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ margin: '0 0 16px 0', color: 'var(--primary)' }}>Configurações Gerais</h3>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--primary)' }}>Configurações Gerais & White-Label</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
-              Defina a URL base do seu site. Isso é importante para gerar links corretos (como o link de descadastro/opt-out) caso este painel admin esteja hospedado em um subdomínio diferente do site principal.
+              Personalize o nome, cores, logo e informações de contato do site para adaptá-lo ao seu cliente (White-Label).
             </p>
+            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label className="form-label">Nome da Empresa (Ex: Laboratório de Drinks)</label>
+                <input type="text" className="form-input" value={general.companyName || ''} onChange={(e) => setGeneral({ ...general, companyName: e.target.value })} placeholder="Laboratório de Drinks" />
+              </div>
+              <div>
+                <label className="form-label">Cidade de Atuação (Ex: Juiz de Fora)</label>
+                <input type="text" className="form-input" value={general.companyCity || ''} onChange={(e) => setGeneral({ ...general, companyCity: e.target.value })} placeholder="Juiz de Fora" />
+              </div>
+            </div>
+            
+            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label className="form-label">Cor Primária / Destaque (Hexadecimal - Ex: #cba153)</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input type="color" value={general.primaryColor || '#cba153'} onChange={(e) => setGeneral({ ...general, primaryColor: e.target.value })} style={{ width: '40px', height: '40px', padding: '0', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }} />
+                  <input type="text" className="form-input" value={general.primaryColor || ''} onChange={(e) => setGeneral({ ...general, primaryColor: e.target.value })} placeholder="#cba153" style={{ flex: 1 }} />
+                </div>
+              </div>
+              <div>
+                <label className="form-label">Link do Instagram (Ex: https://instagram.com/user)</label>
+                <input type="text" className="form-input" value={general.instagramUrl || ''} onChange={(e) => setGeneral({ ...general, instagramUrl: e.target.value })} placeholder="https://instagram.com/laboratoriodedrinks" />
+              </div>
+            </div>
+
+            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label className="form-label">WhatsApp de Atendimento (Ex: 32999999999)</label>
+                <input type="text" className="form-input" value={general.whatsappNumber || ''} onChange={(e) => setGeneral({ ...general, whatsappNumber: e.target.value })} placeholder="32999999999" />
+              </div>
+              <div>
+                <label className="form-label">Logo da Empresa (Upload para o Minio)</label>
+                <MinioImageUpload 
+                  value={general.logoUrl || ''} 
+                  onChange={(url) => setGeneral({ ...general, logoUrl: url })} 
+                  placeholder="Selecione o logo (padrão: /logo.webp)" 
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <label className="form-label">Título Principal do Site (H1 - Ex: Barman em Juiz de Fora...)</label>
+              <input type="text" className="form-input" value={general.siteTitle || ''} onChange={(e) => setGeneral({ ...general, siteTitle: e.target.value })} placeholder="Barman em Juiz de Fora: Transforme seu evento com o Laboratório de Drinks" />
+            </div>
+
+            <div style={{ marginTop: '16px', marginBottom: '24px' }}>
+              <label className="form-label">Subtítulo / Descrição Principal do Site</label>
+              <textarea 
+                className="form-input" 
+                rows={2}
+                value={general.siteSubtitle || ''} 
+                onChange={(e) => setGeneral({ ...general, siteSubtitle: e.target.value })} 
+                placeholder="Ex: O bar de coquetéis premium que leva sofisticação e os melhores profissionais para a sua festa." 
+              />
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '24px 0' }} />
+
             <div>
               <label className="form-label">URL Global do Site (ex: https://meulaboratorio.com.br)</label>
               <input type="text" className="form-input" value={general.siteUrl || ''} onChange={(e) => setGeneral({ ...general, siteUrl: e.target.value })} placeholder="Deixe em branco para usar a URL atual do navegador" />

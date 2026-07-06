@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiPlus, FiTrash2, FiUser, FiPhone, FiBriefcase, FiX } from 'react-icons/fi';
@@ -32,6 +32,8 @@ export default function AjudantesManager() {
   const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' | 'warning' }
   const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm, onCancel }
 
+  const confirmModalRef = useRef(false);
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => {
@@ -51,7 +53,21 @@ export default function AjudantesManager() {
         setConfirmModal(null);
       }
     });
+    window.history.pushState({ modal: 'confirm' }, '');
+    confirmModalRef.current = true;
   };
+
+  // Listen to popstate to close confirmModal on mobile back button
+  useEffect(() => {
+    const handlePopState = () => {
+      if (confirmModalRef.current) {
+        confirmModalRef.current = false;
+        setConfirmModal(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const r = ref(db, 'config/ajudantes');

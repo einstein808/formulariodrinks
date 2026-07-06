@@ -2,6 +2,7 @@ import './globals.css';
 import { Inter, Cinzel } from 'next/font/google';
 import SwRegister from '../components/SwRegister';
 import PwaInstallBanner from '../components/PwaInstallBanner';
+import ThemeCustomizer from '../components/ThemeCustomizer';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel' });
@@ -13,6 +14,7 @@ export const metadata = {
   keywords: ['barman juiz de fora', 'bartender juiz de fora', 'drinks para casamento jf', 'bar para festas jf', 'laboratório de drinks', 'coquetelaria juiz de fora', 'barman para eventos'],
   authors: [{ name: 'Laboratório de Drinks' }],
   creator: 'Laboratório de Drinks',
+  primaryColor: '#cba153',
   publisher: 'Laboratório de Drinks',
   manifest: '/manifest.json',
   robots: {
@@ -89,6 +91,7 @@ export default function RootLayout({ children }) {
       </head>
       <body suppressHydrationWarning>
         {children}
+        <ThemeCustomizer />
         <SwRegister />
         <PwaInstallBanner />
       </body>

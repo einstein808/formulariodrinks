@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
@@ -126,6 +126,37 @@ export default function GeradorContrato() {
       unsubscribeDrinks();
       unsubscribeGeneral();
     };
+  }, []);
+
+  const lastStepRef = useRef(1);
+
+  // Initialize history with step 1 on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.history.state === null || window.history.state.contractStep === undefined) {
+        window.history.replaceState({ contractStep: 1 }, '');
+      }
+    }
+  }, []);
+
+  // Sync step changes to history
+  useEffect(() => {
+    if (step !== lastStepRef.current) {
+      window.history.pushState({ contractStep: step }, '');
+      lastStepRef.current = step;
+    }
+  }, [step]);
+
+  // Listen to popstate to go back a step on mobile back button
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state && typeof e.state.contractStep === 'number') {
+        lastStepRef.current = e.state.contractStep;
+        setStep(e.state.contractStep);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   // Sync drink changes when type changes

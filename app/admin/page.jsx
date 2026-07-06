@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
-import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX, FiFileText } from 'react-icons/fi';
+import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX, FiFileText, FiPackage } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 
 const LeadsKanban = dynamic(() => import('./components/LeadsKanban'), {
@@ -37,12 +37,17 @@ const GeradorContrato = dynamic(() => import('./components/GeradorContrato'), {
   loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
   ssr: false
 });
+const EstoqueManager = dynamic(() => import('./components/EstoqueManager'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
 
 const navItems = [
   { id: 'leads',     label: 'Leads',     icon: FiUsers },
   { id: 'agenda',    label: 'Agenda',    icon: FiCalendar },
   { id: 'contratos', label: 'Contratos', icon: FiFileText },
   { id: 'analytics', label: 'Métricas',  icon: FiPieChart },
+  { id: 'estoque',   label: 'Estoque',   icon: FiPackage },
   { id: 'parceiros', label: 'Parceiros', icon: FiHeart },
   { id: 'equipe',    label: 'Equipe',    icon: FiUserPlus },
   { id: 'configs',   label: 'Configs',   icon: FiSettings },
@@ -53,6 +58,39 @@ export default function AdminDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const lastTabRef = useRef('leads');
+
+  // Initialize history state on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.history.state === null || window.history.state.tab === undefined) {
+        window.history.replaceState({ tab: 'leads' }, '');
+      } else {
+        setActiveTab(window.history.state.tab);
+      }
+    }
+  }, []);
+
+  // Listen to popstate (back/forward browser buttons)
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state && typeof e.state.tab === 'string') {
+        lastTabRef.current = e.state.tab;
+        setActiveTab(e.state.tab);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Sync state when activeTab changes
+  useEffect(() => {
+    if (activeTab !== lastTabRef.current) {
+      window.history.pushState({ tab: activeTab }, '');
+      lastTabRef.current = activeTab;
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -253,6 +291,7 @@ export default function AdminDashboard() {
         {activeTab === 'agenda'    && <AgendaEventos />}
         {activeTab === 'contratos' && <GeradorContrato />}
         {activeTab === 'analytics' && <AnalyticsDashboard />}
+        {activeTab === 'estoque'   && <EstoqueManager />}
         {activeTab === 'parceiros' && <CerimonialstasManager />}
         {activeTab === 'equipe'    && <AjudantesManager />}
         {activeTab === 'configs'   && <ConfigsEditor />}

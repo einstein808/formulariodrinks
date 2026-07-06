@@ -152,6 +152,7 @@ export default function Portfolio() {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [galeria, setGaleria] = useState([]);
   const [tiposEvento, setTiposEvento] = useState([]);
+  const [general, setGeneral] = useState(null);
   const [loading, setLoading] = useState(true);
   const [eventoAberto, setEventoAberto] = useState(null);
   const [midiaAtual, setMidiaAtual] = useState(0);
@@ -165,6 +166,9 @@ export default function Portfolio() {
         const configSnap = await get(ref(db, 'config'));
         if (configSnap.exists()) {
           const configData = configSnap.val();
+          if (configData.general) {
+            setGeneral(configData.general);
+          }
           if (configData.drinksMenu) {
             const drinksArray = Object.entries(configData.drinksMenu)
               .map(([id, val]) => ({ id, ...val }))
@@ -211,6 +215,17 @@ export default function Portfolio() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      if (eventoAberto) {
+        setEventoAberto(null);
+        document.body.style.overflow = '';
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [eventoAberto]);
+
   if (loading) {
     return <PageLoader />;
   }
@@ -219,11 +234,15 @@ export default function Portfolio() {
     setEventoAberto(evento);
     setMidiaAtual(0);
     document.body.style.overflow = 'hidden';
+    window.history.pushState({ modalOpen: true }, '');
   };
 
   const fecharEvento = () => {
     setEventoAberto(null);
     document.body.style.overflow = '';
+    if (window.history.state?.modalOpen) {
+      window.history.back();
+    }
   };
 
   const prevMidia = () => setMidiaAtual(i => (i - 1 + (eventoAberto?.midias?.length || 1)) % (eventoAberto?.midias?.length || 1));
@@ -246,20 +265,21 @@ export default function Portfolio() {
       {/* Header / Hero */}
       <header style={{ position: 'relative', zIndex: 10, padding: '32px 16px 24px', textAlign: 'center', maxWidth: 800, margin: '0 auto' }}>
         <Image 
-          src="/logo.webp" 
-          alt="Logo Laboratório de Drinks - Barman em Juiz de Fora" 
+          src={general?.logoUrl || "/logo.webp"} 
+          alt={`Logo ${general?.companyName || "Laboratório de Drinks"} - Barman em ${general?.companyCity || "Juiz de Fora"}`} 
           width={140}
           height={140}
           priority
           style={{ width: 'clamp(90px, 25vw, 140px)', height: 'auto', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
         />
         <h1 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 6vw, 2.5rem)', color: 'var(--primary)', margin: '0 0 16px 0', textShadow: '0 4px 20px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
-          Barman em Juiz de Fora: Transforme seu evento com o Laboratório de Drinks
+          {general?.siteTitle || `Barman em ${general?.companyCity || "Juiz de Fora"}: Transforme seu evento com o ${general?.companyName || "Laboratório de Drinks"}`}
         </h1>
-        
-
-
-
+        {general?.siteSubtitle && (
+          <p style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)', color: 'var(--text-secondary)', maxWidth: '550px', margin: '0 auto 24px', lineHeight: 1.5 }}>
+            {general.siteSubtitle}
+          </p>
+        )}
       </header>
 
       {/* 1. Testimonials */}
@@ -269,7 +289,7 @@ export default function Portfolio() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40 }}>
               <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%' }}>
                 <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
-                O Melhor Serviço de Bartender de JF
+                O Melhor Serviço de Bartender de {general?.companyCity || 'JF'}
                 <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
               </h2>
               

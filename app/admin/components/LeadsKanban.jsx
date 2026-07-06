@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, remove, push, set } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus, FiList, FiColumns, FiChevronLeft, FiChevronRight, FiEye, FiEdit2, FiSave, FiCheck, FiUsers, FiFileText, FiTrendingUp, FiDollarSign } from 'react-icons/fi';
@@ -125,14 +125,79 @@ export default function LeadsKanban() {
   const [editLeadData, setEditLeadData] = useState({});
   const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts' | 'financeiro'
   const [financeiroPresets, setFinanceiroPresets] = useState({});
-  const [newCost, setNewCost] = useState({ descricao: '', valor: '', categoria: 'insumos' });
+  const [newCost, setNewCost] = useState({ descricao: '', valor: '', quantidade: '', valorUnitario: '', categoria: 'insumos', itemIdEstoque: '' });
+  const [estoque, setEstoque] = useState([]);
   const [custosCategorias, setCustosCategorias] = useState([]);
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [itemsPerPage, setItemsPerPage] = useState('20');
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Advanced filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterPacote, setFilterPacote] = useState('');
+  const [filterCidade, setFilterCidade] = useState('');
+  const [filterMinVal, setFilterMinVal] = useState('');
+  const [filterMaxVal, setFilterMaxVal] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+
+  const lastModalRef = useRef(null);
+
+  // Watch modal changes in LeadsKanban
+  useEffect(() => {
+    if (isEditingLead && lastModalRef.current !== 'editLead') {
+      window.history.pushState({ modal: 'editLead' }, '');
+      lastModalRef.current = 'editLead';
+    } else if (!isEditingLead && lastModalRef.current === 'editLead') {
+      lastModalRef.current = null;
+      if (window.history.state?.modal === 'editLead') {
+        window.history.back();
+      }
+    }
+
+    if (isAddingManual && lastModalRef.current !== 'addLead') {
+      window.history.pushState({ modal: 'addLead' }, '');
+      lastModalRef.current = 'addLead';
+    } else if (!isAddingManual && lastModalRef.current === 'addLead') {
+      lastModalRef.current = null;
+      if (window.history.state?.modal === 'addLead') {
+        window.history.back();
+      }
+    }
+
+    if (selectedLead && !isEditingLead && lastModalRef.current !== 'leadDetail') {
+      window.history.pushState({ modal: 'leadDetail' }, '');
+      lastModalRef.current = 'leadDetail';
+    } else if (!selectedLead && lastModalRef.current === 'leadDetail') {
+      lastModalRef.current = null;
+      if (window.history.state?.modal === 'leadDetail') {
+        window.history.back();
+      }
+    }
+  }, [selectedLead, isAddingManual, isEditingLead]);
+
+  // Listen to popstate to handle mobile back button closing modals
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const targetModal = e.state?.modal || null;
+      lastModalRef.current = targetModal;
+
+      if (isEditingLead && targetModal !== 'editLead') {
+        setIsEditingLead(false);
+      }
+      if (isAddingManual && targetModal !== 'addLead') {
+        setIsAddingManual(false);
+      }
+      if (selectedLead && targetModal !== 'leadDetail') {
+        setSelectedLead(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedLead, isAddingManual, isEditingLead]);
 
   const [faturamentoInput, setFaturamentoInput] = useState('');
   const [descontoInput, setDescontoInput] = useState('');
@@ -184,6 +249,11 @@ export default function LeadsKanban() {
         if (data.drinksMenu) setDrinksMenu(data.drinksMenu);
         if (data.pacotes) setPacotes(firebaseObjToArray(data.pacotes));
         if (data.ajudantes) setAjudantes(data.ajudantes); else setAjudantes({});
+        if (data.estoque) {
+          setEstoque(Object.entries(data.estoque).map(([id, val]) => ({ id, ...val })));
+        } else {
+          setEstoque([]);
+        }
         if (data.financeiroPresets) {
           setFinanceiroPresets(data.financeiroPresets);
         } else {
@@ -482,14 +552,39 @@ export default function LeadsKanban() {
     const numValor = parseFloat(valor) || 0;
     const cat = categoriaInput || detectCategoryByDescription(descricao);
     const costId = `custo-${Date.now()}`;
+    const numQty = parseFloat(newCost.quantidade) || 0;
+    const numUnit = parseFloat(newCost.valorUnitario) || 0;
     try {
-      const pathCost = `leads/${selectedLead.id}/financeiro/custos/${costId}`;
-      await set(ref(db, pathCost), {
+      const costData = {
         id: costId,
         descricao: descricao.trim(),
         valor: numValor,
-        categoria: cat
-      });
+        categoria: cat,
+        ...(numQty > 0 ? { quantidade: numQty } : {}),
+        ...(numUnit > 0 ? { valorUnitario: numUnit } : {}),
+        ...(newCost.itemIdEstoque ? { itemIdEstoque: newCost.itemIdEstoque } : {})
+      };
+
+      // Bidirectional logic: deduct from stock if vinculado
+      if (newCost.itemIdEstoque && numQty > 0) {
+        const itemEstoque = estoque.find(i => i.id === newCost.itemIdEstoque);
+        if (itemEstoque) {
+          const novaQtd = Math.max(0, (itemEstoque.quantidadeAtual || 0) - numQty);
+          await update(ref(db, `config/estoque/${newCost.itemIdEstoque}`), { quantidadeAtual: novaQtd });
+          
+          const movRef = push(ref(db, 'config/estoqueMovimentacoes'));
+          await set(movRef, {
+            itemId: newCost.itemIdEstoque,
+            tipo: 'saida',
+            quantidade: numQty,
+            motivo: `Uso no evento: ${selectedLead.nome} ${selectedLead.sobrenome || ''}`.trim(),
+            data: new Date().toISOString()
+          });
+        }
+      }
+
+      const pathCost = `leads/${selectedLead.id}/financeiro/custos/${costId}`;
+      await set(ref(db, pathCost), costData);
 
       const slug = slugify(descricao);
       if (slug) {
@@ -508,15 +603,12 @@ export default function LeadsKanban() {
           ...prev,
           financeiro: {
             ...currentFinanceiro,
-            custos: {
-              ...currentCustos,
-              [costId]: { id: costId, descricao: descricao.trim(), valor: numValor, categoria: cat }
-            }
+            custos: { ...currentCustos, [costId]: costData }
           }
         };
       });
 
-      setNewCost({ descricao: '', valor: '', categoria: 'insumos' });
+      setNewCost({ descricao: '', valor: '', quantidade: '', valorUnitario: '', categoria: 'insumos', itemIdEstoque: '' });
       showToast("Custo adicionado com sucesso!", "success");
     } catch (err) {
       console.error("Erro ao adicionar custo:", err);
@@ -882,16 +974,47 @@ export default function LeadsKanban() {
     }, "Reenviar Orçamento");
   };
 
+  // Derived filter options
+  const uniquePacotes = [...new Set(leads.map(l => l.pacote).filter(Boolean))].sort();
+  const uniqueCidades = [...new Set(leads.map(l => l.cidade).filter(Boolean))].sort();
+
+  const activeFilterCount = [filterSearch, filterMonth, filterPacote, filterCidade, filterMinVal, filterMaxVal].filter(Boolean).length;
+
+  const applyAdvancedFilters = (list) => {
+    return list.filter(l => {
+      if (filterSearch) {
+        const q = filterSearch.toLowerCase();
+        const name = `${l.nome || ''} ${l.sobrenome || ''} ${l.telefone || ''}`.toLowerCase();
+        if (!name.includes(q)) return false;
+      }
+      if (filterMonth) {
+        if (!l.dataEvento || !l.dataEvento.startsWith(filterMonth)) return false;
+      }
+      if (filterPacote && l.pacote !== filterPacote) return false;
+      if (filterCidade && l.cidade !== filterCidade) return false;
+      if (filterMinVal !== '') {
+        const fat = parseFloat(l.financeiro?.faturamento) || 0;
+        if (fat < parseFloat(filterMinVal)) return false;
+      }
+      if (filterMaxVal !== '') {
+        const fat = parseFloat(l.financeiro?.faturamento) || 0;
+        if (fat > parseFloat(filterMaxVal)) return false;
+      }
+      return true;
+    });
+  };
+
   const getLeadsByStatus = (statusId) => {
-    const filtered = leads.filter(l => (l.status || 'novo') === statusId);
+    let filtered = leads.filter(l => (l.status || 'novo') === statusId);
+    filtered = applyAdvancedFilters(filtered);
     if (statusId === 'fechado' || statusId === 'realizado') {
       return [...filtered].sort((a, b) => {
         const dateA = a.dataEvento ? new Date(a.dataEvento) : new Date(8640000000000000);
         const dateB = b.dataEvento ? new Date(b.dataEvento) : new Date(8640000000000000);
         if (statusId === 'realizado') {
-          return dateB - dateA; // past: most recent first
+          return dateB - dateA;
         }
-        return dateA - dateB; // future: soonest first
+        return dateA - dateB;
       });
     }
     return filtered;
@@ -968,7 +1091,134 @@ export default function LeadsKanban() {
         </div>
       </div>
       </div>
-      
+
+      {/* ── ADVANCED FILTERS PANEL ──────────────────────────────── */}
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          onClick={() => setShowFilters(f => !f)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: showFilters ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${showFilters ? 'var(--primary)' : 'var(--border-color)'}`,
+            color: showFilters ? 'var(--primary)' : 'var(--text-secondary)',
+            borderRadius: '10px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem',
+            transition: 'all 0.2s'
+          }}
+        >
+          🔍 Filtros Avançados
+          {activeFilterCount > 0 && (
+            <span style={{
+              background: 'var(--primary)', color: '#000', borderRadius: '10px',
+              fontSize: '0.72rem', fontWeight: 'bold', padding: '1px 7px'
+            }}>{activeFilterCount}</span>
+          )}
+        </button>
+
+        {showFilters && (
+          <div style={{
+            marginTop: '12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+            borderRadius: '12px', padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'flex-end'
+          }}>
+            {/* Search */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '2', minWidth: '180px' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Busca (nome / telefone)</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Ex: Maria, (32)..."
+                value={filterSearch}
+                onChange={e => { setFilterSearch(e.target.value); setCurrentPage(1); }}
+                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Month */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '140px' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mês do Evento</label>
+              <input
+                type="month"
+                className="form-input"
+                value={filterMonth}
+                onChange={e => { setFilterMonth(e.target.value); setCurrentPage(1); }}
+                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Pacote */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '140px' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pacote</label>
+              <select
+                className="form-select"
+                value={filterPacote}
+                onChange={e => { setFilterPacote(e.target.value); setCurrentPage(1); }}
+                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+              >
+                <option value="">Todos</option>
+                {uniquePacotes.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {/* Cidade */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '140px' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cidade</label>
+              <select
+                className="form-select"
+                value={filterCidade}
+                onChange={e => { setFilterCidade(e.target.value); setCurrentPage(1); }}
+                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+              >
+                <option value="">Todas</option>
+                {uniqueCidades.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* Faturamento Min */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '110px' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fat. Mínimo (R$)</label>
+              <input
+                type="number"
+                className="form-input"
+                placeholder="0"
+                value={filterMinVal}
+                onChange={e => { setFilterMinVal(e.target.value); setCurrentPage(1); }}
+                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Faturamento Max */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '110px' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fat. Máximo (R$)</label>
+              <input
+                type="number"
+                className="form-input"
+                placeholder="99999"
+                value={filterMaxVal}
+                onChange={e => { setFilterMaxVal(e.target.value); setCurrentPage(1); }}
+                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Clear */}
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() => {
+                  setFilterSearch(''); setFilterMonth(''); setFilterPacote('');
+                  setFilterCidade(''); setFilterMinVal(''); setFilterMaxVal('');
+                  setCurrentPage(1);
+                }}
+                style={{
+                  background: 'rgba(244,67,54,0.08)', border: '1px solid rgba(244,67,54,0.3)',
+                  color: '#F44336', borderRadius: '8px', padding: '8px 16px',
+                  cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-end'
+                }}
+              >
+                ✕ Limpar Filtros
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       {viewMode === 'kanban' ? (
         <div className="admin-kanban-container" style={{ 
           display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', minHeight: 'calc(100vh - 150px)' 
@@ -1152,19 +1402,14 @@ export default function LeadsKanban() {
               </thead>
               <tbody>
                 {(() => {
-                  let filteredLeads = leads;
-                  if (statusFilter !== 'all') {
-                    filteredLeads = leads.filter(l => (l.status || 'novo') === statusFilter);
-                    if (statusFilter === 'fechado' || statusFilter === 'realizado') {
-                      filteredLeads = [...filteredLeads].sort((a, b) => {
-                        const dateA = a.dataEvento ? new Date(a.dataEvento) : new Date(8640000000000000);
-                        const dateB = b.dataEvento ? new Date(b.dataEvento) : new Date(8640000000000000);
-                        if (statusFilter === 'realizado') {
-                          return dateB - dateA;
-                        }
-                        return dateA - dateB;
-                      });
-                    }
+                  let filteredLeads = statusFilter === 'all' ? leads : leads.filter(l => (l.status || 'novo') === statusFilter);
+                  filteredLeads = applyAdvancedFilters(filteredLeads);
+                  if (statusFilter === 'fechado' || statusFilter === 'realizado') {
+                    filteredLeads = [...filteredLeads].sort((a, b) => {
+                      const dateA = a.dataEvento ? new Date(a.dataEvento) : new Date(8640000000000000);
+                      const dateB = b.dataEvento ? new Date(b.dataEvento) : new Date(8640000000000000);
+                      return statusFilter === 'realizado' ? dateB - dateA : dateA - dateB;
+                    });
                   }
 
                   const limit = itemsPerPage === 'all' ? filteredLeads.length : parseInt(itemsPerPage, 10);
@@ -1221,7 +1466,9 @@ export default function LeadsKanban() {
           </div>
 
           {itemsPerPage !== 'all' && (() => {
-            const totalFilteredLeads = statusFilter === 'all' ? leads.length : leads.filter(l => (l.status || 'novo') === statusFilter).length;
+            let paginationLeads = statusFilter === 'all' ? leads : leads.filter(l => (l.status || 'novo') === statusFilter);
+            paginationLeads = applyAdvancedFilters(paginationLeads);
+            const totalFilteredLeads = paginationLeads.length;
             const limit = parseInt(itemsPerPage, 10);
             const totalPages = Math.ceil(totalFilteredLeads / limit) || 1;
             
@@ -2398,7 +2645,54 @@ export default function LeadsKanban() {
                     </div>
 
                     {/* ADD COST FORM */}
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px', width: '100%' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1.5', minWidth: '160px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>📦 Vincular ao Estoque</label>
+                        <select
+                          value={newCost.itemIdEstoque || ''}
+                          onChange={(e) => {
+                            const itemId = e.target.value;
+                            if (itemId) {
+                              const item = estoque.find(i => i.id === itemId);
+                              if (item) {
+                                const qty = parseFloat(newCost.quantidade) || 1;
+                                const uVal = parseFloat(item.custo) || 0;
+                                setNewCost(prev => ({
+                                  ...prev,
+                                  itemIdEstoque: itemId,
+                                  descricao: item.nome,
+                                  categoria: item.categoria || 'insumos',
+                                  valorUnitario: uVal.toString(),
+                                  quantidade: prev.quantidade || '1',
+                                  valor: (qty * uVal).toFixed(2)
+                                }));
+                              }
+                            } else {
+                              setNewCost(prev => ({ ...prev, itemIdEstoque: '', descricao: '', valorUnitario: '', valor: '' }));
+                            }
+                          }}
+                          style={{
+                            background: '#0c1610',
+                            border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px',
+                            color: '#f0f2ec',
+                            padding: '10px 12px',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            width: '100%',
+                            height: '38px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="">-- Não vincular --</option>
+                          {estoque.map(item => (
+                            <option key={item.id} value={item.id}>
+                              {item.nome} (estoque: {item.quantidadeAtual} {item.unidade})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '2', minWidth: '180px' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Descrição do Custo</label>
                         <input
@@ -2462,22 +2756,63 @@ export default function LeadsKanban() {
                         </select>
                       </div>
 
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '80px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Qtd (opcional)</label>
+                        <input
+                          type="number"
+                          placeholder="1"
+                          value={newCost.quantidade}
+                          onChange={(e) => {
+                            const qty = e.target.value;
+                            const unit = newCost.valorUnitario;
+                            setNewCost(prev => ({
+                              ...prev,
+                              quantidade: qty,
+                              valor: qty && unit ? (parseFloat(qty) * parseFloat(unit)).toFixed(2) : prev.valor
+                            }));
+                          }}
+                          style={{
+                            background: '#0c1610', border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px',
+                            fontSize: '0.88rem', outline: 'none', width: '100%'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '80px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>R$ Unit. (opcional)</label>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={newCost.valorUnitario}
+                          onChange={(e) => {
+                            const unit = e.target.value;
+                            const qty = newCost.quantidade;
+                            setNewCost(prev => ({
+                              ...prev,
+                              valorUnitario: unit,
+                              valor: qty && unit ? (parseFloat(qty) * parseFloat(unit)).toFixed(2) : prev.valor
+                            }));
+                          }}
+                          style={{
+                            background: '#0c1610', border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px',
+                            fontSize: '0.88rem', outline: 'none', width: '100%'
+                          }}
+                        />
+                      </div>
+
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '100px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor (R$)</label>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total (R$)</label>
                         <input
                           type="number"
                           placeholder="0.00"
                           value={newCost.valor}
-                          onChange={(e) => setNewCost(prev => ({ ...prev, valor: e.target.value }))}
+                          onChange={(e) => setNewCost(prev => ({ ...prev, valor: e.target.value, quantidade: '', valorUnitario: '' }))}
                           style={{
-                            background: '#0c1610',
-                            border: '1px solid rgba(203, 161, 83, 0.12)',
-                            borderRadius: '8px',
-                            color: '#f0f2ec',
-                            padding: '10px 12px',
-                            fontSize: '0.88rem',
-                            outline: 'none',
-                            width: '100%'
+                            background: '#0c1610', border: '1px solid rgba(203, 161, 83, 0.12)',
+                            borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px',
+                            fontSize: '0.88rem', outline: 'none', width: '100%'
                           }}
                         />
                       </div>
@@ -2528,7 +2863,14 @@ export default function LeadsKanban() {
                           <tbody>
                             {custosLista.map((custo) => (
                               <tr key={custo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#FFF' }}>
-                                <td style={{ padding: '10px 8px' }}>{custo.descricao}</td>
+                                <td style={{ padding: '10px 8px' }}>
+                                  <div>{custo.descricao}</div>
+                                  {custo.quantidade > 0 && custo.valorUnitario > 0 && (
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                      {custo.quantidade} × {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custo.valorUnitario)}
+                                    </div>
+                                  )}
+                                </td>
                                 <td style={{ padding: '10px 8px' }}>
                                   {(() => {
                                     const catId = custo.categoria || detectCategoryByDescription(custo.descricao);

@@ -13,6 +13,7 @@
     "@aws-sdk/client-s3": "^3.1075.0",
     "canvas-confetti": "^1.9.4",
     "firebase": "^12.12.1",
+    "html5-qrcode": "^2.3.8",
     "next": "^16.2.6",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

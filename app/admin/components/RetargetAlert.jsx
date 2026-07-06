@@ -314,6 +314,107 @@ export default function RetargetAlert() {
     }, "Disparo de Mensagens");
   };
 
+  const ignoreNPS = async (leadId) => {
+    try {
+      await update(ref(db, `leads/${leadId}`), { npsSent: true });
+      showToast("NPS marcado como ignorado.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Erro ao atualizar lead.", "error");
+    }
+  };
+
+  const sendSingleNPS = async (lead) => {
+    if (!configs?.evolutionApi?.url || !configs?.evolutionApi?.instance || !configs?.evolutionApi?.apikey) {
+      showToast("Configure a Evolution API na aba de Configurações primeiro.", "warning");
+      return;
+    }
+    
+    setSending(true);
+    try {
+      const baseUrl = configs.evolutionApi.url.endsWith('/') ? configs.evolutionApi.url.slice(0, -1) : configs.evolutionApi.url;
+      const scriptObj = configs.scripts?.posEvento;
+      
+      if (!scriptObj || !scriptObj.text) {
+        showToast("Script do NPS/Pós-evento não configurado.", "warning");
+        setSending(false);
+        return;
+      }
+      
+      const baseSiteUrl = configs.general?.siteUrl 
+        ? (configs.general.siteUrl.endsWith('/') ? configs.general.siteUrl.slice(0, -1) : configs.general.siteUrl)
+        : window.location.origin;
+
+      const optoutLink = `\n\nPara não receber mais mensagens automáticas, clique aqui: ${baseSiteUrl}/sair/${lead.id}`;
+      const linkAvaliacao = `${baseSiteUrl}/avaliacao/${lead.id}`;
+      
+      const rawText = scriptObj.text;
+      const cleanPhone = lead.telefone.replace(/\D/g, '');
+      const number = cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone;
+
+      let mesName = '';
+      let anoStr = '';
+      if (lead.dataEvento) {
+        const [ano, mes, dia] = lead.dataEvento.split('-');
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        mesName = meses[parseInt(mes, 10) - 1] || '';
+        anoStr = ano || '';
+      }
+
+      const hasLinkPlaceholder = /\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi.test(rawText);
+
+      let finalText = rawText
+        .replace(/\{\{nome\}\}/g, lead.nome)
+        .replace(/\{\{pacote\}\}/g, lead.pacote || 'Premium')
+        .replace(/\{\{cidade\}\}/g, lead.cidade || '')
+        .replace(/\{\{evento\}\}/g, lead.tipoEvento || 'festa')
+        .replace(/\{\{data\}\}/g, lead.dataEvento || '')
+        .replace(/\{\{mes\}\}/g, mesName)
+        .replace(/\{\{ano\}\}/g, anoStr);
+
+      if (hasLinkPlaceholder) {
+        finalText = finalText.replace(/\{\{(linkAvaliacao|linkavaliacao|linkAvaliação|link_avaliacao|linkNps|linknps|linkReview|linkreview)\}\}/gi, linkAvaliacao);
+      } else {
+        finalText = finalText + `\n\nAvalie o bar do seu evento aqui: ${linkAvaliacao}`;
+      }
+
+      finalText += optoutLink;
+
+      let endpoint = `${baseUrl}/message/sendText/${configs.evolutionApi.instance}`;
+      let payload = { number, text: finalText, linkPreview: false };
+      
+      if (scriptObj.image && scriptObj.image.trim()) {
+        endpoint = `${baseUrl}/message/sendMedia/${configs.evolutionApi.instance}`;
+        payload = {
+          number,
+          media: scriptObj.image.trim(),
+          mediatype: 'image',
+          caption: finalText
+        };
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': configs.evolutionApi.apikey },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erro no disparo de NPS para ${number}: ${response.status} - ${errorText}`);
+        showToast("Erro ao enviar mensagem via Evolution API.", "error");
+      } else {
+        await update(ref(db, `leads/${lead.id}`), { npsSent: true });
+        showToast("NPS enviado com sucesso!", "success");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Erro de rede no disparo de NPS.", "error");
+    } finally {
+      setSending(false);
+    }
+  };
+
   const showUpcoming = upcomingEvents.length > 0 && !dismissedUpcoming;
   const showPending = totalPending > 0 && !dismissedPending;
 
@@ -367,28 +468,64 @@ export default function RetargetAlert() {
       )}
 
       {showPending && (
-        <div style={{ background: 'rgba(255, 213, 79, 0.1)', border: '1px solid #FFD54F', borderRadius: '8px', padding: '16px 48px 16px 16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ background: '#FFD54F', color: '#000', padding: '8px', borderRadius: '50%', display: 'flex' }}>
-              <FiBell size={20} />
+        <div style={{ background: 'rgba(255, 213, 79, 0.1)', border: '1px solid #FFD54F', borderRadius: '8px', padding: '16px 48px 16px 16px', marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '16px', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ background: '#FFD54F', color: '#000', padding: '8px', borderRadius: '50%', display: 'flex' }}>
+                <FiBell size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 4px 0', color: '#FFD54F', fontSize: '1rem' }}>Alertas de Orçamentos e Pós-Eventos</h3>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  Você tem <strong>{pending30Days.length} leads</strong> a menos de 30 dias, <strong>{pending15Days.length} leads</strong> a menos de 15 dias e <strong>{pendingNPS.length} avaliações</strong> (NPS) aguardando envio.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 style={{ margin: '0 0 4px 0', color: '#FFD54F', fontSize: '1rem' }}>Alertas de Orçamentos e Pós-Eventos</h3>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                Você tem <strong>{pending30Days.length} leads</strong> a menos de 30 dias, <strong>{pending15Days.length} leads</strong> a menos de 15 dias e <strong>{pendingNPS.length} avaliações</strong> (NPS) aguardando envio.
-              </p>
-            </div>
+            
+            <button 
+              onClick={handleSendAll}
+              disabled={sending}
+              className="btn btn--primary admin-full-btn" 
+              style={{ width: 'auto', background: '#FFD54F', color: '#000', borderColor: '#FFD54F', display: 'flex', gap: '8px', alignItems: 'center' }}
+            >
+              {sending ? <div className="btn__spinner" style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }} /> : <FiSend />}
+              {sending ? 'Enviando...' : 'Disparar Mensagens Agora'}
+            </button>
           </div>
-          
-          <button 
-            onClick={handleSendAll}
-            disabled={sending}
-            className="btn btn--primary admin-full-btn" 
-            style={{ width: 'auto', background: '#FFD54F', color: '#000', borderColor: '#FFD54F', display: 'flex', gap: '8px', alignItems: 'center' }}
-          >
-            {sending ? <div className="btn__spinner" style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }} /> : <FiSend />}
-            {sending ? 'Enviando...' : 'Disparar Mensagens Agora'}
-          </button>
+
+          {pendingNPS.length > 0 && (
+            <div style={{ width: '100%', borderTop: '1px solid rgba(255, 213, 79, 0.2)', paddingTop: '16px', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.85rem', color: '#FFD54F', fontWeight: 'bold', marginBottom: '10px' }}>
+                Lista de Avaliações (NPS) Aguardando Envio:
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {pendingNPS.map(lead => (
+                  <div key={lead.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 0, 0, 0.2)', padding: '10px 14px', borderRadius: '6px', border: '1px solid rgba(255, 213, 79, 0.1)', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: '500' }}>{lead.nome} {lead.sobrenome || ''}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Contato: {lead.telefone} | Evento em: {lead.dataEvento}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        onClick={() => sendSingleNPS(lead)} 
+                        disabled={sending}
+                        style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#FFD54F', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Enviar NPS
+                      </button>
+                      <button 
+                        onClick={() => ignoreNPS(lead.id)} 
+                        disabled={sending}
+                        style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'rgba(244, 67, 54, 0.15)', color: '#F44336', border: '1px solid #F44336', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Não Enviar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <button
             onClick={handleDismissPending}
