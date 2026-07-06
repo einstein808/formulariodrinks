@@ -43,6 +43,15 @@ function slugify(text) {
     .trim();
 }
 
+const getFinanceStatusHelper = (lead) => {
+  const fat = (parseFloat(lead.financeiro?.faturamento) || 0) - (parseFloat(lead.financeiro?.desconto) || 0);
+  const pago = parseFloat(lead.financeiro?.valorPago) || 0;
+  if (fat === 0) return { label: 'Pendente', color: '#7a8e7c', bg: 'rgba(122, 142, 124, 0.1)' };
+  if (pago === 0) return { label: 'Pendente', color: '#F44336', bg: 'rgba(244, 67, 54, 0.1)' };
+  if (pago >= fat) return { label: 'Quitado', color: '#4CAF50', bg: 'rgba(76, 175, 80, 0.1)' };
+  return { label: 'Parcial', color: '#FFD54F', bg: 'rgba(255, 213, 79, 0.1)' };
+};
+
 const getLeadStatusHelper = (lead) => {
   let isStale = false;
   let followUpCount = 0;
@@ -127,6 +136,8 @@ export default function LeadsKanban() {
   const [financeiroPresets, setFinanceiroPresets] = useState({});
   const [newCost, setNewCost] = useState({ descricao: '', valor: '', quantidade: '', valorUnitario: '', categoria: 'insumos', itemIdEstoque: '' });
   const [estoque, setEstoque] = useState([]);
+  const [newPaymentVal, setNewPaymentVal] = useState('');
+  const [newPaymentForma, setNewPaymentForma] = useState('Pix');
   const [custosCategorias, setCustosCategorias] = useState([]);
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
@@ -489,6 +500,32 @@ export default function LeadsKanban() {
     }
   };
 
+  const handleImportFromPackage = () => {
+    if (!selectedLead) return;
+    const normalizedSelectedPackage = (selectedLead.pacote || '').toLowerCase().trim();
+    const pac = pacotes.find(p => 
+      (p.name || '').toLowerCase().trim() === normalizedSelectedPackage ||
+      (p.id || '').toLowerCase().trim() === normalizedSelectedPackage
+    );
+    if (!pac) {
+      showToast("Não foi possível encontrar um pacote correspondente nas configurações.", "warning");
+      return;
+    }
+    const cleanPriceStr = (pac.price || '').replace(/[^\d,.-]/g, '').replace(',', '.');
+    const basePrice = parseFloat(cleanPriceStr) || 0;
+    let total = basePrice;
+    const isPerGuest = (pac.priceLabel || '').toLowerCase().includes('convidado') || 
+                       (pac.priceLabel || '').toLowerCase().includes('pessoa') ||
+                       (pac.priceLabel || '').toLowerCase().includes('pax');
+    if (isPerGuest && selectedLead.convidados) {
+      const numGuests = parseInt(selectedLead.convidados, 10) || 0;
+      total = basePrice * numGuests;
+    }
+    setFaturamentoInput(total.toString());
+    handleUpdateFaturamento(total.toString());
+    showToast(`Faturamento importado do pacote "${pac.name}": R$ ${total.toFixed(2)}`, "success");
+  };
+
   const handleUpdateDesconto = async (valor) => {
     if (!selectedLead) return;
     const numValor = parseFloat(valor) || 0;
@@ -524,6 +561,71 @@ export default function LeadsKanban() {
     } catch (err) {
       console.error("Erro ao atualizar valor pago:", err);
       showToast("Erro ao atualizar valor pago.", "error");
+    }
+  };
+
+  const handleRegisterRecebimento = async (valor, forma, observacao = '') => {
+    if (!selectedLead) return;
+    const numValor = parseFloat(valor) || 0;
+    if (numValor <= 0) {
+      showToast("Insira um valor maior que zero.", "warning");
+      return;
+    }
+    try {
+      const recId = `rec-${Date.now()}`;
+      const recData = {
+        id: recId,
+        valor: numValor,
+        formaPagamento: forma || 'Pix',
+        data: new Date().toISOString(),
+        observacao: observacao.trim()
+      };
+      await set(ref(db, `leads/${selectedLead.id}/financeiro/recebimentos/${recId}`), recData);
+      const currentRecebimentos = selectedLead.financeiro?.recebimentos || {};
+      const newRecebimentos = { ...currentRecebimentos, [recId]: recData };
+      const newTotalPaid = Object.values(newRecebimentos).reduce((acc, cur) => acc + (parseFloat(cur.valor) || 0), 0);
+      await update(ref(db, `leads/${selectedLead.id}/financeiro`), { valorPago: newTotalPaid });
+      setSelectedLead(prev => {
+        const currentFinanceiro = prev.financeiro || {};
+        return {
+          ...prev,
+          financeiro: {
+            ...currentFinanceiro,
+            recebimentos: newRecebimentos,
+            valorPago: newTotalPaid
+          }
+        };
+      });
+      showToast("Recebimento registrado com sucesso!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Erro ao registrar recebimento.", "error");
+    }
+  };
+
+  const handleDeleteRecebimento = async (recId) => {
+    if (!selectedLead || !recId) return;
+    try {
+      await remove(ref(db, `leads/${selectedLead.id}/financeiro/recebimentos/${recId}`));
+      const currentRecebimentos = { ...(selectedLead.financeiro?.recebimentos || {}) };
+      delete currentRecebimentos[recId];
+      const newTotalPaid = Object.values(currentRecebimentos).reduce((acc, cur) => acc + (parseFloat(cur.valor) || 0), 0);
+      await update(ref(db, `leads/${selectedLead.id}/financeiro`), { valorPago: newTotalPaid });
+      setSelectedLead(prev => {
+        const currentFinanceiro = prev.financeiro || {};
+        return {
+          ...prev,
+          financeiro: {
+            ...currentFinanceiro,
+            recebimentos: currentRecebimentos,
+            valorPago: newTotalPaid
+          }
+        };
+      });
+      showToast("Recebimento removido.", "info");
+    } catch (err) {
+      console.error(err);
+      showToast("Erro ao remover recebimento.", "error");
     }
   };
 
@@ -1303,9 +1405,19 @@ export default function LeadsKanban() {
                           <span style={{ fontSize: '0.75rem', background: 'rgba(203, 161, 83, 0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: '6px', fontWeight: '600', letterSpacing: '0.2px' }}>
                             {lead.pacote}
                           </span>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            {lead.convidados} conv.
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {(() => {
+                              const fin = getFinanceStatusHelper(lead);
+                              return (
+                                <span style={{ fontSize: '0.68rem', color: fin.color, background: fin.bg, padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  {fin.label}
+                                </span>
+                              );
+                            })()}
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                              {lead.convidados} conv.
+                            </span>
+                          </div>
                         </div>
 
                         {/* Badge cerimonialista */}
@@ -1397,6 +1509,7 @@ export default function LeadsKanban() {
                   <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Data do Evento</th>
                   <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Pacote</th>
                   <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Status</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 'normal' }}>Financeiro</th>
                   <th style={{ padding: '12px 16px', fontWeight: 'normal', textAlign: 'center' }}>Ações</th>
                 </tr>
               </thead>
@@ -1418,7 +1531,7 @@ export default function LeadsKanban() {
                   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + limit);
 
                   if (paginatedLeads.length === 0) {
-                    return <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>;
+                    return <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum lead encontrado.</td></tr>;
                   }
 
                   return paginatedLeads.map(lead => {
@@ -1448,6 +1561,16 @@ export default function LeadsKanban() {
                         >
                           {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                         </select>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {(() => {
+                          const fin = getFinanceStatusHelper(lead);
+                          return (
+                            <span style={{ fontSize: '0.72rem', color: fin.color, background: fin.bg, padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                              {fin.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         <button 
@@ -2523,10 +2646,19 @@ export default function LeadsKanban() {
                     <h4 style={{ margin: '0 0 16px 0', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <FiDollarSign /> Valores e Pagamento
                     </h4>
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
                       {/* FATURAMENTO */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '160px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Faturamento Total (R$)</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '180px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Faturamento Total (R$)</label>
+                          <button
+                            type="button"
+                            onClick={handleImportFromPackage}
+                            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline', padding: '0' }}
+                          >
+                            📋 Importar do Pacote
+                          </button>
+                        </div>
                         <input 
                           type="number" 
                           placeholder="0.00"
@@ -2547,7 +2679,7 @@ export default function LeadsKanban() {
                       </div>
 
                       {/* DESCONTO */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '160px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '180px' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Desconto Concedido (R$)</label>
                         <input 
                           type="number" 
@@ -2567,32 +2699,108 @@ export default function LeadsKanban() {
                           }}
                         />
                       </div>
+                    </div>
 
-                      {/* JÁ PAGO */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '160px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor Já Pago (R$)</label>
-                        <input 
-                          type="number" 
-                          placeholder="0.00"
-                          value={valorPagoInput}
-                          onChange={(e) => setValorPagoInput(e.target.value)}
-                          onBlur={() => handleUpdateValorPago(valorPagoInput)}
-                          style={{
-                            background: '#0c1610',
-                            border: '1px solid rgba(203, 161, 83, 0.12)',
-                            borderRadius: '8px',
-                            color: '#f0f2ec',
-                            padding: '10px 14px',
-                            fontSize: '0.9rem',
-                            outline: 'none',
-                            width: '100%'
+                    {/* REGISTRAR NOVO RECEBIMENTO */}
+                    <div style={{ background: 'rgba(255, 255, 255, 0.01)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.06)', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '12px' }}>💰 Registrar Novo Pagamento Recebido</div>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '120px' }}>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Valor (R$)</label>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={newPaymentVal}
+                            onChange={(e) => setNewPaymentVal(e.target.value)}
+                            style={{
+                              background: '#0c1610',
+                              border: '1px solid rgba(203, 161, 83, 0.12)',
+                              borderRadius: '8px',
+                              color: '#f0f2ec',
+                              padding: '8px 12px',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              width: '100%'
+                            }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '140px' }}>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Forma de Pagamento</label>
+                          <select
+                            value={newPaymentForma}
+                            onChange={(e) => setNewPaymentForma(e.target.value)}
+                            style={{
+                              background: '#0c1610',
+                              border: '1px solid rgba(203, 161, 83, 0.12)',
+                              borderRadius: '8px',
+                              color: '#f0f2ec',
+                              padding: '8px 12px',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              width: '100%',
+                              height: '35px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {['Pix', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro', 'Transferência'].map(f => (
+                              <option key={f} value={f}>{f}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await handleRegisterRecebimento(newPaymentVal, newPaymentForma);
+                            setNewPaymentVal('');
                           }}
-                        />
+                          style={{
+                            background: 'var(--primary)',
+                            border: 'none',
+                            color: '#000',
+                            fontWeight: 'bold',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            height: '35px'
+                          }}
+                        >
+                          Confirmar Recebimento
+                        </button>
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '8px' }}>
-                      Os valores são salvos automaticamente ao desfocar de qualquer um dos campos.
-                    </span>
+
+                    {/* HISTÓRICO DE RECEBIMENTOS */}
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 'bold' }}>Histórico de Lançamentos Recebidos:</div>
+                      {selectedLead.financeiro?.recebimentos ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {Object.values(selectedLead.financeiro.recebimentos)
+                            .sort((a,b) => new Date(b.data) - new Date(a.data))
+                            .map((rec) => (
+                              <div key={rec.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.02)' }}>
+                                <div style={{ fontSize: '0.82rem' }}>
+                                  <span style={{ color: '#FFF', fontWeight: '500' }}>
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(rec.valor)}
+                                  </span>
+                                  <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                                    via {rec.formaPagamento} em {new Date(rec.data).toLocaleDateString('pt-BR')}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRecebimento(rec.id)}
+                                  style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '4px' }}
+                                >
+                                  <FiTrash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Nenhum pagamento registrado ainda. Use o painel acima para registrar.</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* CUSTOS SECTION */}
@@ -2756,11 +2964,13 @@ export default function LeadsKanban() {
                         </select>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '80px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Qtd (opcional)</label>
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '80px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {newCost.categoria === 'equipe' ? 'Nº Pessoas' : 'Qtd (opcional)'}
+                        </label>
                         <input
                           type="number"
-                          placeholder="1"
+                          placeholder={newCost.categoria === 'equipe' ? 'Ex: 3' : '1'}
                           value={newCost.quantidade}
                           onChange={(e) => {
                             const qty = e.target.value;
@@ -2780,7 +2990,9 @@ export default function LeadsKanban() {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '80px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>R$ Unit. (opcional)</label>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {newCost.categoria === 'equipe' ? 'Diária / Valor' : 'R$ Unit. (opcional)'}
+                        </label>
                         <input
                           type="number"
                           placeholder="0.00"
@@ -2803,7 +3015,9 @@ export default function LeadsKanban() {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1', minWidth: '100px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total (R$)</label>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {newCost.categoria === 'equipe' ? 'Custo Total (R$)' : 'Total (R$)'}
+                        </label>
                         <input
                           type="number"
                           placeholder="0.00"
