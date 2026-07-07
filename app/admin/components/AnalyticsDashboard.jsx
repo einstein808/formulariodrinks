@@ -39,6 +39,32 @@ export default function AnalyticsDashboard() {
   const [activeTab, setActiveTab] = useState('geral'); // 'geral' | 'financeiro'
   const [custosCategorias, setCustosCategorias] = useState([]);
 
+  const [selectedYear, setSelectedYear] = useState('todos');
+  const [selectedStatus, setSelectedStatus] = useState('todos');
+  const [selectedMonth, setSelectedMonth] = useState('todos');
+
+  useEffect(() => {
+    if (leads.length > 0) {
+      const years = Array.from(new Set(leads.map(lead => {
+        let date = null;
+        if (lead.dataEvento) {
+          date = new Date(lead.dataEvento + 'T00:00:00');
+        } else if (lead.criadoEm) {
+          date = parseCriadoEm(lead.criadoEm);
+        }
+        return date && !isNaN(date.getTime()) ? date.getFullYear().toString() : null;
+      }).filter(Boolean)));
+
+      const currentYearStr = new Date().getFullYear().toString();
+      if (years.includes(currentYearStr)) {
+        setSelectedYear(currentYearStr);
+      } else if (years.length > 0) {
+        years.sort((a, b) => b.localeCompare(a));
+        setSelectedYear(years[0]);
+      }
+    }
+  }, [leads]);
+
   useEffect(() => {
     const leadsRef = ref(db, 'leads');
     const unsubLeads = onValue(leadsRef, (snapshot) => {
@@ -211,6 +237,17 @@ export default function AnalyticsDashboard() {
   const leadsDiretos = leads.filter(l => !l.cerimonialista);
   const fechadosDiretos = leadsDiretos.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
 
+  // Get all unique years from leads
+  const availableYears = Array.from(new Set(leads.map(lead => {
+    let date = null;
+    if (lead.dataEvento) {
+      date = new Date(lead.dataEvento + 'T00:00:00');
+    } else if (lead.criadoEm) {
+      date = parseCriadoEm(lead.criadoEm);
+    }
+    return date && !isNaN(date.getTime()) ? date.getFullYear().toString() : null;
+  }).filter(Boolean))).sort((a, b) => b.localeCompare(a));
+
   // --- Processar Dados: Financeiro ---
   let totalFaturamento = 0;
   let totalValorPago = 0;
@@ -247,6 +284,25 @@ export default function AnalyticsDashboard() {
     const fin = lead.financeiro;
     if (!fin) return;
 
+    let date = null;
+    if (lead.dataEvento) {
+      date = new Date(lead.dataEvento + 'T00:00:00');
+    } else if (lead.criadoEm) {
+      date = parseCriadoEm(lead.criadoEm);
+    }
+
+    let leadYear = 'Sem Data';
+    let leadMonth = 'Sem Data';
+    if (date && !isNaN(date.getTime())) {
+      leadYear = date.getFullYear().toString();
+      leadMonth = String(date.getMonth() + 1).padStart(2, '0');
+    }
+
+    // Apply filters
+    if (selectedYear !== 'todos' && leadYear !== selectedYear) return;
+    if (selectedMonth !== 'todos' && leadMonth !== selectedMonth) return;
+    if (selectedStatus !== 'todos' && lead.status !== selectedStatus) return;
+
     const fatBruto = parseFloat(fin.faturamento) || 0;
     const desc = parseFloat(fin.desconto) || 0;
     const fat = fatBruto - desc; // Net faturamento after discount
@@ -274,12 +330,6 @@ export default function AnalyticsDashboard() {
 
     const nomeCliente = `${lead.nome || ''} ${lead.sobrenome || ''}`.trim() || 'Sem nome';
     
-    let date = null;
-    if (lead.dataEvento) {
-      date = new Date(lead.dataEvento + 'T00:00:00');
-    } else if (lead.criadoEm) {
-      date = parseCriadoEm(lead.criadoEm);
-    }
 
     let mesFormatado = 'Sem Data';
     let sortKey = '9999-99';
@@ -497,6 +547,119 @@ export default function AnalyticsDashboard() {
 
       {activeTab === 'financeiro' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* FILTERS BAR */}
+          <div style={{
+            background: 'var(--bg-input)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '16px',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>🗓️ Filtrar por Ano</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                style={{
+                  background: '#0c1610',
+                  color: '#fff',
+                  border: '1px solid rgba(203, 161, 83, 0.15)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="todos">📅 Todos os Anos</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>📅 Filtrar por Mês</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  background: '#0c1610',
+                  color: '#fff',
+                  border: '1px solid rgba(203, 161, 83, 0.15)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="todos">📆 Todos os Meses</option>
+                <option value="01">01 - Janeiro</option>
+                <option value="02">02 - Fevereiro</option>
+                <option value="03">03 - Março</option>
+                <option value="04">04 - Abril</option>
+                <option value="05">05 - Maio</option>
+                <option value="06">06 - Junho</option>
+                <option value="07">07 - Julho</option>
+                <option value="08">08 - Agosto</option>
+                <option value="09">09 - Setembro</option>
+                <option value="10">10 - Outubro</option>
+                <option value="11">11 - Novembro</option>
+                <option value="12">12 - Dezembro</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>⚡ Status do Lead</label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                style={{
+                  background: '#0c1610',
+                  color: '#fff',
+                  border: '1px solid rgba(203, 161, 83, 0.15)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="todos">✨ Todos os Status</option>
+                <option value="leads">Novo (Leads)</option>
+                <option value="negociacao">Em Negociação</option>
+                <option value="fechado">Fechado</option>
+                <option value="realizado">Realizado</option>
+                <option value="perdido">Perdido/Cancelado</option>
+              </select>
+            </div>
+
+            {(selectedYear !== 'todos' || selectedMonth !== 'todos' || selectedStatus !== 'todos') && (
+              <button
+                onClick={() => {
+                  setSelectedYear('todos');
+                  setSelectedMonth('todos');
+                  setSelectedStatus('todos');
+                }}
+                style={{
+                  marginTop: '18px',
+                  background: 'rgba(244, 67, 54, 0.1)',
+                  color: '#FF7043',
+                  border: '1px solid rgba(244, 67, 54, 0.3)',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                🧹 Limpar Filtros
+              </button>
+            )}
+          </div>
+
           {/* KPI CARDS */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
             {/* FATURAMENTO ACUMULADO */}
