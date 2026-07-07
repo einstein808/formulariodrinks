@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
-Allow: /portfolio
 Disallow: /admin/
 Disallow: /sair/
 Disallow: /avaliacao/
