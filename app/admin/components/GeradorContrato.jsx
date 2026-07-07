@@ -458,14 +458,6 @@ export default function GeradorContrato() {
           else if (found.category === 'sofisticado') mappedSofisticados.push(found.id);
           else if (found.category === 'sem_alcool') mappedNA.push(found.id);
           else if (found.category === 'frozen') mappedFrozen.push(found.id);
-        } else {
-          if (drinkId.toLowerCase().includes('sem álcool') || drinkId.toLowerCase().includes('sem alcool')) {
-            mappedNA.push(drinkId);
-          } else if (drinkId.toLowerCase().includes('aperol') || drinkId.toLowerCase().includes('negroni') || drinkId.toLowerCase().includes('lagoa azul')) {
-            mappedSofisticados.push(drinkId);
-          } else {
-            mappedAlcool.push(drinkId);
-          }
         }
       });
     }
