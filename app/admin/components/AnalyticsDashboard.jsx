@@ -10,6 +10,28 @@ import { FiHeart, FiTrendingUp, FiDollarSign } from 'react-icons/fi';
 
 const COLORS = ['#00E5FF', '#FFD54F', '#4CAF50', '#F44336', '#9C27B0', '#FF9800'];
 
+const EVENT_TYPE_COLORS = {
+  'Casamento': '#E91E63',
+  'Aniversário': '#FFD54F',
+  'Formatura': '#4CAF50',
+  'Corporativo': '#2196F3',
+  'Confraternização': '#FF9800',
+  'Chá Bar': '#CE93D8',
+  'Debutante': '#F48FB1',
+  'Outro': '#a8b8aa'
+};
+
+const EVENT_TYPE_EMOJIS = {
+  'Casamento': '💍',
+  'Aniversário': '🎂',
+  'Formatura': '🎓',
+  'Corporativo': '🏢',
+  'Confraternização': '🎉',
+  'Chá Bar': '🍸',
+  'Debutante': '👑',
+  'Outro': '✨'
+};
+
 export default function AnalyticsDashboard() {
   const [leads, setLeads] = useState([]);
   const [cerimonialistas, setCerimonialistas] = useState({});
@@ -105,6 +127,33 @@ export default function AnalyticsDashboard() {
   const pieData = Object.keys(pacotesCount).map(key => ({
     name: key,
     value: pacotesCount[key]
+  })).sort((a, b) => b.value - a.value);
+
+  // --- Processar Dados: Gráfico de Pizza (Tipos de Evento) ---
+  const normalizeEventType = (tipo) => {
+    if (!tipo) return 'Não informado';
+    const clean = tipo.trim().toLowerCase();
+    if (clean.includes('casamento')) return 'Casamento';
+    if (clean.includes('aniversário') || clean.includes('aniversario') || clean.includes('niver')) return 'Aniversário';
+    if (clean.includes('formatura')) return 'Formatura';
+    if (clean.includes('corporativo') || clean.includes('empresa')) return 'Corporativo';
+    if (clean.includes('confraternização') || clean.includes('confraternizacao') || clean.includes('confra')) return 'Confraternização';
+    if (clean.includes('chá bar') || clean.includes('cha bar') || clean.includes('chabar')) return 'Chá Bar';
+    if (clean.includes('debutante') || clean.includes('15 anos') || clean.includes('quinze')) return 'Debutante';
+    return tipo.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  };
+
+  const tipoEventoCount = {};
+  leads.forEach(lead => {
+    const tipo = normalizeEventType(lead.tipoEvento);
+    tipoEventoCount[tipo] = (tipoEventoCount[tipo] || 0) + 1;
+  });
+
+  const tipoEventoPieData = Object.keys(tipoEventoCount).map(key => ({
+    name: key,
+    value: tipoEventoCount[key],
+    color: EVENT_TYPE_COLORS[key] || '#a8b8aa',
+    emoji: EVENT_TYPE_EMOJIS[key] || '✨'
   })).sort((a, b) => b.value - a.value);
 
   // --- Processar Dados: Gráfico de Barras (Sazonalidade - Fechados / Realizados) ---
@@ -841,6 +890,56 @@ export default function AnalyticsDashboard() {
           )}
         </div>
 
+        {/* Gráfico: Tipos de Evento mais contratados */}
+        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
+          <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>🎯 Tipos de Evento Mais Contratados</h3>
+          {tipoEventoPieData.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center' }}>
+              <div style={{ flex: '1 1 280px', height: 300 }}>
+                <ResponsiveContainer width="99%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={tipoEventoPieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={100}
+                      paddingAngle={4}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      labelLine={false}
+                    >
+                      {tipoEventoPieData.map((entry, index) => (
+                        <Cell key={`evt-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} 
+                      itemStyle={{ color: '#fff' }} 
+                      formatter={(value, name) => [`${value} leads`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {tipoEventoPieData.map((item, idx) => {
+                  const total = leads.length;
+                  const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+                  return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0' }}>
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.85rem', color: '#FFF', flex: 1 }}>{item.emoji} {item.name}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{item.value}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', minWidth: '40px', textAlign: 'right' }}>{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum tipo de evento informado nos leads.</div>
+          )}
+        </div>
         {/* Gráfico 3: Eventos por Mês */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
           <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Sazonalidade (Eventos Fechados por Mês)</h3>
