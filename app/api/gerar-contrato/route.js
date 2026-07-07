@@ -28,7 +28,14 @@ const getMaoDeObraTemplate = (data) => {
   const ajudanteObjeto = isAjudante ? `com ${numAjudantes === 1 ? 'ajudante' : `${numAjudantes} ajudantes`}` : "";
   const barmansLi = `<li>${formatStaffQty(numBarmans, 'barman', 'barmans')};</li>`;
   const ajudanteLi = isAjudante ? `<li>${formatStaffQty(numAjudantes, 'ajudante', 'ajudantes')};</li>` : "";
-  const ajudanteHoraExtra = isAjudante ? `<li><strong>Ajudante:</strong> R$ ${data.valor_hora_extra_ajudante_formatado} por hora extra.</li>` : "";
+  
+  const rateBarman = parseFloat(data.valor_hora_extra_barman || 70);
+  const rateAjudante = parseFloat(data.valor_hora_extra_ajudante || 40);
+  const totalBarmanHE = (numBarmans * rateBarman).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalAjudanteHE = (numAjudantes * rateAjudante).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const barmansHoraExtra = `<li><strong>Barman:</strong> ${numBarmans} × R$ ${data.valor_hora_extra_barman_formatado || '70,00'}/h = R$ ${totalBarmanHE} por hora extra.</li>`;
+  const ajudanteHoraExtra = isAjudante ? `<li><strong>Ajudante:</strong> ${numAjudantes} × R$ ${data.valor_hora_extra_ajudante_formatado || '40,00'}/h = R$ ${totalAjudanteHE} por hora extra.</li>` : "";
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -178,9 +185,7 @@ const getMaoDeObraTemplate = (data) => {
             <span class="highlight">3.3</span> Os valores de hora extra ficam definidos da seguinte forma:
         </p>
         <ul>
-            <li>
-                <strong>Barman:</strong> R$ ${data.valor_hora_extra_barman_formatado || ''} por hora extra.
-            </li>
+            ${barmansHoraExtra}
             ${ajudanteHoraExtra}
         </ul>
         <p class="clausula">
