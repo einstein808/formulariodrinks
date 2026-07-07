@@ -1252,6 +1252,9 @@ export default function GeradorContrato() {
                   <div style={{ fontWeight: 'bold', color: '#FFF' }}>
                     <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>Valor Total:</span> {financials.valor_total_formatado.includes('R$') ? financials.valor_total_formatado : `R$ ${financials.valor_total_formatado}`}
                   </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Valor da Hora Extra:</span> {financials.is_per_person ? `R$ ${financials.valor_hora_extra_formatado}/h` : `Barman: R$ ${financials.valor_hora_extra_barman_formatado}/h${financials.valor_hora_extra_ajudante > 0 ? ` | Ajudante: R$ ${financials.valor_hora_extra_ajudante_formatado}/h` : ''}`}
+                  </div>
                 </div>
                 <div style={{ marginTop: '14px', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '10px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <strong>Forma de Pagamento sugerida (50/50):</strong>

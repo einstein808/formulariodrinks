@@ -2,11 +2,32 @@ import { NextResponse } from 'next/server';
 import { ref, get } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 
+const formatStaffQty = (count, singular, plural) => {
+  if (count <= 0) return '';
+  const numberWords = {
+    1: '01 (um)',
+    2: '02 (dois)',
+    3: '03 (três)',
+    4: '04 (quatro)',
+    5: '05 (cinco)',
+    6: '06 (seis)',
+    7: '07 (sete)',
+    8: '08 (oito)',
+    9: '09 (nove)',
+    10: '10 (dez)'
+  };
+  const word = numberWords[count] || String(count).padStart(2, '0');
+  return `${word} ${count === 1 ? singular : plural}`;
+};
+
 const getMaoDeObraTemplate = (data) => {
-  const isAjudante = (data.servico_normalizado || data.Servico || '').toLowerCase().includes('ajudante') || parseInt(data.ajudantes || 0, 10) > 0;
+  const numBarmans = parseInt(data.barmans || 1, 10);
+  const numAjudantes = parseInt(data.ajudantes || 0, 10);
+  const isAjudante = numAjudantes > 0;
   const servicoText = isAjudante ? "Contrato de Prestação de Serviços de Barman – Mão de Obra + Ajudante" : "Contrato de Prestação de Serviços de Barman – Mão de Obra";
-  const ajudanteObjeto = isAjudante ? "com ajudante" : "";
-  const ajudanteLi = isAjudante ? `<li>01 (um) ajudante;</li>` : "";
+  const ajudanteObjeto = isAjudante ? `com ${numAjudantes === 1 ? 'ajudante' : `${numAjudantes} ajudantes`}` : "";
+  const barmansLi = `<li>${formatStaffQty(numBarmans, 'barman', 'barmans')};</li>`;
+  const ajudanteLi = isAjudante ? `<li>${formatStaffQty(numAjudantes, 'ajudante', 'ajudantes')};</li>` : "";
   const ajudanteHoraExtra = isAjudante ? `<li><strong>Ajudante:</strong> R$ ${data.valor_hora_extra_ajudante_formatado} por hora extra.</li>` : "";
 
   return `<!DOCTYPE html>
@@ -123,7 +144,7 @@ const getMaoDeObraTemplate = (data) => {
             <span class="highlight">1.3</span> Estão incluídos neste contrato:
         </p>
         <ul>
-            <li>01 (um) barman;</li>
+            ${barmansLi}
             ${ajudanteLi}
             <li>deslocamento;</li>
             <li>acessórios de bar;</li>
@@ -151,7 +172,7 @@ const getMaoDeObraTemplate = (data) => {
             <span class="highlight">3.1</span> Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado, e havendo disponibilidade do profissional, poderão ser realizadas horas extras de atendimento.
         </p>
         <p class="clausula">
-            <span class="highlight">3.2</span> O valor da hora extra é calculated sobre a base da mão de obra de R$ 350,00, utilizando a fórmula: <strong>(R$ 350,00 ÷ 5) + 30%</strong>.
+            <span class="highlight">3.2</span> O valor da hora extra é calculado com base no tamanho da equipe e valores de diária contratados, conforme a modalidade do serviço.
         </p>
         <p class="clausula">
             <span class="highlight">3.3</span> Os valores de hora extra ficam definidos da seguinte forma:
@@ -226,6 +247,8 @@ const getMaoDeObraTemplate = (data) => {
 };
 
 const getStandardTemplate = (data) => {
+  const numBarmans = parseInt(data.barmans || 1, 10);
+  const numAjudantes = parseInt(data.ajudantes || 0, 10);
   const drinksAlcoolText = Array.isArray(data.drinks_alcool) ? data.drinks_alcool.join(', ') : (data.drinks_alcool || 'Não selecionado');
   const drinksSemAlcoolText = Array.isArray(data.drinks_sem_alcool) ? data.drinks_sem_alcool.join(', ') : (data.drinks_sem_alcool || 'Não selecionado');
   const drinksSofisticadosText = Array.isArray(data.drinks_sofisticados) ? data.drinks_sofisticados.join(', ') : (data.drinks_sofisticados || 'Não selecionado');
@@ -498,7 +521,7 @@ const getStandardTemplate = (data) => {
         com duração de <strong>${data.duracao || ''} horas</strong> de atendimento efetivo.
       </p>
       <p>
-        1.2 O serviço contratado corresponde ao plano <strong>${data.Servico || ''}</strong>, incluindo mão de obra, insumos necessários para o preparo dos drinks, deslocamento e acessórios de bar, conforme a modalidade efetivamente contratada.
+        1.2 O serviço contratado corresponde ao plano <strong>${data.Servico || ''}</strong>, contando com equipe de <strong>${formatStaffQty(numBarmans, 'barman', 'barmans')}</strong>${numAjudantes > 0 ? ` e <strong>${formatStaffQty(numAjudantes, 'ajudante', 'ajudantes')}</strong>` : ''}, incluindo mão de obra, insumos necessários para o preparo dos drinks, deslocamento e acessórios de bar, conforme a modalidade efetivamente contratada.
       </p>
       <p>
         1.3 O tipo de drinks selecionado para o evento é <strong>${data.tipodrink || ''}</strong>.
@@ -578,6 +601,10 @@ const getStandardTemplate = (data) => {
               <td style="color: #F44336;">- R$ ${data.desconto_formatado || '0,00'}</td>
             </tr>
             ` : ''}
+            <tr>
+              <td><strong>Hora extra (adicional)</strong></td>
+              <td>R$ ${data.valor_hora_extra_formatado || '0,00'}/hora</td>
+            </tr>
             <tr>
               <td><strong>Valor total</strong></td>
               <td class="valor-destaque">R$ ${data.valor_total_formatado || '0,00'}</td>
