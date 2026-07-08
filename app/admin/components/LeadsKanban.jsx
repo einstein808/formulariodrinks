@@ -353,6 +353,23 @@ export default function LeadsKanban() {
     }
   };
 
+  const toggleShoppingListItem = async (lead, itemId) => {
+    const currentChecked = lead.shoppingListChecked || {};
+    const newChecked = { ...currentChecked, [itemId]: !currentChecked[itemId] };
+    setSelectedLead(prev => ({
+      ...prev,
+      shoppingListChecked: newChecked
+    }));
+    try {
+      await update(ref(db, `leads/${lead.id}`), {
+        shoppingListChecked: newChecked
+      });
+    } catch (e) {
+      console.error(e);
+      showToast("Erro ao salvar conferência do item.", "error");
+    }
+  };
+
   const updateInsumoKey = (oldKey, newKey) => {
     if (oldKey === newKey) return;
     const insumos = { ...editedShoppingList.insumos };
@@ -1733,7 +1750,7 @@ export default function LeadsKanban() {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: '#0a140d', width: '100%', maxWidth: isMobile ? '100%' : '680px',
+              background: 'var(--bg-card)', width: '100%', maxWidth: isMobile ? '100%' : '680px',
             borderRadius: isMobile ? '20px 20px 0 0' : '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.1)',
             maxHeight: isMobile ? '95vh' : '90vh', display: 'flex', flexDirection: 'column',
             boxShadow: '0 -4px 40px rgba(0,0,0,0.7)',
@@ -1741,7 +1758,7 @@ export default function LeadsKanban() {
             borderBottom: isMobile ? 'none' : undefined
           }}>
             {/* HEADER */}
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0a1210' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-app)' }}>
               <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.2rem' }}>Detalhes do Lead</h2>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 {!isEditingLead ? (
@@ -1765,7 +1782,7 @@ export default function LeadsKanban() {
             {/* TABS SELECTOR */}
             <div style={{ 
               display: 'flex', 
-              background: '#0a1210', 
+              background: 'var(--bg-app)', 
               borderBottom: '1px solid rgba(203, 161, 83, 0.08)',
               overflowX: 'auto',
               whiteSpace: 'nowrap',
@@ -1863,7 +1880,7 @@ export default function LeadsKanban() {
                         padding: '4px 10px', 
                         fontSize: '0.8rem', 
                         borderRadius: '6px', 
-                        background: '#050a06', 
+                        background: 'var(--bg-input)', 
                         borderColor: 'rgba(203, 161, 83, 0.3)',
                         color: 'var(--primary)',
                         fontWeight: 'bold',
@@ -1921,7 +1938,7 @@ export default function LeadsKanban() {
                         className="form-select"
                         style={{ 
                           marginTop: 0, 
-                          background: '#050a06', 
+                          background: 'var(--bg-input)', 
                           borderColor: 'rgba(203, 161, 83, 0.15)',
                           borderRadius: '8px',
                           padding: '8px 12px',
@@ -2132,7 +2149,7 @@ export default function LeadsKanban() {
                             const statusColor = msg.success ? '#4CAF50' : '#F44336';
                             
                             return (
-                              <div key={msg.key} style={{ background: '#050a06', padding: '8px 12px', borderRadius: '6px', borderLeft: `3px solid ${statusColor}`, fontSize: '0.8rem' }}>
+                              <div key={msg.key} style={{ background: 'var(--bg-input)', padding: '8px 12px', borderRadius: '6px', borderLeft: `3px solid ${statusColor}`, fontSize: '0.8rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                   <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{icon} {actionLabel}</span>
                                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{dateStr}</span>
@@ -2194,7 +2211,7 @@ export default function LeadsKanban() {
                         style={{ 
                           marginTop: 0, 
                           flex: 1, 
-                          background: '#050a06', 
+                          background: 'var(--bg-input)', 
                           borderColor: 'rgba(203, 161, 83, 0.15)',
                           borderRadius: '8px',
                           padding: '8px 12px',
@@ -2601,18 +2618,63 @@ export default function LeadsKanban() {
                       </div>
 
                       {!isEditingShoppingList ? (
-                        /* 🔍 READ-ONLY VIEW */
+                        /* 🔍 INTERACTIVE CHECKLIST VIEW */
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
+                          {/* Progress bar */}
+                          {(() => {
+                            const allItemIds = [
+                              ...(selectedLead.shoppingListResult.insumos ? Object.keys(selectedLead.shoppingListResult.insumos).map(n => `insumo_${n}`) : []),
+                              ...(selectedLead.shoppingListResult.fixos ? selectedLead.shoppingListResult.fixos.map(f => `fixo_${f.id}`) : [])
+                            ];
+                            const checkedCount = allItemIds.filter(id => selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[id]).length;
+                            const totalCount = allItemIds.length;
+                            const progressPct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+                            return (
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Conferência de itens:</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: progressPct === 100 ? '#4CAF50' : 'var(--primary)' }}>
+                                    {checkedCount}/{totalCount} ({progressPct}%)
+                                  </span>
+                                </div>
+                                <div style={{ height: '6px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${progressPct}%`, background: progressPct === 100 ? '#4CAF50' : 'var(--primary)', transition: 'width 0.3s ease' }} />
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
                             <div>
                               <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Insumos e Bebidas:</strong>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
-                                {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => (
-                                  <div key={insumo} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>{insumo}</span>
-                                    <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
-                                  </div>
-                                ))}
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => {
+                                  const itemId = `insumo_${insumo}`;
+                                  const isChecked = !!(selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[itemId]);
+                                  return (
+                                    <div 
+                                      key={insumo} 
+                                      onClick={() => toggleShoppingListItem(selectedLead, itemId)}
+                                      style={{ 
+                                        padding: '8px 12px', 
+                                        background: isChecked ? 'rgba(76,175,80,0.06)' : 'rgba(255,255,255,0.02)', 
+                                        borderRadius: '8px', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '10px',
+                                        border: `1px solid ${isChecked ? '#4CAF50' : 'rgba(255,255,255,0.04)'}`,
+                                        cursor: 'pointer',
+                                        userSelect: 'none'
+                                      }}
+                                    >
+                                      <div style={{ width: 18, height: 18, borderRadius: '4px', border: `2px solid ${isChecked ? '#4CAF50' : 'var(--border-color)'}`, background: isChecked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        {isChecked && <FiCheck size={12} color="#fff" strokeWidth={3} />}
+                                      </div>
+                                      <span style={{ flex: 1, color: isChecked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: isChecked ? 'line-through' : 'none', fontSize: '0.82rem' }}>{insumo}</span>
+                                      <strong style={{ color: isChecked ? 'var(--text-muted)' : 'var(--primary)', fontSize: '0.82rem' }}>{qtd}</strong>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
@@ -2620,13 +2682,34 @@ export default function LeadsKanban() {
                           {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
                             <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
                               <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Itens Fixos / Descartáveis:</strong>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
-                                {selectedLead.shoppingListResult.fixos.map((item, idx) => (
-                                  <div key={idx} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>{item.nome}</span>
-                                    <strong style={{ color: 'var(--primary)' }}>{item.quantidade} {item.unidade}</strong>
-                                  </div>
-                                ))}
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                {selectedLead.shoppingListResult.fixos.map((item, idx) => {
+                                  const itemId = `fixo_${item.id}`;
+                                  const isChecked = !!(selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[itemId]);
+                                  return (
+                                    <div 
+                                      key={idx} 
+                                      onClick={() => toggleShoppingListItem(selectedLead, itemId)}
+                                      style={{ 
+                                        padding: '8px 12px', 
+                                        background: isChecked ? 'rgba(76,175,80,0.06)' : 'rgba(255,255,255,0.02)', 
+                                        borderRadius: '8px', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '10px',
+                                        border: `1px solid ${isChecked ? '#4CAF50' : 'rgba(255,255,255,0.04)'}`,
+                                        cursor: 'pointer',
+                                        userSelect: 'none'
+                                      }}
+                                    >
+                                      <div style={{ width: 18, height: 18, borderRadius: '4px', border: `2px solid ${isChecked ? '#4CAF50' : 'var(--border-color)'}`, background: isChecked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        {isChecked && <FiCheck size={12} color="#fff" strokeWidth={3} />}
+                                      </div>
+                                      <span style={{ flex: 1, color: isChecked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: isChecked ? 'line-through' : 'none', fontSize: '0.82rem' }}>{item.nome}</span>
+                                      <strong style={{ color: isChecked ? 'var(--text-muted)' : 'var(--primary)', fontSize: '0.82rem' }}>{item.quantidade} {item.unidade}</strong>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
@@ -3539,7 +3622,7 @@ export default function LeadsKanban() {
             </div>
             
             {/* MODAL FOOTER */}
-            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', justifyContent: 'flex-end', background: '#0a1210' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', justifyContent: 'flex-end', background: 'var(--bg-app)' }}>
               <button 
                 onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} 
                 style={{
@@ -3732,7 +3815,7 @@ export default function LeadsKanban() {
           animation: 'fadeIn 0.2s ease'
         }}>
           <div style={{
-            background: '#0e1a12',
+            background: 'var(--bg-card)',
             border: '1px solid rgba(203, 161, 83, 0.15)',
             borderRadius: '16px',
             padding: '24px',

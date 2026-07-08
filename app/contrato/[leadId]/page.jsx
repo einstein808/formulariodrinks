@@ -587,7 +587,132 @@ export default function ClienteContratoPage() {
         ...formData.drinks_sem_alcool,
         ...(limitFrozen > 0 ? (formData.drinks_frozen || []) : [])
       ];
-      
+
+      // Dynamic shopping list calculation upon contract submission
+      let calculatedShoppingList = null;
+      try {
+        const [drinksMenuSnap, shoppingConfigSnap] = await Promise.all([
+          get(ref(db, 'config/drinksMenu')),
+          get(ref(db, 'config/shoppingConfig'))
+        ]);
+
+        if (drinksMenuSnap.exists()) {
+          const drinksConfig = drinksMenuSnap.val();
+          const shoppingConfig = shoppingConfigSnap.exists() ? shoppingConfigSnap.val() : {};
+
+          const convidadosVal = Math.max(Number(formData.convidados) || 0, 40);
+          const totalDrinksFesta = Math.ceil(convidadosVal * 3.5);
+          const margem = shoppingConfig.margemSeguranca ? (1 + (Number(shoppingConfig.margemSeguranca) / 100)) : 1.10;
+
+          const agregadorInsumos = {};
+          
+          const selectedDrinksList = chosenDrinks.map(drinkId => {
+            const rawDrink = drinksConfig[drinkId] || Object.values(drinksConfig).find(d => d.name === drinkId);
+            return rawDrink ? { id: drinkId, ...rawDrink } : null;
+          }).filter(Boolean);
+
+          const selectedAlcool = selectedDrinksList.filter(d => d.category !== 'sem_alcool' && !d.isNonAlcoholic);
+          const selectedSemAlcool = selectedDrinksList.filter(d => d.category === 'sem_alcool' || d.isNonAlcoholic);
+
+          const pctSemAlcool = selectedSemAlcool.length > 0 ? (Number(shoppingConfig.nonAlcoholicPercentage) || 15) / 100 : 0;
+          const pctAlcool = 1 - pctSemAlcool;
+
+          const totalDrinksFestaAlcool = Math.ceil(totalDrinksFesta * pctAlcool);
+          const totalDrinksFestaSemAlcool = Math.ceil(totalDrinksFesta * pctSemAlcool);
+
+          const totalWeightAlcool = selectedAlcool.reduce((sum, d) => sum + (Number(d.popularityWeight) || 5), 0);
+          const totalWeightSemAlcool = selectedSemAlcool.reduce((sum, d) => sum + (Number(d.popularityWeight) || 5), 0);
+
+          selectedDrinksList.forEach(drink => {
+            const isNonAlc = drink.category === 'sem_alcool' || drink.isNonAlcoholic;
+            const pesoDrink = Number(drink.popularityWeight) || 5;
+            
+            let proportion = 0;
+            let drinksDesteTipo = 0;
+
+            if (isNonAlc) {
+              proportion = totalWeightSemAlcool > 0 ? pesoDrink / totalWeightSemAlcool : 1 / selectedSemAlcool.length;
+              drinksDesteTipo = Math.ceil(totalDrinksFestaSemAlcool * proportion);
+            } else {
+              proportion = totalWeightAlcool > 0 ? pesoDrink / totalWeightAlcool : 1 / selectedAlcool.length;
+              drinksDesteTipo = Math.ceil(totalDrinksFestaAlcool * proportion);
+            }
+
+            if (drink.receita && Array.isArray(drink.receita)) {
+              drink.receita.forEach(item => {
+                if (!item.insumo || !item.quantidade) return;
+                
+                const qtdTotalBase = Number(item.quantidade) * drinksDesteTipo;
+                const qtdComMargem = qtdTotalBase * margem;
+                
+                const chaveBase = item.insumo.trim().toLowerCase();
+                const chave = chaveBase.charAt(0).toUpperCase() + chaveBase.slice(1);
+                
+                if (!agregadorInsumos[chave]) {
+                  agregadorInsumos[chave] = { qtd: 0, unidade: item.unidade || 'ml' };
+                }
+                agregadorInsumos[chave].qtd += qtdComMargem;
+              });
+            }
+          });
+
+          // Format Insumos
+          const insumosFormatados = {};
+          Object.entries(agregadorInsumos).forEach(([nome, data]) => {
+            let qtdFinal = data.qtd;
+            let undFinal = data.unidade;
+
+            if (undFinal === 'ml') {
+              qtdFinal = Math.ceil(qtdFinal / 1000);
+              undFinal = 'Litros';
+            } else if (undFinal === 'g' && qtdFinal >= 1000) {
+              qtdFinal = Math.ceil(qtdFinal / 1000);
+              undFinal = 'Kg';
+            } else {
+              qtdFinal = Math.ceil(qtdFinal);
+            }
+            insumosFormatados[nome] = `${qtdFinal} ${undFinal}`;
+          });
+
+          const DEFAULT_FIXED_ITEMS = [
+            { id: 'sifao_espuma', nome: 'Sifão de Espuma (carga)', categoria: 'bar', tipoCalc: 'fixo', quantidade: 6, unidade: 'un' },
+            { id: 'limoes', nome: 'Limões', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.04, unidade: 'kg' },
+            { id: 'gelo', nome: 'Gelo', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.2, unidade: 'kg' },
+            { id: 'hortela', nome: 'Hortelã', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.02, unidade: 'maço' },
+            { id: 'decoracao', nome: 'Decoração de Mesa', categoria: 'decoracao', tipoCalc: 'fixo', quantidade: 1, unidade: 'kit' },
+            { id: 'guardanapos', nome: 'Guardanapos', categoria: 'descartavel', tipoCalc: 'porConvidado', quantidade: 0.05, unidade: 'pct' },
+            { id: 'canudos', nome: 'Canudos', categoria: 'descartavel', tipoCalc: 'fixo', quantidade: 2, unidade: 'pct' },
+          ];
+
+          const fixosBase = (shoppingConfig.itensFixos && shoppingConfig.itensFixos.length > 0)
+            ? shoppingConfig.itensFixos
+            : DEFAULT_FIXED_ITEMS;
+
+          const fixosFormatados = fixosBase.map(fixo => {
+            if (!fixo.nome) return null;
+            const total = fixo.tipoCalc === 'porConvidado'
+              ? Math.ceil(Number(fixo.quantidade) * convidadosVal)
+              : Math.ceil(Number(fixo.quantidade));
+            return {
+              id: fixo.id || fixo.nome.toLowerCase().replace(/\s+/g, '_'),
+              nome: fixo.nome,
+              quantidade: total,
+              unidade: fixo.unidade || 'un',
+              categoria: fixo.categoria || 'bar',
+            };
+          }).filter(Boolean);
+
+          calculatedShoppingList = {
+            insumos: insumosFormatados,
+            fixos: fixosFormatados,
+            drinksEscolhidos: chosenDrinks,
+            convidadosCalculados: convidadosVal
+          };
+        }
+      } catch (calcError) {
+        console.error("Erro ao calcular a lista de compras no contrato:", calcError);
+      }
+
       let databaseTiposDrinks = 'alcool_sem_alcool';
       if (formData.tipodrink === 'Com álcool') databaseTiposDrinks = 'alcool';
       else if (formData.tipodrink === 'Sem álcool') databaseTiposDrinks = 'sem_alcool';
@@ -607,6 +732,8 @@ export default function ClienteContratoPage() {
         tiposDrinks: databaseTiposDrinks,
         drinksEscolhidos: chosenDrinks,
         drinks_frozen: formData.drinks_frozen || [],
+        shoppingListFinalizada: true,
+        shoppingListResult: calculatedShoppingList || {},
         barmans: formData.barmans !== undefined ? parseInt(formData.barmans, 10) : 1,
         ajudantesCount: formData.ajudantes !== undefined ? parseInt(formData.ajudantes, 10) : 0,
         autorizarimagem: formData.autorizarimagem !== undefined ? formData.autorizarimagem : true,
