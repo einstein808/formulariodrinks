@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, push, set, update, remove } from 'firebase/database';
 import { db } from '../../../lib/firebase';
@@ -91,7 +91,7 @@ function ItemModal({ item, onClose, onSave }) {
     setScanning(false);
   };
 
-  const iStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(203,161,83,0.18)', borderRadius: '8px', color: '#FFF', padding: '10px 12px', fontSize: '0.88rem', outline: 'none', width: '100%' };
+  const iStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(203,161,83,0.18)', borderRadius: '8px', color: 'var(--text-primary)', padding: '10px 12px', fontSize: '0.88rem', outline: 'none', width: '100%' };
   const lStyle = { fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' };
 
   const precoHistArr = item?.historicoPrecos
@@ -186,9 +186,9 @@ function AbaItens({ items, onEdit, onDelete, onSelectItem }) {
         <div style={{ flex: 2, minWidth: '160px', position: 'relative' }}>
           <FiSearch size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
           <input type="text" placeholder="Buscar por nome ou codigo..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '9px 12px 9px 30px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#FFF', fontSize: '0.85rem', outline: 'none' }} />
+            style={{ width: '100%', padding: '9px 12px 9px 30px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }} />
         </div>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ padding: '9px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#FFF', fontSize: '0.85rem', cursor: 'pointer' }}>
+        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ padding: '9px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem', cursor: 'pointer' }}>
           <option value="">Todas categorias</option>
           {CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
@@ -203,7 +203,7 @@ function AbaItens({ items, onEdit, onDelete, onSelectItem }) {
             return (
               <div key={item.id} style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '14px 16px', border: `1px solid ${isLow ? 'rgba(244,67,54,0.35)' : 'var(--border-color)'}`, display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: '120px' }}>
-                  <div style={{ fontWeight: '600', color: '#FFF', fontSize: '0.95rem' }}>{cat.emoji} {item.nome}</div>
+                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>{cat.emoji} {item.nome}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{cat.label}{item.codigoBarras ? ` | Cod: ${item.codigoBarras}` : ''}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -367,7 +367,7 @@ function AbaMovimentacao({ tipo, items, leads = [], onMovimentar }) {
             <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Codigo de Barras (escaneie ou digite)</label>
             <input ref={barcodeRef} type="text" inputMode="numeric" value={barcode} onChange={e => handleBarcodeInput(e.target.value)} onKeyDown={handleKeyDown}
               placeholder="Aponte o leitor, camera ou digite e pressione Enter..."
-              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.06)', border: `2px solid ${foundItem ? ac : 'var(--border-color)'}`, borderRadius: '10px', color: '#FFF', fontSize: '1rem', outline: 'none' }} />
+              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.06)', border: `2px solid ${foundItem ? ac : 'var(--border-color)'}`, borderRadius: '10px', color: 'var(--text-primary)', fontSize: '1rem', outline: 'none' }} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -377,14 +377,14 @@ function AbaMovimentacao({ tipo, items, leads = [], onMovimentar }) {
           </div>
 
           <select value={foundItem?.id || ''} onChange={e => { const item = items.find(i => i.id === e.target.value); setFoundItem(item || null); if (item) setBarcode(item.codigoBarras || ''); }}
-            style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '10px', color: '#FFF', fontSize: '0.9rem', cursor: 'pointer' }}>
+            style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem', cursor: 'pointer' }}>
             <option value="">-- Selecionar item --</option>
             {items.map(i => <option key={i.id} value={i.id}>{i.nome} (estoque: {i.quantidadeAtual} {i.unidade})</option>)}
           </select>
 
           {foundItem && (
             <div style={{ background: `${ac}11`, border: `1px solid ${ac}44`, borderRadius: '10px', padding: '12px 16px' }}>
-              <div style={{ fontWeight: '600', color: '#FFF' }}>{foundItem.nome}</div>
+              <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{foundItem.nome}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Estoque: <strong style={{ color: foundItem.quantidadeAtual <= foundItem.quantidadeMinima ? '#F44336' : '#4CAF50' }}>{foundItem.quantidadeAtual} {foundItem.unidade}</strong></div>
             </div>
           )}
@@ -393,11 +393,11 @@ function AbaMovimentacao({ tipo, items, leads = [], onMovimentar }) {
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '100px' }}>
                 <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Quantidade ({foundItem.unidade})</label>
-                <input type="number" min="0.01" step="0.01" value={qty} onChange={e => setQty(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.06)', border: `1px solid ${ac}55`, borderRadius: '8px', color: '#FFF', fontSize: '1rem', outline: 'none' }} />
+                <input type="number" min="0.01" step="0.01" value={qty} onChange={e => setQty(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.06)', border: `1px solid ${ac}55`, borderRadius: '8px', color: 'var(--text-primary)', fontSize: '1rem', outline: 'none' }} />
               </div>
               <div style={{ flex: 2, minWidth: '160px' }}>
                 <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Motivo</label>
-                <select value={motivo} onChange={e => setMotivo(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${ac}55`, borderRadius: '8px', color: '#FFF', fontSize: '0.9rem', cursor: 'pointer' }}>
+                <select value={motivo} onChange={e => setMotivo(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${ac}55`, borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.9rem', cursor: 'pointer' }}>
                   {isEntrada ? ['Compra', 'Devolucao', 'Ajuste Manual'].map(m => <option key={m}>{m}</option>) : ['Uso em evento', 'Perda / Vencimento', 'Ajuste Manual'].map(m => <option key={m}>{m}</option>)}
                 </select>
               </div>
@@ -410,7 +410,7 @@ function AbaMovimentacao({ tipo, items, leads = [], onMovimentar }) {
               <select
                 value={selectedLeadId}
                 onChange={e => setSelectedLeadId(e.target.value)}
-                style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${ac}55`, borderRadius: '10px', color: '#FFF', fontSize: '0.9rem', cursor: 'pointer', width: '100%' }}
+                style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${ac}55`, borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem', cursor: 'pointer', width: '100%' }}
               >
                 <option value="">-- Não vincular --</option>
                 {leads.map(lead => (
@@ -453,7 +453,7 @@ function AbaHistorico({ movimentacoes, items }) {
             <div key={mov.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: `1px solid ${mov.tipo === 'entrada' ? 'rgba(76,175,80,0.2)' : 'rgba(244,67,54,0.2)'}` }}>
               <div style={{ fontSize: '1.2rem' }}>{mov.tipo === 'entrada' ? '📦' : '📉'}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: '#FFF' }}>{getItemNome(mov.itemId)}</div>
+                <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{getItemNome(mov.itemId)}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{mov.motivo}</div>
               </div>
               <div style={{ textAlign: 'right' }}>

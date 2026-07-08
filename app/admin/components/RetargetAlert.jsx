@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ref, onValue, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiBell, FiSend, FiX } from 'react-icons/fi';
@@ -424,7 +424,7 @@ export default function RetargetAlert() {
     <>
       {showUpcoming && (
         <div style={{ background: 'rgba(244, 67, 54, 0.1)', border: '1px solid #F44336', borderRadius: '8px', padding: '16px 48px 16px 16px', marginBottom: '24px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px', position: 'relative' }}>
-          <div style={{ background: '#F44336', color: '#FFF', padding: '8px', borderRadius: '50%', display: 'flex' }}>
+          <div style={{ background: '#F44336', color: 'var(--text-primary)', padding: '8px', borderRadius: '50%', display: 'flex' }}>
             <FiBell size={20} />
           </div>
           <div style={{ flex: 1 }}>
@@ -434,7 +434,7 @@ export default function RetargetAlert() {
             </p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
               {upcomingEvents.map(ev => (
-                <span key={ev.id} style={{ fontSize: '0.8rem', background: 'rgba(244, 67, 54, 0.2)', padding: '4px 10px', borderRadius: '6px', color: '#FFF', border: '1px solid rgba(244, 67, 54, 0.5)' }}>
+                <span key={ev.id} style={{ fontSize: '0.8rem', background: 'rgba(244, 67, 54, 0.2)', padding: '4px 10px', borderRadius: '6px', color: 'var(--text-primary)', border: '1px solid rgba(244, 67, 54, 0.5)' }}>
                   {ev.nome} (em {ev.diffDays} dia{ev.diffDays !== 1 ? 's' : ''})
                 </span>
               ))}
@@ -502,7 +502,7 @@ export default function RetargetAlert() {
                 {pendingNPS.map(lead => (
                   <div key={lead.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 0, 0, 0.2)', padding: '10px 14px', borderRadius: '6px', border: '1px solid rgba(255, 213, 79, 0.1)', flexWrap: 'wrap', gap: '12px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: '500' }}>{lead.nome} {lead.sobrenome || ''}</span>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: '500' }}>{lead.nome} {lead.sobrenome || ''}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Contato: {lead.telefone} | Evento em: {lead.dataEvento}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -624,8 +624,8 @@ export default function RetargetAlert() {
           animation: 'fadeIn 0.2s ease'
         }}>
           <div style={{
-            background: '#0e1a12',
-            border: '1px solid rgba(203, 161, 83, 0.15)',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
             borderRadius: '16px',
             padding: '24px',
             maxWidth: '440px',

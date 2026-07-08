@@ -1064,7 +1064,7 @@ export default function ConfigsEditor() {
                 style={{ width: 'auto' }}
                 onClick={() => setShoppingConfig({
                   ...shoppingConfig,
-                  itensFixos: [...(shoppingConfig.itensFixos || []), { id: Date.now().toString(), nome: 'Novo Item', quantidade: 1, unidade: 'un' }]
+                  itensFixos: [...(shoppingConfig.itensFixos || []), { id: Date.now().toString(), nome: 'Novo Item', quantidade: 1, unidade: 'un', categoria: 'bar', tipoCalc: 'porConvidado' }]
                 })}
               >
                 <FiPlus /> Novo Item Fixo
@@ -1076,8 +1076,8 @@ export default function ConfigsEditor() {
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nenhum item fixo cadastrado.</div>
               )}
               {(shoppingConfig.itensFixos || []).map((item, idx) => (
-                <div key={item.id} style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ flex: 1 }}>
+                <div key={item.id} style={{ display: 'flex', gap: '14px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '2 1 200px' }}>
                     <label className="form-label" style={{ fontSize: '0.8rem' }}>Nome do Item</label>
                     <input 
                       type="text" 
@@ -1091,14 +1091,28 @@ export default function ConfigsEditor() {
                       }} 
                     />
                   </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Qtd por Convidado</label>
+                  <div style={{ width: '130px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Tipo Cálculo</label>
+                    <select
+                      className="form-select"
+                      value={item.tipoCalc || 'porConvidado'}
+                      onChange={(e) => {
+                        const novos = [...shoppingConfig.itensFixos];
+                        novos[idx].tipoCalc = e.target.value;
+                        setShoppingConfig({ ...shoppingConfig, itensFixos: novos });
+                      }}
+                    >
+                      <option value="porConvidado">👥 Por Convidado</option>
+                      <option value="fixo">📌 Valor Fixo</option>
+                    </select>
+                  </div>
+                  <div style={{ width: '100px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Quantidade</label>
                     <input 
                       type="number" 
                       className="form-input" 
-                      style={{ width: '120px' }}
                       value={item.quantidade || 0} 
-                      step="0.1"
+                      step="0.001"
                       onChange={(e) => {
                         const novos = [...shoppingConfig.itensFixos];
                         novos[idx].quantidade = Number(e.target.value);
@@ -1106,12 +1120,11 @@ export default function ConfigsEditor() {
                       }} 
                     />
                   </div>
-                  <div>
+                  <div style={{ width: '80px' }}>
                     <label className="form-label" style={{ fontSize: '0.8rem' }}>Unidade</label>
                     <input 
                       type="text" 
                       className="form-input" 
-                      style={{ width: '80px' }}
                       value={item.unidade || ''} 
                       placeholder="sacos"
                       onChange={(e) => {
@@ -1120,6 +1133,23 @@ export default function ConfigsEditor() {
                         setShoppingConfig({ ...shoppingConfig, itensFixos: novos });
                       }} 
                     />
+                  </div>
+                  <div style={{ width: '140px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Categoria</label>
+                    <select
+                      className="form-select"
+                      value={item.categoria || 'bar'}
+                      onChange={(e) => {
+                        const novos = [...shoppingConfig.itensFixos];
+                        novos[idx].categoria = e.target.value;
+                        setShoppingConfig({ ...shoppingConfig, itensFixos: novos });
+                      }}
+                    >
+                      <option value="bar">🍸 Equipamento Bar</option>
+                      <option value="insumo">🍋 Insumo Fresco</option>
+                      <option value="decoracao">✨ Decoração</option>
+                      <option value="descartavel">🧾 Descartável</option>
+                    </select>
                   </div>
                   <button 
                     onClick={() => {
@@ -1135,7 +1165,7 @@ export default function ConfigsEditor() {
               ))}
             </div>
             <div style={{ marginTop: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              <strong>Dica de cálculo:</strong> Se você usa 1 saco de gelo a cada 10 pessoas, a "Qtd por Convidado" é <strong>0.1</strong>. 
+              <strong>Dica de cálculo:</strong> Para itens do tipo <strong>Por Convidado</strong>, se você usa 1 saco de gelo a cada 10 pessoas, a quantidade é <strong>0.1</strong>. Para itens <strong>Valor Fixo</strong>, digite a quantidade total (ex: 2 cargas de gás).
             </div>
           </div>
         </div>

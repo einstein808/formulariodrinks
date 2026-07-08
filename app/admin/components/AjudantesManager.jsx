@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiPlus, FiTrash2, FiUser, FiPhone, FiBriefcase, FiX } from 'react-icons/fi';
@@ -163,7 +163,7 @@ export default function AjudantesManager() {
         border: '1px solid var(--border-color)', marginBottom: '32px',
         borderTop: '4px solid var(--primary)'
       }}>
-        <h3 style={{ margin: '0 0 20px 0', color: '#FFF', fontSize: '1rem' }}>
+        <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)', fontSize: '1rem' }}>
           <FiPlus style={{ marginRight: 8, verticalAlign: 'middle' }} />
           Novo Ajudante
         </h3>
@@ -262,7 +262,7 @@ export default function AjudantesManager() {
               {/* Nome */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 2 }}>Nome</div>
-                <div style={{ fontWeight: 600, color: '#FFF', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{
                     width: 32, height: 32, borderRadius: '50%',
                     background: 'rgba(203,161,83,0.15)', border: '1px solid var(--primary)',
@@ -379,8 +379,8 @@ export default function AjudantesManager() {
           animation: 'fadeIn 0.2s ease'
         }}>
           <div style={{
-            background: '#0e1a12',
-            border: '1px solid rgba(203, 161, 83, 0.15)',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
             borderRadius: '16px',
             padding: '24px',
             maxWidth: '440px',
@@ -405,7 +405,7 @@ export default function AjudantesManager() {
               <button 
                 onClick={confirmModal.onConfirm}
                 className="btn btn--primary"
-                style={{ padding: '8px 20px', fontSize: '0.85rem', minHeight: '40px', height: 'auto', width: 'auto', flex: 'none', color: '#050a06' }}
+                style={{ padding: '8px 20px', fontSize: '0.85rem', minHeight: '40px', height: 'auto', width: 'auto', flex: 'none', color: 'var(--bg-dark)' }}
               >
                 Confirmar
               </button>

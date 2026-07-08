@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { 
@@ -564,9 +564,9 @@ export default function AnalyticsDashboard() {
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 style={{
-                  background: '#0c1610',
-                  color: '#fff',
-                  border: '1px solid rgba(203, 161, 83, 0.15)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '8px 12px',
                   borderRadius: '6px',
                   fontSize: '0.85rem',
@@ -586,9 +586,9 @@ export default function AnalyticsDashboard() {
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 style={{
-                  background: '#0c1610',
-                  color: '#fff',
-                  border: '1px solid rgba(203, 161, 83, 0.15)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '8px 12px',
                   borderRadius: '6px',
                   fontSize: '0.85rem',
@@ -617,9 +617,9 @@ export default function AnalyticsDashboard() {
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 style={{
-                  background: '#0c1610',
-                  color: '#fff',
-                  border: '1px solid rgba(203, 161, 83, 0.15)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   padding: '8px 12px',
                   borderRadius: '6px',
                   fontSize: '0.85rem',
@@ -665,7 +665,7 @@ export default function AnalyticsDashboard() {
             {/* FATURAMENTO ACUMULADO */}
             <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #FFF' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Faturamento Acumulado</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#FFF' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFaturamento)}
               </div>
             </div>
@@ -708,7 +708,7 @@ export default function AnalyticsDashboard() {
 
           {/* GRÁFICO MENSAL COMPOSITE */}
           <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
-            <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Evolução Financeira Mensal (Faturamento vs Custos vs Lucro)</h3>
+            <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>Evolução Financeira Mensal (Faturamento vs Custos vs Lucro)</h3>
             {monthlyFinanceData.length > 0 ? (
               <div style={{ width: '100%', height: 320 }}>
                 <ResponsiveContainer width="99%" height={320}>
@@ -717,7 +717,7 @@ export default function AnalyticsDashboard() {
                     <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888' }} />
                     <YAxis stroke="#888" tick={{ fill: '#888' }} />
                     <RechartsTooltip 
-                      contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} 
+                      contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
                     />
                     <Legend verticalAlign="top" height={36}/>
                     <Bar dataKey="Faturamento" fill="#4CAF50" radius={[4, 4, 0, 0]} barSize={20} />
@@ -737,14 +737,14 @@ export default function AnalyticsDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             {/* PROGRESS BARS BREAKDOWN */}
             <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: '0 0 20px 0', color: '#FFF', fontSize: '1.1rem' }}>📊 Distribuição de Custos por Categoria</h3>
+              <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>📊 Distribuição de Custos por Categoria</h3>
               {totalCustosGlobal > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {sortedCategories.map(cat => (
                     <div key={cat.key}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
                         <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>{cat.emoji} {cat.label}</span>
-                        <span style={{ color: '#FFF', fontWeight: 'bold' }}>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cat.value)} 
                           <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '0.78rem', marginLeft: '6px' }}>
                             ({cat.percentage.toFixed(1)}%)
@@ -767,7 +767,7 @@ export default function AnalyticsDashboard() {
             {/* RECOMMENDATION INSIGHT */}
             <div style={{
               background: 'rgba(203, 161, 83, 0.03)',
-              border: '1px solid rgba(203, 161, 83, 0.15)',
+              border: '1px solid var(--border-color)',
               padding: '24px',
               borderRadius: '12px',
               display: 'flex',
@@ -790,7 +790,7 @@ export default function AnalyticsDashboard() {
 
           {/* TABELA DRE MENSAL DETALHADA */}
           <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
-            <h3 style={{ margin: 0, color: '#FFF' }}>📊 Demonstrativo de Resultados (DRE Mensal)</h3>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>📊 Demonstrativo de Resultados (DRE Mensal)</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '4px 0 20px 0' }}>Estrutura de faturamento e custos detalhada por mês de ocorrência dos eventos.</p>
             {monthlyFinanceData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -810,9 +810,9 @@ export default function AnalyticsDashboard() {
                   <tbody>
                     {/* Faturamento Bruto */}
                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                      <td style={{ padding: '10px', color: '#FFF', fontWeight: '500' }}>(+) Receita Bruta (Faturamento)</td>
+                      <td style={{ padding: '10px', color: 'var(--text-primary)', fontWeight: '500' }}>(+) Receita Bruta (Faturamento)</td>
                       {monthlyFinanceData.map(m => (
-                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: '#FFF' }}>
+                        <td key={m.name} style={{ padding: '10px', textAlign: 'right', color: 'var(--text-primary)' }}>
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.FaturamentoBruto || 0)}
                         </td>
                       ))}
@@ -899,7 +899,7 @@ export default function AnalyticsDashboard() {
           <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ margin: 0, color: '#FFF' }}>Demonstrativo Financeiro por Festa</h3>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Demonstrativo Financeiro por Festa</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>Lista detalhada de receitas, custos e margem de lucro por cliente cadastrado.</p>
               </div>
               <button 
@@ -943,14 +943,14 @@ export default function AnalyticsDashboard() {
                       };
                       return (
                         <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}>
-                          <td style={{ padding: '12px', color: '#FFF', fontWeight: 500 }}>{item.nome}</td>
+                          <td style={{ padding: '12px', color: 'var(--text-primary)', fontWeight: 500 }}>{item.nome}</td>
                           <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{item.data}</td>
                           <td style={{ padding: '12px' }}>
                             <span style={{ color: statusColors[item.status] || '#FFF', fontWeight: '600', fontSize: '0.8rem' }}>
                               ● {statusLabels[item.status] || item.status}
                             </span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', color: '#FFF', fontWeight: '500' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: '500' }}>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.faturamento)}
                             {item.desconto > 0 && (
                               <div style={{ fontSize: '0.72rem', color: '#F44336', marginTop: '2px', fontWeight: 'normal' }}>
@@ -996,7 +996,7 @@ export default function AnalyticsDashboard() {
         
         {/* Gráfico 1: Captação de Leads (Linha) */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Volume de Captação (Novos Orçamentos por Mês)</h3>
+          <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>Volume de Captação (Novos Orçamentos por Mês)</h3>
           {lineData.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
               <ResponsiveContainer width="99%" height={300}>
@@ -1005,7 +1005,7 @@ export default function AnalyticsDashboard() {
                   <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888' }} />
                   <YAxis stroke="#888" tick={{ fill: '#888' }} allowDecimals={false} />
                   <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} 
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
                   />
                   <Line type="monotone" dataKey="Leads" stroke="#00E5FF" strokeWidth={3} dot={{ r: 6, fill: '#00E5FF', stroke: '#111', strokeWidth: 2 }} activeDot={{ r: 8 }} />
                 </LineChart>
@@ -1020,7 +1020,7 @@ export default function AnalyticsDashboard() {
 
         {/* Gráfico 2: Pacotes mais vendidos */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Distribuição de Pacotes (Todos os Leads)</h3>
+          <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>Distribuição de Pacotes (Todos os Leads)</h3>
           {pieData.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
               <ResponsiveContainer width="99%" height={300}>
@@ -1041,8 +1041,8 @@ export default function AnalyticsDashboard() {
                     ))}
                   </Pie>
                   <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} 
-                    itemStyle={{ color: '#fff' }} 
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
+                    itemStyle={{ color: 'var(--text-primary)' }} 
                   />
                   <Legend verticalAlign="bottom" height={36}/>
                 </PieChart>
@@ -1055,7 +1055,7 @@ export default function AnalyticsDashboard() {
 
         {/* Gráfico: Tipos de Evento mais contratados */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>🎯 Tipos de Evento Mais Contratados</h3>
+          <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>🎯 Tipos de Evento Mais Contratados</h3>
           {tipoEventoPieData.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center' }}>
               <div style={{ flex: '1 1 280px', height: 300 }}>
@@ -1077,8 +1077,8 @@ export default function AnalyticsDashboard() {
                       ))}
                     </Pie>
                     <RechartsTooltip 
-                      contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} 
-                      itemStyle={{ color: '#fff' }} 
+                      contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
+                      itemStyle={{ color: 'var(--text-primary)' }} 
                       formatter={(value, name) => [`${value} leads`, name]}
                     />
                   </PieChart>
@@ -1091,7 +1091,7 @@ export default function AnalyticsDashboard() {
                   return (
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0' }}>
                       <div style={{ width: 12, height: 12, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.85rem', color: '#FFF', flex: 1 }}>{item.emoji} {item.name}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', flex: 1 }}>{item.emoji} {item.name}</span>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{item.value}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', minWidth: '40px', textAlign: 'right' }}>{pct}%</span>
                     </div>
@@ -1105,7 +1105,7 @@ export default function AnalyticsDashboard() {
         </div>
         {/* Gráfico 3: Eventos por Mês */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 24px 0', color: '#FFF' }}>Sazonalidade (Eventos Fechados por Mês)</h3>
+          <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>Sazonalidade (Eventos Fechados por Mês)</h3>
           {barData.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
               <ResponsiveContainer width="99%" height={300}>
@@ -1114,7 +1114,7 @@ export default function AnalyticsDashboard() {
                   <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888' }} />
                   <YAxis stroke="#888" tick={{ fill: '#888' }} allowDecimals={false} />
                   <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} 
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
                     cursor={{ fill: 'rgba(255,255,255,0.1)' }}
                   />
                   <Bar dataKey="Eventos" fill="var(--primary)" radius={[4, 4, 0, 0]} />
@@ -1130,7 +1130,7 @@ export default function AnalyticsDashboard() {
 
         {/* Ranking de Parceiros */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0, borderTop: '4px solid #E91E63' }}>
-          <h3 style={{ margin: '0 0 4px 0', color: '#FFF', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <FiHeart style={{ color: '#E91E63' }} /> Ranking de Parceiros Cerimonialistas
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Acompanhe quais cerimonialistas trazem mais negócios fechados.</p>
@@ -1155,7 +1155,7 @@ export default function AnalyticsDashboard() {
                       <td style={{ padding: '12px', color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--text-muted)', fontWeight: 'bold', width: 32 }}>
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}
                       </td>
-                      <td style={{ padding: '12px', color: '#FFF', fontWeight: 500 }}>
+                      <td style={{ padding: '12px', color: 'var(--text-primary)', fontWeight: 500 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(233,30,99,0.15)', border: '1px solid rgba(233,30,99,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E91E63', fontWeight: 'bold', fontSize: '0.8rem', flexShrink: 0 }}>
                             {p.nome.charAt(0)}

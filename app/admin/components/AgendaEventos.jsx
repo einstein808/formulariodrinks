@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, FiPackage, FiX, FiPhone, FiClock, FiUsers, FiHeart, FiUserCheck } from 'react-icons/fi';
@@ -141,7 +141,7 @@ export default function AgendaEventos() {
             <FiChevronLeft size={20} />
           </button>
           
-          <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#FFF', minWidth: '150px', textAlign: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', minWidth: '150px', textAlign: 'center' }}>
             {monthNames[month]} <span style={{ color: 'var(--primary)' }}>{year}</span>
           </h2>
           
@@ -159,7 +159,7 @@ export default function AgendaEventos() {
       <div style={{ background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
         
         {/* Cabeçalho dos dias da semana */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#1a1a1a', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
           {daysOfWeek.map(day => (
             <div key={day} className="admin-calendar-day-label" style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>
               {day}
@@ -241,7 +241,7 @@ export default function AgendaEventos() {
                         e.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
-                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>
+                      <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
                         {evento.nome}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
@@ -272,17 +272,17 @@ export default function AgendaEventos() {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: '#0a140d', width: '100%', maxWidth: '560px',
-            borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.25)',
+              background: 'var(--bg-card)', width: '100%', maxWidth: '560px',
+            borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)',
             maxHeight: '90vh', display: 'flex', flexDirection: 'column',
             boxShadow: '0 10px 40px rgba(0,0,0,0.7)',
             animation: 'fadeInUp 0.3s ease'
           }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#070e09' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)' }}>
               <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.25rem', letterSpacing: '0.5px' }}>Detalhes do Evento</h2>
               <button 
                 onClick={() => setSelectedEvento(null)} 
-                style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 40, minHeight: 40, justifyContent: 'center' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 40, minHeight: 40, justifyContent: 'center' }}
                 aria-label="Fechar"
               >
                 <FiX size={22} />
@@ -293,7 +293,7 @@ export default function AgendaEventos() {
               
               {/* Header Info */}
               <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#FFF', marginBottom: '6px' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '6px' }}>
                   {selectedEvento.nome} {selectedEvento.sobrenome || ''}
                 </div>
                 <span style={{ 
@@ -324,36 +324,36 @@ export default function AgendaEventos() {
 
               {/* Grid de Informações */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
-                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiCalendar size={12} /> Data</div>
-                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     {selectedEvento.dataEvento ? selectedEvento.dataEvento.split('-').reverse().join('/') : '—'}
                   </div>
                 </div>
 
-                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiClock size={12} /> Horário</div>
-                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.horarioEvento || '—'}</div>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{selectedEvento.horarioEvento || '—'}</div>
                 </div>
 
-                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)', gridColumn: 'span 2' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', gridColumn: 'span 2' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiMapPin size={12} /> Cidade / Local</div>
-                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.cidade || '—'}</div>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{selectedEvento.cidade || '—'}</div>
                 </div>
 
-                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiUsers size={12} /> Convidados</div>
-                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.convidados || '—'}</div>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{selectedEvento.convidados || '—'}</div>
                 </div>
 
-                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiPackage size={12} /> Pacote</div>
-                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>{selectedEvento.pacote || '—'}</div>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{selectedEvento.pacote || '—'}</div>
                 </div>
 
-                <div style={{ background: '#070e09', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.12)', gridColumn: 'span 2' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', gridColumn: 'span 2' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiHeart size={12} /> Cerimonialista Parceiro</div>
-                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     {selectedEvento.cerimonialista && cerimonialistas[selectedEvento.cerimonialista]
                       ? cerimonialistas[selectedEvento.cerimonialista].nome
                       : '— Sem parceiro / Direto —'}
@@ -362,7 +362,7 @@ export default function AgendaEventos() {
               </div>
 
               {/* Equipe / Ajudantes Designados */}
-              <div style={{ borderTop: '1px solid rgba(203, 161, 83, 0.15)', paddingTop: '20px' }}>
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                 <h3 style={{ margin: '0 0 14px 0', fontSize: '0.95rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <FiUserCheck size={16} /> Equipe Designada
                 </h3>
@@ -380,7 +380,7 @@ export default function AgendaEventos() {
                       return (
                         <div key={slug} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
                           <div>
-                            <div style={{ fontWeight: 600, color: '#FFF', fontSize: '0.88rem' }}>{helperInfo?.nome || slug}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>{helperInfo?.nome || slug}</div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{helperInfo?.telefone ? formatPhone(helperInfo.telefone) : ''}</div>
                           </div>
                           <span style={{ 
@@ -407,13 +407,13 @@ export default function AgendaEventos() {
 
             </div>
             
-            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.15)', display: 'flex', justifyContent: 'flex-end', background: '#070e09' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'var(--bg-card)' }}>
               <button 
                 onClick={() => setSelectedEvento(null)} 
                 style={{
                   background: 'none',
                   border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#FFF',
+                  color: 'var(--text-primary)',
                   padding: '8px 16px',
                   borderRadius: '8px',
                   cursor: 'pointer',

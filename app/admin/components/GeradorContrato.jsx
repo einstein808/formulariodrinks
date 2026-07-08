@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
@@ -731,7 +731,7 @@ export default function GeradorContrato() {
       
       {/* ── SEARCH & AUTOFILL HEADER ──────────────────────── */}
       {step < 4 && (
-        <div style={{ background: '#0a140d', padding: '20px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', position: 'relative' }}>
+        <div style={{ background: 'var(--bg-card)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-color)', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <FiSearch size={20} style={{ color: 'var(--primary)' }} />
             <div style={{ flex: 1, position: 'relative' }}>
@@ -749,7 +749,7 @@ export default function GeradorContrato() {
               {showDropdown && searchQuery && filteredLeads.length > 0 && (
                 <div style={{
                   position: 'absolute', top: '100%', left: 0, right: 0,
-                  background: '#0a140d', border: '1px solid rgba(203, 161, 83, 0.3)',
+                  background: 'var(--bg-card)', border: '1px solid rgba(203, 161, 83, 0.3)',
                   borderRadius: '8px', zIndex: 100, maxHeight: '200px', overflowY: 'auto',
                   marginTop: '6px', boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
                 }}>
@@ -808,7 +808,7 @@ export default function GeradorContrato() {
 
       {/* ── STEP 1: CONTRATANTE & ENDEREÇO ────────────────────── */}
       {step === 1 && (
-        <div style={{ background: '#0a140d', padding: '32px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ background: 'var(--bg-card)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.4rem', margin: '0 0 10px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FiUser /> 1. Dados Pessoais & Endereço
           </h2>
@@ -919,7 +919,7 @@ export default function GeradorContrato() {
 
       {/* ── STEP 2: EVENTO & BAR CONFIG ──────────────────────── */}
       {step === 2 && (
-        <div style={{ background: '#0a140d', padding: '32px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ background: 'var(--bg-card)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.4rem', margin: '0 0 10px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FiCalendar /> 2. Detalhes do Evento & Bar
           </h2>
@@ -953,7 +953,7 @@ export default function GeradorContrato() {
             </div>
 
             <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Tipo de Serviço (Pacote) *</label>
+              <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '12px' }}>Tipo de Serviço (Pacote) *</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 {pacotes.map(p => (
                   <div
@@ -981,7 +981,7 @@ export default function GeradorContrato() {
             {isMaoDeObra && (
               <div style={{
                 background: 'rgba(203, 161, 83, 0.03)',
-                border: '1px solid rgba(203, 161, 83, 0.15)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '12px',
                 padding: '20px',
                 display: 'flex',
@@ -1021,7 +1021,7 @@ export default function GeradorContrato() {
                       >
                         -
                       </button>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF', minWidth: '24px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)', minWidth: '24px', textAlign: 'center' }}>
                         {formData.barmans !== undefined ? formData.barmans : 1}
                       </span>
                       <button
@@ -1061,7 +1061,7 @@ export default function GeradorContrato() {
                       >
                         -
                       </button>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF', minWidth: '24px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)', minWidth: '24px', textAlign: 'center' }}>
                         {formData.ajudantes !== undefined ? formData.ajudantes : 0}
                       </span>
                       <button
@@ -1135,7 +1135,7 @@ export default function GeradorContrato() {
             )}
 
             <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Tipos de Drink na Festa *</label>
+              <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '12px' }}>Tipos de Drink na Festa *</label>
               <div style={{ display: 'flex', gap: '12px' }}>
                 {['Com álcool', 'Sem álcool', 'Com e sem álcool'].map(s => (
                   <div
@@ -1157,7 +1157,7 @@ export default function GeradorContrato() {
 
             {/* ADICIONAIS / OPCIONAIS */}
             <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Opcionais Adicionais</label>
+              <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '12px' }}>Opcionais Adicionais</label>
               <div
                 onClick={() => setFormData(prev => ({ ...prev, coposDeVidro: !prev.coposDeVidro }))}
                 style={{
@@ -1187,7 +1187,7 @@ export default function GeradorContrato() {
 
             {/* DESCONTO ESPECIAL */}
             <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-              <label htmlFor="desconto" style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '8px' }}>Desconto Especial (R$)</label>
+              <label htmlFor="desconto" style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '8px' }}>Desconto Especial (R$)</label>
               <input
                 id="desconto"
                 name="desconto"
@@ -1201,7 +1201,7 @@ export default function GeradorContrato() {
                   background: 'rgba(255,255,255,0.02)',
                   border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: '8px',
-                  color: '#FFF',
+                  color: 'var(--text-primary)',
                   padding: '12px 16px',
                   fontSize: '0.9rem',
                   outline: 'none'
@@ -1213,7 +1213,7 @@ export default function GeradorContrato() {
             {formData.Servico && (
               <div style={{
                 background: 'rgba(203, 161, 83, 0.05)',
-                border: '1px solid rgba(203, 161, 83, 0.25)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '10px',
                 padding: '20px',
                 marginTop: '10px'
@@ -1241,7 +1241,7 @@ export default function GeradorContrato() {
                   )}
                   {financials.desconto > 0 && (
                     <>
-                      <div style={{ color: '#FFF' }}>
+                      <div style={{ color: 'var(--text-primary)' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Valor Bruto:</span> R$ {financials.valor_original_formatado}
                       </div>
                       <div style={{ color: '#F44336' }}>
@@ -1249,7 +1249,7 @@ export default function GeradorContrato() {
                       </div>
                     </>
                   )}
-                  <div style={{ fontWeight: 'bold', color: '#FFF' }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>Valor Total:</span> {financials.valor_total_formatado.includes('R$') ? financials.valor_total_formatado : `R$ ${financials.valor_total_formatado}`}
                   </div>
                   <div>
@@ -1287,14 +1287,14 @@ export default function GeradorContrato() {
 
       {/* ── STEP 3: DRINKS SELECTION ────────────────────────── */}
       {step === 3 && (
-        <div style={{ background: '#0a140d', padding: '32px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ background: 'var(--bg-card)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.4rem', margin: '0 0 10px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FiBookOpen /> 3. Seleção de Drinks
           </h2>
 
           {/* ALCOHOLIC DRINKS */}
           <div style={{ opacity: disableAlcoolGroup ? 0.4 : 1, pointerEvents: disableAlcoolGroup ? 'none' : 'auto' }}>
-            <h3 style={{ color: '#FFF', fontSize: '1.1rem', margin: '0 0 4px 0' }}>Drinks Alcoólicos (Regulares)</h3>
+            <h3 style={{ color: 'var(--text-primary)', fontSize: '1.1rem', margin: '0 0 4px 0' }}>Drinks Alcoólicos (Regulares)</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 16px 0' }}>
               {disableAlcoolGroup ? 'Desabilitado por sua escolha do tipo de drink.' : `Você pode selecionar até ${limitAlcoolTotal} drinks no total do bar. (Selecionados: ${countAlcool}/${limitAlcoolTotal})`}
             </p>
@@ -1320,7 +1320,7 @@ export default function GeradorContrato() {
                       {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                     </div>
                     {d.image && (
-                      <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid var(--border-color)' }}>
                         {isNextImageAllowed(d.image) ? (
                           <Image
                             src={d.image}
@@ -1377,7 +1377,7 @@ export default function GeradorContrato() {
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
                       {d.image && (
-                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid var(--border-color)' }}>
                           {isNextImageAllowed(d.image) ? (
                             <Image
                               src={d.image}
@@ -1435,7 +1435,7 @@ export default function GeradorContrato() {
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
                       {d.image && (
-                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid var(--border-color)' }}>
                           {isNextImageAllowed(d.image) ? (
                             <Image
                               src={d.image}
@@ -1466,7 +1466,7 @@ export default function GeradorContrato() {
 
           {/* NON-ALCOHOLIC DRINKS */}
           <div style={{ opacity: disableNAGroup ? 0.4 : 1, pointerEvents: disableNAGroup ? 'none' : 'auto', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-            <h3 style={{ color: '#FFF', fontSize: '1.1rem', margin: '0 0 4px 0' }}>Drinks Sem Álcool (Extras)</h3>
+            <h3 style={{ color: 'var(--text-primary)', fontSize: '1.1rem', margin: '0 0 4px 0' }}>Drinks Sem Álcool (Extras)</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 16px 0' }}>
               {disableNAGroup ? 'Desabilitado por sua escolha do tipo de drink.' : `Você pode selecionar até ${limitNA} drinks sem álcool. (Selecionados: ${countNA})`}
             </p>
@@ -1492,7 +1492,7 @@ export default function GeradorContrato() {
                       {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                     </div>
                     {d.image && (
-                      <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid var(--border-color)' }}>
                         {isNextImageAllowed(d.image) ? (
                           <Image
                             src={d.image}
@@ -1539,9 +1539,9 @@ export default function GeradorContrato() {
 
       {/* ── STEP 4: SUCCESS VIEW ────────────────────────────── */}
       {step === 4 && (
-        <div style={{ background: '#0a140d', padding: '48px 32px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <div style={{ background: 'var(--bg-card)', padding: '48px 32px', borderRadius: '16px', border: '1px solid var(--border-color)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <FiCheckCircle size={64} style={{ color: 'var(--primary)', marginBottom: '10px' }} />
-          <h2 style={{ fontFamily: 'Cinzel, serif', color: '#FFF', fontSize: '1.8rem', margin: 0 }}>Dados Enviados!</h2>
+          <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--text-primary)', fontSize: '1.8rem', margin: 0 }}>Dados Enviados!</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0, maxWidth: '450px', lineHeight: '1.6' }}>
             As informações do contrato foram enviadas com sucesso ao webhook. O PDF está sendo gerado e será disponibilizado no WhatsApp/e-mail cadastrado!
           </p>

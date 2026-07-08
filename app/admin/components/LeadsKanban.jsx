@@ -133,6 +133,8 @@ export default function LeadsKanban() {
   const [isEditingLead, setIsEditingLead] = useState(false);
   const [editLeadData, setEditLeadData] = useState({});
   const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts' | 'financeiro'
+  const [isEditingShoppingList, setIsEditingShoppingList] = useState(false);
+  const [editedShoppingList, setEditedShoppingList] = useState(null);
   const [financeiroPresets, setFinanceiroPresets] = useState({});
   const [newCost, setNewCost] = useState({ descricao: '', valor: '', quantidade: '', valorUnitario: '', categoria: 'insumos', itemIdEstoque: '' });
   const [estoque, setEstoque] = useState([]);
@@ -218,10 +220,14 @@ export default function LeadsKanban() {
   useEffect(() => {
     if (selectedLead) {
       setModalTab('info');
+      setIsEditingShoppingList(false);
+      setEditedShoppingList(null);
       setFaturamentoInput(selectedLead.financeiro?.faturamento ?? '');
       setDescontoInput(selectedLead.financeiro?.desconto ?? '');
       setValorPagoInput(selectedLead.financeiro?.valorPago ?? '');
     } else {
+      setIsEditingShoppingList(false);
+      setEditedShoppingList(null);
       setFaturamentoInput('');
       setDescontoInput('');
       setValorPagoInput('');
@@ -319,6 +325,77 @@ export default function LeadsKanban() {
       console.error('Erro ao criar lead:', err);
       showToast('Erro ao criar lead manualmente.', 'error');
     }
+  };
+
+  const handleStartEditShoppingList = () => {
+    setEditedShoppingList({
+      insumos: { ...(selectedLead.shoppingListResult?.insumos || {}) },
+      fixos: (selectedLead.shoppingListResult?.fixos || []).map(f => ({ ...f }))
+    });
+    setIsEditingShoppingList(true);
+  };
+
+  const handleSaveShoppingList = async () => {
+    try {
+      await update(ref(db, `leads/${selectedLead.id}`), {
+        shoppingListResult: editedShoppingList
+      });
+      setSelectedLead(prev => ({
+        ...prev,
+        shoppingListResult: editedShoppingList
+      }));
+      setIsEditingShoppingList(false);
+      setEditedShoppingList(null);
+      showToast("Lista de compras atualizada com sucesso!", "success");
+    } catch (err) {
+      console.error("Erro ao salvar lista:", err);
+      showToast("Erro ao salvar alterações da lista.", "error");
+    }
+  };
+
+  const updateInsumoKey = (oldKey, newKey) => {
+    if (oldKey === newKey) return;
+    const insumos = { ...editedShoppingList.insumos };
+    insumos[newKey] = insumos[oldKey];
+    delete insumos[oldKey];
+    setEditedShoppingList({ ...editedShoppingList, insumos });
+  };
+
+  const updateInsumoVal = (key, val) => {
+    const insumos = { ...editedShoppingList.insumos };
+    insumos[key] = val;
+    setEditedShoppingList({ ...editedShoppingList, insumos });
+  };
+
+  const deleteInsumo = (key) => {
+    const insumos = { ...editedShoppingList.insumos };
+    delete insumos[key];
+    setEditedShoppingList({ ...editedShoppingList, insumos });
+  };
+
+  const addInsumo = () => {
+    const insumos = { ...editedShoppingList.insumos, "Novo Insumo": "1 Litros" };
+    setEditedShoppingList({ ...editedShoppingList, insumos });
+  };
+
+  const updateFixoField = (idx, field, val) => {
+    const fixos = [...editedShoppingList.fixos];
+    fixos[idx] = { ...fixos[idx], [field]: val };
+    setEditedShoppingList({ ...editedShoppingList, fixos });
+  };
+
+  const deleteFixo = (idx) => {
+    const fixos = [...editedShoppingList.fixos];
+    fixos.splice(idx, 1);
+    setEditedShoppingList({ ...editedShoppingList, fixos });
+  };
+
+  const addFixo = () => {
+    const fixos = [
+      ...editedShoppingList.fixos,
+      { id: 'custom_' + Date.now(), nome: 'Novo Item Fixo', quantidade: 1, unidade: 'un', categoria: 'bar' }
+    ];
+    setEditedShoppingList({ ...editedShoppingList, fixos });
   };
 
   const handleStatusChange = async (leadId, newStatus) => {
@@ -1469,7 +1546,7 @@ export default function LeadsKanban() {
                                 padding: '6px 8px',
                                 fontSize: '0.8rem',
                                 background: 'var(--bg-main)',
-                                color: '#FFF',
+                                color: 'var(--text-primary)',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: '6px',
                                 minHeight: '36px',
@@ -1559,7 +1636,7 @@ export default function LeadsKanban() {
 
                     return (
                       <tr key={lead.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
-                        <td style={{ padding: '12px 16px', color: '#FFF' }}>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-primary)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span>{lead.nome} {lead.sobrenome}</span>
                             {isFrozenLead ? (
@@ -1576,7 +1653,7 @@ export default function LeadsKanban() {
                         <select 
                           value={lead.status || 'novo'} 
                           onChange={(e) => handleStatusChange(lead.id, e.target.value)}
-                          style={{ background: 'rgba(255,255,255,0.1)', color: '#FFF', border: 'none', padding: '6px 8px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
+                          style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)', border: 'none', padding: '6px 8px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer' }}
                         >
                           {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                         </select>
@@ -1594,7 +1671,7 @@ export default function LeadsKanban() {
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         <button 
                           onClick={() => setSelectedLead(lead)}
-                          style={{ background: 'none', border: '1px solid var(--border-color)', color: '#FFF', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}
+                          style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}
                         >
                           <FiEye size={14} /> Detalhes
                         </button>
@@ -1679,7 +1756,7 @@ export default function LeadsKanban() {
                 <button onClick={() => handleDeleteLead(selectedLead.id)} title="Excluir Lead" style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44, justifyContent: 'center' }}>
                   <FiTrash2 size={18} />
                 </button>
-                <button onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44, justifyContent: 'center' }}>
+                <button onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', minWidth: 44, minHeight: 44, justifyContent: 'center' }}>
                   <FiX size={22} />
                 </button>
               </div>
@@ -1757,7 +1834,7 @@ export default function LeadsKanban() {
                 gap: '12px'
               }}>
                 <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFF', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span>{selectedLead.nome} {selectedLead.sobrenome || ''}</span>
                     {(() => {
                       const { isStale, followUpCount } = getLeadStatusHelper(selectedLead);
@@ -1862,7 +1939,7 @@ export default function LeadsKanban() {
 
                   {/* Client & Event Data Forms */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none' }}>
-                    <h4 style={{ margin: '0 0 16px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px' }}>
+                    <h4 style={{ margin: '0 0 16px 0', color: 'var(--text-primary)', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px' }}>
                       Dados Cadastrais
                     </h4>
                     
@@ -1924,7 +2001,7 @@ export default function LeadsKanban() {
 
                   {/* ✍️ CONTRATO ASSINADO & HISTÓRICO */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <h4 style={{ margin: 0, color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <FiFileText style={{ color: 'var(--primary)' }} /> Assinatura do Contrato
                     </h4>
 
@@ -1999,7 +2076,7 @@ export default function LeadsKanban() {
 
                   {/* 📜 HISTÓRICO DE INTERAÇÕES E ENVIOS */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none' }}>
-                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', fontSize: '0.92rem', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <FiList style={{ color: 'var(--primary)' }} /> Histórico de Envios e Interações
                     </h4>
 
@@ -2057,7 +2134,7 @@ export default function LeadsKanban() {
                             return (
                               <div key={msg.key} style={{ background: '#050a06', padding: '8px 12px', borderRadius: '6px', borderLeft: `3px solid ${statusColor}`, fontSize: '0.8rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                  <span style={{ fontWeight: 'bold', color: '#FFF' }}>{icon} {actionLabel}</span>
+                                  <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{icon} {actionLabel}</span>
                                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{dateStr}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
@@ -2085,7 +2162,7 @@ export default function LeadsKanban() {
                   {/* Event Team management */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '10px' }}>
-                      <h4 style={{ margin: 0, color: '#FFF', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <FiUsers style={{ color: 'var(--primary)' }} /> Equipe do Evento
                       </h4>
                       {selectedLead.ajudantes && Object.values(selectedLead.ajudantes).some(a => a.status === 'confirmado') && (
@@ -2098,7 +2175,7 @@ export default function LeadsKanban() {
                             height: 'auto', 
                             background: '#4CAF50', 
                             border: 'none', 
-                            color: '#FFF', 
+                            color: 'var(--text-primary)', 
                             fontWeight: 'bold',
                             borderRadius: '6px',
                             cursor: 'pointer'
@@ -2168,7 +2245,7 @@ export default function LeadsKanban() {
                             <div key={slug} style={{ background: 'rgba(255,255,255,0.01)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
                               <div style={{ display: 'flex', justifyContext: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 600, color: '#FFF', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem' }}>
+                                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem' }}>
                                     {helperInfo.nome}
                                     <span style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'rgba(203, 161, 83, 0.08)', border: '1px solid rgba(203, 161, 83, 0.2)', padding: '1px 6px', borderRadius: '4px' }}>
                                       {helperInfo.especialidade}
@@ -2304,12 +2381,130 @@ export default function LeadsKanban() {
                       🛒 Lista de Compras (Insumos)
                     </h4>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '0 0 12px 0' }}>
-                      O cliente receberá um link para escolher os drinks e o sistema calculará os insumos.
+                      Acesse a lista interativa de compras para visualizar, marcar os itens e escolher os drinks.
                     </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '14px' }}>
+                      {/* Client link */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>🔗 Link do Cliente (Escolher Drinks)</label>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            readOnly
+                            value={`${generalConfigs?.siteUrl ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl) : window.location.origin}/lista-compras/${selectedLead.id}`}
+                            style={{
+                              flex: 1,
+                              padding: '8px 12px',
+                              background: 'var(--bg-input)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.8rem',
+                              outline: 'none'
+                            }}
+                            id="client-list-link-input"
+                          />
+                          <button
+                            onClick={() => {
+                              const input = document.getElementById('client-list-link-input');
+                              if (input) {
+                                input.select();
+                                navigator.clipboard.writeText(input.value);
+                                showToast('Link do cliente copiado!', 'success');
+                              }
+                            }}
+                            className="btn"
+                            style={{
+                              padding: '8px 14px',
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid var(--border-color)',
+                              color: 'var(--text-primary)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Barman link */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>📋 Checklist do Barman (Marcar Itens Comprados)</label>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            readOnly
+                            value={`${generalConfigs?.siteUrl ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl) : window.location.origin}/lista-compras/${selectedLead.id}?barman=true`}
+                            style={{
+                              flex: 1,
+                              padding: '8px 12px',
+                              background: 'var(--bg-input)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.8rem',
+                              outline: 'none'
+                            }}
+                            id="barman-list-link-input"
+                          />
+                          <button
+                            onClick={() => {
+                              const input = document.getElementById('barman-list-link-input');
+                              if (input) {
+                                input.select();
+                                navigator.clipboard.writeText(input.value);
+                                showToast('Link do barman copiado!', 'success');
+                              }
+                            }}
+                            className="btn"
+                            style={{
+                              padding: '8px 14px',
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid var(--border-color)',
+                              color: 'var(--text-primary)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Copiar
+                          </button>
+                          <a
+                            href={`${generalConfigs?.siteUrl ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl) : window.location.origin}/lista-compras/${selectedLead.id}?barman=true`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn"
+                            style={{
+                              padding: '8px 14px',
+                              background: 'var(--primary)',
+                              border: 'none',
+                              color: '#000',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              textDecoration: 'none',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            <FiEye size={12} /> Abrir
+                          </a>
+                        </div>
+                      </div>
+                    </div>
                     
                     {selectedLead.shoppingListFinalizada ? (
                       <div style={{ padding: '10px 12px', background: 'rgba(76, 175, 80, 0.08)', border: '1px solid rgba(76, 175, 80, 0.3)', borderRadius: '6px', color: '#4CAF50', fontSize: '0.85rem' }}>
-                        ✅ <strong>O cliente já finalizou a lista!</strong> Insumos calculados e listados abaixo.
+                        ✅ <strong>A lista já foi finalizada!</strong> Veja os insumos detalhados abaixo ou acesse o Checklist do Barman para gerenciar as compras.
                       </div>
                     ) : (
                       <button 
@@ -2333,14 +2528,14 @@ export default function LeadsKanban() {
                           fontWeight: 'bold'
                         }}
                       >
-                        <FiPhone /> Enviar Link da Lista via API WhatsApp
+                        <FiPhone /> Enviar Link de Seleção ao Cliente via WhatsApp
                       </button>
                     )}
                   </div>
 
                   {/* Chosen drinks */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '20px', border: 'none' }}>
-                    <h4 style={{ margin: '0 0 14px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                    <h4 style={{ margin: '0 0 14px 0', color: 'var(--text-primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
                       Escolhas de Bebidas
                     </h4>
                     <div style={{ fontSize: '0.88rem' }}>
@@ -2373,39 +2568,184 @@ export default function LeadsKanban() {
                   {/* Shopping List Results */}
                   {selectedLead.shoppingListFinalizada && selectedLead.shoppingListResult && (
                     <div style={{ background: 'rgba(76, 175, 80, 0.04)', borderRadius: '12px', padding: '20px', border: 'none', borderLeft: '4px solid #4CAF50' }}>
-                      <h4 style={{ margin: '0 0 14px 0', color: '#4CAF50', borderBottom: '1px solid rgba(76, 175, 80, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
-                        🛒 Detalhes dos Insumos (Lista Calculada)
-                      </h4>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
-                        {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
-                          <div>
-                            <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Insumos e Bebidas:</strong>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
-                              {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => (
-                                <div key={insumo} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
-                                  <span style={{ color: 'var(--text-secondary)' }}>{insumo}</span>
-                                  <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
-                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                            <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Itens Fixos / Descartáveis:</strong>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
-                              {selectedLead.shoppingListResult.fixos.map((item, idx) => (
-                                <div key={idx} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
-                                  <span style={{ color: 'var(--text-secondary)' }}>{item.nome}</span>
-                                  <strong style={{ color: 'var(--primary)' }}>{item.quantidade} {item.unidade}</strong>
-                                </div>
-                              ))}
-                            </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(76, 175, 80, 0.06)', paddingBottom: '8px', marginBottom: '14px' }}>
+                        <h4 style={{ margin: 0, color: '#4CAF50', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          🛒 Detalhes dos Insumos (Lista Calculada)
+                        </h4>
+                        {!isEditingShoppingList ? (
+                          <button
+                            onClick={handleStartEditShoppingList}
+                            className="btn btn--outline"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem', width: 'auto', minHeight: 'auto', borderColor: '#4CAF50', color: '#4CAF50' }}
+                          >
+                            Editar Itens
+                          </button>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={() => { setIsEditingShoppingList(false); setEditedShoppingList(null); }}
+                              className="btn btn--outline"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', width: 'auto', minHeight: 'auto', borderColor: 'var(--text-muted)', color: 'var(--text-muted)' }}
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={handleSaveShoppingList}
+                              className="btn btn--primary"
+                              style={{ padding: '4px 12px', fontSize: '0.75rem', width: 'auto', minHeight: 'auto', background: '#4CAF50', color: '#FFF', border: 'none' }}
+                            >
+                              Salvar
+                            </button>
                           </div>
                         )}
                       </div>
+
+                      {!isEditingShoppingList ? (
+                        /* 🔍 READ-ONLY VIEW */
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
+                          {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
+                            <div>
+                              <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Insumos e Bebidas:</strong>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                                {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => (
+                                  <div key={insumo} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <span style={{ color: 'var(--text-secondary)' }}>{insumo}</span>
+                                    <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                              <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Itens Fixos / Descartáveis:</strong>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                                {selectedLead.shoppingListResult.fixos.map((item, idx) => (
+                                  <div key={idx} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <span style={{ color: 'var(--text-secondary)' }}>{item.nome}</span>
+                                    <strong style={{ color: 'var(--primary)' }}>{item.quantidade} {item.unidade}</strong>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* ✍️ EDITOR VIEW */
+                        editedShoppingList && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontSize: '0.85rem' }}>
+                            {/* Insumos Editor */}
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <strong style={{ color: 'var(--text-secondary)' }}>Insumos e Bebidas:</strong>
+                                <button
+                                  onClick={addInsumo}
+                                  className="btn btn--outline"
+                                  style={{ padding: '2px 8px', fontSize: '0.7rem', width: 'auto', minHeight: 'auto', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+                                >
+                                  + Add Insumo
+                                </button>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                {Object.keys(editedShoppingList.insumos).length === 0 && (
+                                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>Nenhum insumo.</div>
+                                )}
+                                {Object.entries(editedShoppingList.insumos).map(([insumo, qtd]) => (
+                                  <div key={insumo} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      value={insumo}
+                                      style={{ padding: '6px 10px', fontSize: '0.8rem', flex: 1 }}
+                                      onChange={(e) => updateInsumoKey(insumo, e.target.value)}
+                                    />
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      value={qtd}
+                                      style={{ padding: '6px 10px', fontSize: '0.8rem', width: '120px' }}
+                                      onChange={(e) => updateInsumoVal(insumo, e.target.value)}
+                                    />
+                                    <button
+                                      onClick={() => deleteInsumo(insumo)}
+                                      style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '6px' }}
+                                      title="Remover"
+                                    >
+                                      <FiTrash2 size={16} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Fixos Editor */}
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <strong style={{ color: 'var(--text-secondary)' }}>Itens Fixos / Descartáveis:</strong>
+                                <button
+                                  onClick={addFixo}
+                                  className="btn btn--outline"
+                                  style={{ padding: '2px 8px', fontSize: '0.7rem', width: 'auto', minHeight: 'auto', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+                                >
+                                  + Add Item Fixo
+                                </button>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(editedShoppingList.fixos || []).length === 0 && (
+                                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>Nenhum item fixo.</div>
+                                )}
+                                {(editedShoppingList.fixos || []).map((item, idx) => (
+                                  <div key={item.id || idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      value={item.nome || ''}
+                                      placeholder="Nome"
+                                      style={{ padding: '6px 10px', fontSize: '0.8rem', flex: 2, minWidth: '120px' }}
+                                      onChange={(e) => updateFixoField(idx, 'nome', e.target.value)}
+                                    />
+                                    <input
+                                      type="number"
+                                      className="form-input"
+                                      value={item.quantidade ?? ''}
+                                      placeholder="Qtd"
+                                      style={{ padding: '6px 10px', fontSize: '0.8rem', width: '80px' }}
+                                      onChange={(e) => updateFixoField(idx, 'quantidade', Number(e.target.value))}
+                                    />
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      value={item.unidade || ''}
+                                      placeholder="Un"
+                                      style={{ padding: '6px 10px', fontSize: '0.8rem', width: '70px' }}
+                                      onChange={(e) => updateFixoField(idx, 'unidade', e.target.value)}
+                                    />
+                                    <select
+                                      className="form-select"
+                                      value={item.categoria || 'bar'}
+                                      style={{ padding: '6px 10px', fontSize: '0.8rem', width: '110px' }}
+                                      onChange={(e) => updateFixoField(idx, 'categoria', e.target.value)}
+                                    >
+                                      <option value="bar">🍸 Bar</option>
+                                      <option value="insumo">🍋 Fresco</option>
+                                      <option value="decoracao">✨ Decoração</option>
+                                      <option value="descartavel">🧾 Descartável</option>
+                                    </select>
+                                    <button
+                                      onClick={() => deleteFixo(idx)}
+                                      style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '6px' }}
+                                      title="Remover"
+                                    >
+                                      <FiTrash2 size={16} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
@@ -2417,7 +2757,7 @@ export default function LeadsKanban() {
                   
                   {/* WhatsApp actions */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none' }}>
-                    <h4 style={{ margin: '0 0 12px 0', color: '#FFF', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.06)', paddingBottom: '8px', fontSize: '0.92rem' }}>
                       Disparador de Mensagens
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2457,7 +2797,7 @@ export default function LeadsKanban() {
                         disabled={sendingScript}
                         style={{ 
                           textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
-                          color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
+                          color: 'var(--text-primary)', border: '1px solid rgba(203, 161, 83, 0.2)', 
                           background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
                           borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 46
                         }}
@@ -2472,7 +2812,7 @@ export default function LeadsKanban() {
                         disabled={sendingScript}
                         style={{ 
                           textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
-                          color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
+                          color: 'var(--text-primary)', border: '1px solid rgba(203, 161, 83, 0.2)', 
                           background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
                           borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 46
                         }}
@@ -2487,7 +2827,7 @@ export default function LeadsKanban() {
                         disabled={sendingScript}
                         style={{ 
                           textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px', 
-                          color: '#FFF', border: '1px solid rgba(203, 161, 83, 0.2)', 
+                          color: 'var(--text-primary)', border: '1px solid rgba(203, 161, 83, 0.2)', 
                           background: 'rgba(255,255,255,0.02)', cursor: sendingScript ? 'not-allowed' : 'pointer',
                           borderRadius: '8px', display: 'flex', alignItems: 'center', minHeight: 46
                         }}
@@ -2536,7 +2876,7 @@ export default function LeadsKanban() {
                                   <span style={{ color: msg.success ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
                                     {msg.success ? '✓' : '✗'}
                                   </span>
-                                  <span style={{ color: '#FFF' }}>{label}</span>
+                                  <span style={{ color: 'var(--text-primary)' }}>{label}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   {msg.error && (
@@ -2573,7 +2913,7 @@ export default function LeadsKanban() {
                       boxShadow: '0 2px 12px rgba(0, 0, 0, 0.2)'
                     }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Faturamento</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamento)}
                       </div>
                     </div>
@@ -2808,7 +3148,7 @@ export default function LeadsKanban() {
                             .map((rec) => (
                               <div key={rec.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.02)' }}>
                                 <div style={{ fontSize: '0.82rem' }}>
-                                  <span style={{ color: '#FFF', fontWeight: '500' }}>
+                                  <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(rec.valor)}
                                   </span>
                                   <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
@@ -3104,7 +3444,7 @@ export default function LeadsKanban() {
                           </thead>
                           <tbody>
                             {custosLista.map((custo) => (
-                              <tr key={custo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#FFF' }}>
+                              <tr key={custo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'var(--text-primary)' }}>
                                 <td style={{ padding: '10px 8px' }}>
                                   <div>{custo.descricao}</div>
                                   {custo.quantidade > 0 && custo.valorUnitario > 0 && (
@@ -3205,7 +3545,7 @@ export default function LeadsKanban() {
                 style={{
                   background: 'none',
                   border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#FFF',
+                  color: 'var(--text-primary)',
                   padding: '8px 16px',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -3240,7 +3580,7 @@ export default function LeadsKanban() {
           }}>
             <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif' }}>Novo Lead Manual</h2>
-              <button onClick={() => setIsAddingManual(false)} style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <button onClick={() => setIsAddingManual(false)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <FiX size={24} />
               </button>
             </div>
@@ -3308,7 +3648,7 @@ export default function LeadsKanban() {
                 </div>
 
                 <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                  <button type="button" onClick={() => setIsAddingManual(false)} className="btn btn--outline" style={{ color: '#FFF' }}>Cancelar</button>
+                  <button type="button" onClick={() => setIsAddingManual(false)} className="btn btn--outline" style={{ color: 'var(--text-primary)' }}>Cancelar</button>
                   <button type="submit" className="btn btn--primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiPlus size={18} /> Salvar Lead
                   </button>
