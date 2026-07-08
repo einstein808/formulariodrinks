@@ -1,43 +1,52 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { ref, get, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+import { FiCheck, FiShoppingCart, FiChevronRight, FiShare2, FiRefreshCw } from 'react-icons/fi';
 
-import { FiCheck, FiShoppingCart, FiChevronRight } from 'react-icons/fi';
+const DEFAULT_FIXED_ITEMS = [
+  { id: 'sifao_espuma', nome: 'Sifão de Espuma (carga)', categoria: 'bar', tipoCalc: 'fixo', quantidade: 6, unidade: 'un' },
+  { id: 'limoes', nome: 'Limões', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.04, unidade: 'kg' },
+  { id: 'gelo', nome: 'Gelo', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.2, unidade: 'kg' },
+  { id: 'hortela', nome: 'Hortelã', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.02, unidade: 'maço' },
+  { id: 'decoracao', nome: 'Decoração de Mesa', categoria: 'decoracao', tipoCalc: 'fixo', quantidade: 1, unidade: 'kit' },
+  { id: 'guardanapos', nome: 'Guardanapos', categoria: 'descartavel', tipoCalc: 'porConvidado', quantidade: 0.05, unidade: 'pct' },
+  { id: 'canudos', nome: 'Canudos', categoria: 'descartavel', tipoCalc: 'fixo', quantidade: 2, unidade: 'pct' },
+];
 
+const CATEGORY_LABELS = {
+  bar:        { label: '🍸 Equipamentos de Bar', color: '#cba153' },
+  insumo:     { label: '🍋 Insumos Frescos', color: '#4CAF50' },
+  decoracao:  { label: '✨ Decoração', color: '#CE93D8' },
+  descartavel:{ label: '🧾 Descartáveis', color: '#00E5FF' },
+  drinks:     { label: '🍹 Bebidas e Insumos Calculados', color: '#FF9800' },
+};
 export default function ShoppingListClient() {
   const { leadId } = useParams();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
   const [lead, setLead] = useState(null);
   const [drinksMenu, setDrinksMenu] = useState([]);
   const [shoppingConfig, setShoppingConfig] = useState(null);
-  
   const [step, setStep] = useState(1);
   const [drinksEscolhidos, setDrinksEscolhidos] = useState([]);
   const [maxDrinks, setMaxDrinks] = useState(5);
   const [listaGerada, setListaGerada] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [convidadosLocal, setConvidadosLocal] = useState('');
+  const [checkedItems, setCheckedItems] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch Lead
         const leadSnap = await get(ref(db, `leads/${leadId}`));
-        if (!leadSnap.exists()) {
-          setError("Lead não encontrado.");
-          setLoading(false);
-          return;
-        }
+        if (!leadSnap.exists()) { setError('Lead não encontrado.'); setLoading(false); return; }
         const leadData = leadSnap.val();
         setLead(leadData);
         setConvidadosLocal(leadData.convidados || '');
-
-        // Se o lead já finalizou a lista, pula direto pro passo 3 com os dados
+        if (leadData.shoppingListChecked) setCheckedItems(leadData.shoppingListChecked);
         if (leadData.shoppingListFinalizada && leadData.shoppingListResult) {
           setDrinksEscolhidos(leadData.shoppingListResult.drinksEscolhidos || []);
           setListaGerada(leadData.shoppingListResult);
@@ -176,19 +185,24 @@ export default function ShoppingListClient() {
       insumosFormatados[nome] = `${qtdFinal} ${undFinal}`;
     });
 
-    // Calcular Fixos
-    const fixosFormatados = [];
-    if (shoppingConfig?.itensFixos && Array.isArray(shoppingConfig.itensFixos)) {
-      shoppingConfig.itensFixos.forEach(fixo => {
-        if (!fixo.nome || !fixo.quantidade) return;
-        const total = Math.ceil(Number(fixo.quantidade) * convidados);
-        fixosFormatados.push({
-          nome: fixo.nome,
-          quantidade: total,
-          unidade: fixo.unidade || 'un'
-        });
-      });
-    }
+    // Calcular Fixos (usa DEFAULT_FIXED_ITEMS se não houver config)
+    const fixosBase = (shoppingConfig?.itensFixos && shoppingConfig.itensFixos.length > 0)
+      ? shoppingConfig.itensFixos
+      : DEFAULT_FIXED_ITEMS;
+
+    const fixosFormatados = fixosBase.map(fixo => {
+      if (!fixo.nome) return null;
+      const total = fixo.tipoCalc === 'porConvidado'
+        ? Math.ceil(Number(fixo.quantidade) * convidados)
+        : Math.ceil(Number(fixo.quantidade));
+      return {
+        id: fixo.id || fixo.nome.toLowerCase().replace(/\s+/g, '_'),
+        nome: fixo.nome,
+        quantidade: total,
+        unidade: fixo.unidade || 'un',
+        categoria: fixo.categoria || 'bar',
+      };
+    }).filter(Boolean);
 
     const resultado = {
       insumos: insumosFormatados,
@@ -200,6 +214,37 @@ export default function ShoppingListClient() {
     setListaGerada(resultado);
     setStep(3);
   };
+
+  const toggleItem = useCallback(async (itemId) => {
+    const newChecked = { ...checkedItems, [itemId]: !checkedItems[itemId] };
+    setCheckedItems(newChecked);
+    setSaving(true);
+    try { await update(ref(db, `leads/${leadId}`), { shoppingListChecked: newChecked }); }
+    catch (e) { console.error(e); }
+    finally { setSaving(false); }
+  }, [checkedItems, leadId]);
+
+  const compartilharLista = () => {
+    if (!listaGerada) return;
+    let texto = `🛒 Lista de Compras — ${lead?.nome || 'Evento'}\n👥 ${listaGerada.convidadosCalculados} convidados\n\n🍹 BEBIDAS E INSUMOS:\n`;
+    Object.entries(listaGerada.insumos).forEach(([nome, qtd]) => { texto += `  ${checkedItems[`insumo_${nome}`] ? '✅' : '⬜'} ${nome}: ${qtd}\n`; });
+    const fixosPorCat = (listaGerada.fixos || []).reduce((acc, f) => { const c = f.categoria || 'bar'; if (!acc[c]) acc[c] = []; acc[c].push(f); return acc; }, {});
+    Object.entries(fixosPorCat).forEach(([cat, items]) => {
+      texto += `\n${CATEGORY_LABELS[cat]?.label || cat.toUpperCase()}:\n`;
+      items.forEach(f => { texto += `  ${checkedItems[`fixo_${f.id}`] ? '✅' : '⬜'} ${f.nome}: ${f.quantidade} ${f.unidade}\n`; });
+    });
+    if (navigator.share) { navigator.share({ title: 'Lista de Compras', text: texto }); }
+    else { navigator.clipboard.writeText(texto).then(() => alert('Lista copiada para a área de transferência!')); }
+  };
+
+  const allItemIds = listaGerada ? [
+    ...Object.keys(listaGerada.insumos).map(n => `insumo_${n}`),
+    ...(listaGerada.fixos || []).map(f => `fixo_${f.id}`),
+  ] : [];
+  const checkedCount = allItemIds.filter(id => checkedItems[id]).length;
+  const totalCount = allItemIds.length;
+  const progressPct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+
 
   const salvarListaNoFirebase = async () => {
     setIsSubmitting(true);
@@ -403,85 +448,126 @@ export default function ShoppingListClient() {
           {/* STEP 3: Lista Gerada */}
           {step === 3 && listaGerada && (
             <div className="step-enter">
-              <div style={{ background: 'var(--bg-main)', padding: '32px', borderRadius: '16px', border: '1px solid var(--primary)', boxShadow: '0 8px 32px rgba(203, 161, 83, 0.1)', marginBottom: '24px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, background: 'rgba(76, 175, 80, 0.1)', color: '#4CAF50', borderRadius: '50%', marginBottom: '16px' }}>
+              {/* Card principal */}
+              <div style={{ background: 'var(--bg-card)', padding: '28px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)', marginBottom: '20px' }}>
+                
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, background: 'rgba(76,175,80,0.1)', color: '#4CAF50', borderRadius: '50%', marginBottom: '12px' }}>
                     <FiShoppingCart size={32} />
                   </div>
-                  <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Sua Lista está Pronta!</h2>
-                  <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    Calculada para {listaGerada.convidadosCalculados || convidadosLocal} convidados (já incluindo margem de segurança de {shoppingConfig?.margemSeguranca || 10}%).
+                  <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Sua Lista de Compras</h2>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '0.9rem' }}>
+                    Para {listaGerada.convidadosCalculados || convidadosLocal} convidados · margem de {shoppingConfig?.margemSeguranca || 10}% incluída
                   </p>
+                  {saving && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '4px' }}>💾 Salvando...</p>}
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  {/* Bebidas e Insumos */}
-                  <div>
-                    <h3 style={{ margin: '0 0 16px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>🍹 Bebidas e Insumos</h3>
-                    {Object.keys(listaGerada.insumos).length === 0 ? (
-                      <p style={{ color: 'var(--text-muted)' }}>Nenhuma receita cadastrada para os drinks escolhidos.</p>
-                    ) : (
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                        {Object.entries(listaGerada.insumos).map(([insumo, qtd]) => (
-                          <li key={insumo} style={{ background: 'var(--bg-input)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>{insumo}</span>
-                            <strong style={{ color: 'var(--primary)' }}>{qtd}</strong>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                {/* Barra de Progresso */}
+                <div style={{ marginBottom: '28px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Itens comprados</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: progressPct === 100 ? '#4CAF50' : 'var(--primary)' }}>
+                      {checkedCount} / {totalCount} {progressPct === 100 ? '🎉 Tudo pronto!' : `(${progressPct}%)`}
+                    </span>
                   </div>
+                  <div style={{ height: '10px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${progressPct}%`, background: progressPct === 100 ? 'linear-gradient(90deg, #4CAF50, #66BB6A)' : 'linear-gradient(90deg, var(--primary-dark), var(--primary))', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
 
-                  {/* Fixos e Descartáveis */}
-                  {listaGerada.fixos && listaGerada.fixos.length > 0 && (
-                    <div>
-                      <h3 style={{ margin: '0 0 16px 0', color: '#FFF', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>📦 Descartáveis e Itens Fixos</h3>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                        {listaGerada.fixos.map((item, idx) => (
-                          <li key={idx} style={{ background: 'var(--bg-input)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>{item.nome}</span>
-                            <strong style={{ color: '#00E5FF' }}>{item.quantidade} {item.unidade}</strong>
-                          </li>
-                        ))}
-                      </ul>
+                {/* Bebidas e Insumos Calculados */}
+                <div style={{ marginBottom: '28px' }}>
+                  <h3 style={{ margin: '0 0 14px 0', color: CATEGORY_LABELS.drinks.color, borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', fontSize: '1rem' }}>
+                    {CATEGORY_LABELS.drinks.label}
+                  </h3>
+                  {Object.keys(listaGerada.insumos).length === 0 ? (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nenhuma receita cadastrada para os drinks selecionados.</p>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {Object.entries(listaGerada.insumos).map(([nome, qtd]) => {
+                        const id = `insumo_${nome}`;
+                        const checked = !!checkedItems[id];
+                        return (
+                          <div key={id} onClick={() => toggleItem(id)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '10px', border: `1px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? 'rgba(76,175,80,0.06)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.2s ease', userSelect: 'none' }}>
+                            <div style={{ width: 24, height: 24, borderRadius: '6px', border: `2px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s ease' }}>
+                              {checked && <FiCheck size={14} color="#fff" strokeWidth={3} />}
+                            </div>
+                            <span style={{ flex: 1, color: checked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: checked ? 'line-through' : 'none', fontSize: '0.95rem' }}>{nome}</span>
+                            <strong style={{ color: checked ? 'var(--text-muted)' : 'var(--primary)', flexShrink: 0, fontSize: '0.9rem' }}>{qtd}</strong>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
+                </div>
 
-                  {/* Drinks Escolhidos */}
-                  <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                    <h4 style={{ margin: '0 0 8px 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Drinks que farão parte do seu cardápio:</h4>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {drinksMenu.filter(d => listaGerada.drinksEscolhidos.includes(d.id)).map(d => (
-                        <span key={d.id} style={{ background: '#222', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', color: '#FFF' }}>
-                          {d.emoji} {d.name}
-                        </span>
-                      ))}
+                {/* Itens Fixos agrupados por categoria */}
+                {Object.entries(
+                  (listaGerada.fixos || []).reduce((acc, f) => {
+                    const cat = f.categoria || 'bar';
+                    if (!acc[cat]) acc[cat] = [];
+                    acc[cat].push(f);
+                    return acc;
+                  }, {})
+                ).map(([cat, items]) => (
+                  <div key={cat} style={{ marginBottom: '24px' }}>
+                    <h3 style={{ margin: '0 0 14px 0', color: CATEGORY_LABELS[cat]?.color || 'var(--primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', fontSize: '1rem' }}>
+                      {CATEGORY_LABELS[cat]?.label || cat}
+                    </h3>
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {items.map(f => {
+                        const id = `fixo_${f.id}`;
+                        const checked = !!checkedItems[id];
+                        const catColor = CATEGORY_LABELS[cat]?.color || 'var(--primary)';
+                        return (
+                          <div key={id} onClick={() => toggleItem(id)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '10px', border: `1px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? 'rgba(76,175,80,0.06)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.2s ease', userSelect: 'none' }}>
+                            <div style={{ width: 24, height: 24, borderRadius: '6px', border: `2px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s ease' }}>
+                              {checked && <FiCheck size={14} color="#fff" strokeWidth={3} />}
+                            </div>
+                            <span style={{ flex: 1, color: checked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: checked ? 'line-through' : 'none', fontSize: '0.95rem' }}>{f.nome}</span>
+                            <strong style={{ color: checked ? 'var(--text-muted)' : catColor, flexShrink: 0, fontSize: '0.9rem' }}>{f.quantidade} {f.unidade}</strong>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
+                ))}
 
+                {/* Drinks no cardápio */}
+                <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: '10px', border: '1px solid var(--border-color)', marginTop: '8px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-muted)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Drinks no cardápio:</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {drinksMenu.filter(d => listaGerada.drinksEscolhidos.includes(d.id)).map(d => (
+                      <span key={d.id} style={{ background: 'rgba(203,161,83,0.08)', border: '1px solid var(--border-color)', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {d.emoji} {d.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {!lead.shoppingListFinalizada && (
-                <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-                  <button className="btn btn--secondary" onClick={() => setStep(2)} style={{ width: 'auto' }} disabled={isSubmitting}>
-                    Refazer Escolhas
-                  </button>
-                  <button 
-                    className="btn btn--primary" 
-                    onClick={salvarListaNoFirebase}
-                    disabled={isSubmitting}
-                    style={{ width: 'auto' }}
-                  >
-                    {isSubmitting ? 'Salvando...' : <><FiCheck /> Confirmar e Enviar para Equipe</>}
-                  </button>
-                </div>
-              )}
+              {/* Ações */}
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {!lead.shoppingListFinalizada && (
+                  <>
+                    <button className="btn btn--secondary" onClick={() => setStep(2)} disabled={isSubmitting} style={{ width: 'auto', gap: '6px' }}>
+                      <FiRefreshCw size={14} /> Refazer Escolhas
+                    </button>
+                    <button className="btn btn--primary" onClick={salvarListaNoFirebase} disabled={isSubmitting} style={{ width: 'auto' }}>
+                      {isSubmitting ? 'Salvando...' : <><FiCheck /> Confirmar e Enviar para Equipe</>}
+                    </button>
+                  </>
+                )}
+                <button className="btn btn--secondary" onClick={compartilharLista} style={{ width: 'auto', gap: '6px' }}>
+                  <FiShare2 size={14} /> Compartilhar Lista
+                </button>
+              </div>
 
               {lead.shoppingListFinalizada && (
-                <div style={{ textAlign: 'center', padding: '16px', color: '#4CAF50', background: 'rgba(76, 175, 80, 0.1)', borderRadius: '8px', border: '1px solid #4CAF50' }}>
-                  ✅ <strong>Lista finalizada e enviada para nossa equipe!</strong><br/>
-                  Você pode tirar um print desta tela para levar ao mercado.
+                <div style={{ textAlign: 'center', padding: '16px', color: '#4CAF50', background: 'rgba(76,175,80,0.08)', borderRadius: '8px', border: '1px solid #4CAF50', marginTop: '16px' }}>
+                  ✅ <strong>Lista finalizada e enviada para nossa equipe!</strong><br />
+                  <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>Continue marcando os itens conforme for comprando.</span>
                 </div>
               )}
             </div>

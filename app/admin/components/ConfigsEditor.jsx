@@ -588,14 +588,73 @@ export default function ConfigsEditor() {
               </div>
             </div>
             
-            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label className="form-label">Cor Primária / Destaque (Hexadecimal - Ex: #cba153)</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input type="color" value={general.primaryColor || '#cba153'} onChange={(e) => setGeneral({ ...general, primaryColor: e.target.value })} style={{ width: '40px', height: '40px', padding: '0', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }} />
-                  <input type="text" className="form-input" value={general.primaryColor || ''} onChange={(e) => setGeneral({ ...general, primaryColor: e.target.value })} placeholder="#cba153" style={{ flex: 1 }} />
+            <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+              <h4 style={{ margin: '0 0 16px 0', color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '0.95rem' }}>🎨 Aparência do Sistema</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label className="form-label">Cor de Destaque (Hexadecimal)</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={general.primaryColor || '#cba153'}
+                      onChange={(e) => {
+                        setGeneral({ ...general, primaryColor: e.target.value });
+                        // Live preview
+                        document.documentElement.style.setProperty('--primary', e.target.value);
+                        document.documentElement.style.setProperty('--text-accent', e.target.value);
+                      }}
+                      style={{ width: '48px', height: '48px', padding: '2px', border: '2px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', background: 'transparent', flexShrink: 0 }}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={general.primaryColor || ''}
+                      onChange={(e) => setGeneral({ ...general, primaryColor: e.target.value })}
+                      placeholder="#cba153"
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>Afeta botões, bordas, textos de destaque e ícones em todo o app.</p>
+                </div>
+                <div>
+                  <label className="form-label">Modo de Tema</label>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                    {[
+                      { value: 'dark', label: '🌙 Escuro', desc: 'Fundo preto (padrão)' },
+                      { value: 'light', label: '☀️ Claro', desc: 'Fundo branco-dourado' }
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setGeneral({ ...general, themeMode: opt.value });
+                          document.documentElement.setAttribute('data-theme', opt.value);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 8px',
+                          borderRadius: '8px',
+                          border: `2px solid ${(general.themeMode || 'dark') === opt.value ? 'var(--primary)' : 'var(--border-color)'}`,
+                          background: (general.themeMode || 'dark') === opt.value ? 'rgba(203,161,83,0.1)' : 'transparent',
+                          color: (general.themeMode || 'dark') === opt.value ? 'var(--primary)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: (general.themeMode || 'dark') === opt.value ? 'bold' : 'normal',
+                          textAlign: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div>{opt.label}</div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.7, marginTop: '3px' }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>Aplicado em tempo real no admin e nas telas do cliente.</p>
                 </div>
               </div>
+            </div>
+
+            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
                 <label className="form-label">Link do Instagram (Ex: https://instagram.com/user)</label>
                 <input type="text" className="form-input" value={general.instagramUrl || ''} onChange={(e) => setGeneral({ ...general, instagramUrl: e.target.value })} placeholder="https://instagram.com/laboratoriodedrinks" />

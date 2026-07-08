@@ -47,6 +47,51 @@
 }
 
 /* ============================
+   Light Theme
+   ============================ */
+[data-theme="light"] {
+  --bg-dark: #f5f0e8;
+  --bg-main: #f5f0e8;
+  --bg-card: #fffdf7;
+  --bg-card-hover: #fdf8ee;
+  --bg-input: #fefcf5;
+  --bg-surface: rgba(255, 253, 247, 0.92);
+
+  --text-primary: #1a1209;
+  --text-secondary: #4a3f2b;
+  --text-muted: #7a6a4a;
+  --text-accent: var(--primary);
+
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(0, 0, 0, 0.3);
+  --border-error: #c0392b;
+
+  --success: #217a3c;
+  --error: #c0392b;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 40px rgba(203, 161, 83, 0.15);
+}
+
+[data-theme="light"] body {
+  background: var(--bg-main);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .bg-orb {
+  opacity: 0.08;
+}
+
+[data-theme="light"] .bg-grid {
+  opacity: 0.03;
+}
+
+
+
+/* ============================
    Reset & Base
    ============================ */
 *,
