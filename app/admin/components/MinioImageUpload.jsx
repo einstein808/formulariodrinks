@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FiUploadCloud } from 'react-icons/fi';
 
-const compressImage = (file, maxWidth = 1280, quality = 0.7) => {
+const compressImage = (file, maxWidth = 1280, quality = 0.75) => {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
       return resolve(file);
@@ -34,15 +34,20 @@ const compressImage = (file, maxWidth = 1280, quality = 0.7) => {
 
         canvas.toBlob((blob) => {
           if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
+            const originalName = file.name;
+            const lastDotIndex = originalName.lastIndexOf('.');
+            const baseName = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
+            const newName = `${baseName}.webp`;
+
+            const compressedFile = new File([blob], newName, {
+              type: 'image/webp',
               lastModified: Date.now(),
             });
             resolve(compressedFile);
           } else {
             resolve(file);
           }
-        }, 'image/jpeg', quality);
+        }, 'image/webp', quality);
       };
       img.onerror = () => resolve(file);
     };

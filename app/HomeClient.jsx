@@ -295,9 +295,56 @@ export default function HomeClient() {
         )}
       </header>
 
-      {/* 1. Testimonials */}
+      {/* 1. Testimonials moved below Cardápio for LCP performance */}
+
+      {/* 2. Galeria de Eventos Realizados */}
+      {(galeria.length > 0 || loading) && (
+        <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+            Eventos Realizados: Barman em Casamentos e Festas em JF
+            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
+          </h2>
+
+          <div className="galeria-grid">
+            {galleryToDisplay.map((evento, idx) => (
+              evento.isSkeleton ? (
+                <div key={evento.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, height: 340, border: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ height: 240, background: 'rgba(255,255,255,0.03)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
+                  <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ height: 16, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '70%' }} />
+                    <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '40%' }} />
+                  </div>
+                </div>
+              ) : (
+                <EventoCard
+                  key={evento.id}
+                  evento={evento}
+                  onOpen={abrirEvento}
+                  formatDate={formatDate}
+                  priority={idx === 0}
+                />
+              )
+            ))}
+          </div>
+
+          {galeria.length > 3 && (
+            <div style={{ textAlign: 'center', marginTop: 32 }}>
+              <button
+                onClick={() => setVerTodosEventos(v => !v)}
+                className="btn btn--outline"
+                style={{ minHeight: 48, minWidth: 200, fontSize: '1rem', fontWeight: 600 }}
+              >
+                {verTodosEventos ? '↑ Ver menos' : `Ver todos os ${galeria.length} eventos`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 1. Testimonials (NPS / Google Reviews) */}
       {(reviewsToDisplay.length > 0 || loading) && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '40px 16px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <section style={{ position: 'relative', zIndex: 10, padding: '40px 16px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
           <div style={{ maxWidth: 850, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40 }}>
               <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%' }}>
@@ -379,51 +426,6 @@ export default function HomeClient() {
               ))}
             </div>
           </div>
-        </section>
-      )}
-
-      {/* 2. Galeria de Eventos Realizados */}
-      {(galeria.length > 0 || loading) && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
-            Eventos Realizados: Barman em Casamentos e Festas em JF
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
-          </h2>
-
-          <div className="galeria-grid">
-            {galleryToDisplay.map((evento, idx) => (
-              evento.isSkeleton ? (
-                <div key={evento.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, height: 340, border: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: 240, background: 'rgba(255,255,255,0.03)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
-                  <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ height: 16, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '70%' }} />
-                    <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '40%' }} />
-                  </div>
-                </div>
-              ) : (
-                <EventoCard
-                  key={evento.id}
-                  evento={evento}
-                  onOpen={abrirEvento}
-                  formatDate={formatDate}
-                  priority={idx === 0}
-                />
-              )
-            ))}
-          </div>
-
-          {galeria.length > 3 && (
-            <div style={{ textAlign: 'center', marginTop: 32 }}>
-              <button
-                onClick={() => setVerTodosEventos(v => !v)}
-                className="btn btn--outline"
-                style={{ minHeight: 48, minWidth: 200, fontSize: '1rem', fontWeight: 600 }}
-              >
-                {verTodosEventos ? '↑ Ver menos' : `Ver todos os ${galeria.length} eventos`}
-              </button>
-            </div>
-          )}
         </section>
       )}
 
@@ -617,6 +619,7 @@ export default function HomeClient() {
           </div>
         )}
       </section>
+
 
       {/* Fixed CTA */}
       <div style={{ 
