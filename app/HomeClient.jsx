@@ -282,6 +282,7 @@ export default function HomeClient() {
           width={140}
           height={140}
           priority
+          sizes="140px"
           style={{ width: 'clamp(90px, 25vw, 140px)', height: 'auto', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
         />
         <h1 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 6vw, 2.5rem)', color: 'var(--primary)', margin: '0 0 16px 0', textShadow: '0 4px 20px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
@@ -306,7 +307,7 @@ export default function HomeClient() {
               </h2>
               
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255, 255, 255, 0.03)', padding: '10px 20px', borderRadius: 30, border: '1px solid rgba(203, 161, 83, 0.15)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 22, height: 22 }} />
+                <img src="/google-logo.svg" alt="Google" style={{ width: 22, height: 22 }} />
                 <div style={{ display: 'flex', gap: 3 }}>
                   {[1,2,3,4,5].map(s => <FiStar key={s} size={20} fill="#FFC107" color="#FFC107" />)}
                 </div>
@@ -338,7 +339,7 @@ export default function HomeClient() {
                   ) : ava.printUrl ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', width: '100%' }}>
                       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', flex: 1, maxHeight: '200px', width: '100%' }}>
-                        <img src={ava.printUrl} alt={`Print do depoimento do cliente ${ava.nome} avaliando o Laboratório de Drinks com 5 estrelas`} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                        <img src={ava.printUrl} alt={`Print do depoimento do cliente ${ava.nome} avaliando o Laboratório de Drinks com 5 estrelas`} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} fetchPriority={idx === 0 ? "high" : "auto"} />
                       </div>
                       {ava.feedback && ava.feedback !== 'Redirecionado para Google Reviews' && (
                         <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, fontSize: '0.85rem', lineHeight: 1.4, textAlign: 'center' }}>

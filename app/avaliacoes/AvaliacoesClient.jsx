@@ -94,7 +94,7 @@ export default function AvaliacoesClient() {
         
         {/* Classificação Google 5.0 */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255, 255, 255, 0.03)', padding: '6px 16px', borderRadius: 30, marginBottom: 20, border: '1px solid rgba(203, 161, 83, 0.12)' }}>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 16, height: 16 }} />
+          <img src="/google-logo.svg" alt="Google" style={{ width: 16, height: 16 }} />
           <div style={{ display: 'flex', gap: 2 }}>
             {[1,2,3,4,5].map(s => <FiStar key={s} size={14} fill="#FFC107" color="#FFC107" />)}
           </div>

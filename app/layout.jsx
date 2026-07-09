@@ -76,6 +76,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${cinzel.variable}`} suppressHydrationWarning>
       <head>
+        {/* DNS Prefetch & Preconnect for Performance */}
+        <link rel="preconnect" href="https://s3.gabryelamaro.com" />
+        <link rel="dns-prefetch" href="https://s3.gabryelamaro.com" />
+        <link rel="preconnect" href="https://formsbar-default-rtdb.firebaseio.com" />
+        <link rel="dns-prefetch" href="https://formsbar-default-rtdb.firebaseio.com" />
+        <link rel="preconnect" href="https://formsbar.firebaseapp.com" />
+        <link rel="dns-prefetch" href="https://formsbar.firebaseapp.com" />
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
