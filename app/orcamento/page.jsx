@@ -33,7 +33,7 @@ const jsonLd = {
       "addressRegion": "MG",
       "addressCountry": "BR"
     },
-    "telephone": "+5532999999999",
+    "telephone": "+5532998696519",
     "priceRange": "$$"
   },
   "description": "Solicite um orçamento personalizado para serviço de bar e bartender para casamentos, formaturas, aniversários e eventos corporativos em Juiz de Fora e região.",

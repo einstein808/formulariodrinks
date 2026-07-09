@@ -72,7 +72,7 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
             <Image
               key={fotoAtual + fotoIdx}
               src={fotoAtual}
-              alt={evento.titulo}
+              alt={`Serviço de barman para ${evento.titulo} em ${evento.cidade || 'Juiz de Fora'} - Laboratório de Drinks`}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
               priority={priority && fotoIdx === 0}
@@ -226,9 +226,7 @@ export default function HomeClient() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [eventoAberto]);
 
-  if (loading) {
-    return <PageLoader />;
-  }
+
 
   const abrirEvento = (evento) => {
     setEventoAberto(evento);
@@ -256,10 +254,24 @@ export default function HomeClient() {
   };
 
   const featuredReviews = avaliacoes.filter(ava => ava.destacado === true);
-  const reviewsToDisplay = featuredReviews.length > 0 ? featuredReviews : avaliacoes;
+  const reviewsToDisplay = loading
+    ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true } ]
+    : (featuredReviews.length > 0 ? featuredReviews : avaliacoes);
+
+  const galleryToDisplay = loading
+    ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true } ]
+    : (verTodosEventos ? galeria : galeria.slice(0, 3));
+
+  const packagesToDisplay = loading
+    ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true } ]
+    : pacotes;
+
+  const drinksToDisplay = loading
+    ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true }, { id: 's4', isSkeleton: true }, { id: 's5', isSkeleton: true }, { id: 's6', isSkeleton: true } ]
+    : (verTodosDrinks ? drinks : drinks.slice(0, 6));
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 100 }}>
+    <main style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 100 }}>
       <BackgroundEffects />
 
       {/* Header / Hero */}
@@ -273,7 +285,7 @@ export default function HomeClient() {
           style={{ width: 'clamp(90px, 25vw, 140px)', height: 'auto', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
         />
         <h1 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 6vw, 2.5rem)', color: 'var(--primary)', margin: '0 0 16px 0', textShadow: '0 4px 20px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
-          {general?.siteTitle || `Barman em ${general?.companyCity || "Juiz de Fora"}: Transforme seu evento com o ${general?.companyName || "Laboratório de Drinks"}`}
+          {general?.siteTitle || "Laboratório de Drinks - Barman Juiz de Fora"}
         </h1>
         {general?.siteSubtitle && (
           <p style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)', color: 'var(--text-secondary)', maxWidth: '550px', margin: '0 auto 24px', lineHeight: 1.5 }}>
@@ -283,7 +295,7 @@ export default function HomeClient() {
       </header>
 
       {/* 1. Testimonials */}
-      {reviewsToDisplay.length > 0 && (
+      {(reviewsToDisplay.length > 0 || loading) && (
         <section style={{ position: 'relative', zIndex: 10, padding: '40px 16px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ maxWidth: 850, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40 }}>
@@ -303,14 +315,30 @@ export default function HomeClient() {
             </div>
             <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
               {reviewsToDisplay.map((ava, idx) => (
-                <div key={idx} style={{ 
-                  minWidth: 280, flex: '0 0 clamp(280px, 80vw, 320px)', background: 'var(--bg-card)', padding: ava.printUrl ? 12 : 24, borderRadius: 16, 
-                  border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 16
+                <div key={ava.id || idx} style={{ 
+                  minWidth: 280, flex: '0 0 clamp(280px, 80vw, 320px)', background: 'var(--bg-card)', padding: ava.isSkeleton ? 24 : (ava.printUrl ? 12 : 24), borderRadius: 16, 
+                  border: '1px solid var(--border-color, rgba(203, 161, 83, 0.12))', display: 'flex', flexDirection: 'column', gap: 16
                 }}>
-                  {ava.printUrl ? (
+                  {ava.isSkeleton ? (
+                    <div className="skeleton-pulse" style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {[1,2,3,4,5].map(s => <div key={s} style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(203, 161, 83, 0.15)' }} />)}
+                      </div>
+                      <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '100%' }} />
+                      <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '85%' }} />
+                      <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '60%' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto', paddingTop: 8 }}>
+                        <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                          <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '50%' }} />
+                          <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '30%' }} />
+                        </div>
+                      </div>
+                    </div>
+                  ) : ava.printUrl ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', width: '100%' }}>
                       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', flex: 1, maxHeight: '200px', width: '100%' }}>
-                        <img src={ava.printUrl} alt={ava.nome} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                        <img src={ava.printUrl} alt={`Print do depoimento do cliente ${ava.nome} avaliando o Laboratório de Drinks com 5 estrelas`} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                       </div>
                       {ava.feedback && ava.feedback !== 'Redirecionado para Google Reviews' && (
                         <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, fontSize: '0.85rem', lineHeight: 1.4, textAlign: 'center' }}>
@@ -323,7 +351,7 @@ export default function HomeClient() {
                         </div>
                         <div>
                           <div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '0.85rem' }}>{(ava.nome || '').trim().split(' ')[0]}</div>
-                          {ava.pacote && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>}
+                           {ava.pacote && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>}
                         </div>
                       </div>
                     </div>
@@ -354,7 +382,7 @@ export default function HomeClient() {
       )}
 
       {/* 2. Galeria de Eventos Realizados */}
-      {galeria.length > 0 && (
+      {(galeria.length > 0 || loading) && (
         <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
           <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
@@ -363,14 +391,24 @@ export default function HomeClient() {
           </h2>
 
           <div className="galeria-grid">
-            {(verTodosEventos ? galeria : galeria.slice(0, 3)).map((evento, idx) => (
-              <EventoCard
-                key={evento.id}
-                evento={evento}
-                onOpen={abrirEvento}
-                formatDate={formatDate}
-                priority={idx === 0}
-              />
+            {galleryToDisplay.map((evento, idx) => (
+              evento.isSkeleton ? (
+                <div key={evento.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, height: 340, border: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ height: 240, background: 'rgba(255,255,255,0.03)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
+                  <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ height: 16, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '70%' }} />
+                    <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '40%' }} />
+                  </div>
+                </div>
+              ) : (
+                <EventoCard
+                  key={evento.id}
+                  evento={evento}
+                  onOpen={abrirEvento}
+                  formatDate={formatDate}
+                  priority={idx === 0}
+                />
+              )
             ))}
           </div>
 
@@ -426,7 +464,7 @@ export default function HomeClient() {
                   {item.image ? (
                     <Image 
                       src={item.image} 
-                      alt={item.label} 
+                      alt={`Serviço de bar de coquetéis premium para ${item.label} - Laboratório de Drinks`} 
                       fill
                       sizes="(max-width: 768px) 100vw, 25vw"
                       style={{ objectFit: 'cover', transition: 'transform 0.5s' }} 
@@ -452,7 +490,7 @@ export default function HomeClient() {
       </section>
 
       {/* 4. Packages Section */}
-      {pacotes.length > 0 && (
+      {(pacotes.length > 0 || loading) && (
         <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
           <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
             <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
@@ -466,10 +504,12 @@ export default function HomeClient() {
             gap: 24, 
             alignItems: 'center' 
           }}>
-            {pacotes.map((pacote, idx) => {
+            {packagesToDisplay.map((pacote, idx) => {
               const isPopular = idx === 1; // Efeito Isca: pacote do meio destacado
               
-              return (
+              return pacote.isSkeleton ? (
+                <div key={pacote.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.5)', borderRadius: 16, height: 460, border: '1px solid rgba(255,255,255,0.05)', padding: 32 }} />
+              ) : (
                 <div key={pacote.id} style={{ 
                   background: isPopular ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.5)',
                   borderRadius: 16, 
@@ -533,25 +573,34 @@ export default function HomeClient() {
         </h2>
 
         <div className="drinks-grid">
-          {(verTodosDrinks ? drinks : drinks.slice(0, 6)).map(drink => (
-            <div key={drink.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
-              <div style={{ height: 220, background: '#111', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {drink.image ? (
-                  <Image 
-                    src={drink.image} 
-                    alt={drink.name} 
-                    fill
-                    sizes="(max-width: 768px) 50vw, 20vw"
-                    style={{ objectFit: 'cover' }} 
-                  />
-                ) : (
-                  <span style={{ fontSize: '4rem' }}>{drink.emoji}</span>
-                )}
+          {drinksToDisplay.map(drink => (
+            drink.isSkeleton ? (
+              <div key={drink.id} className="skeleton-pulse" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, height: 280, border: '1px solid rgba(203, 161, 83, 0.05)', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ height: 220, background: 'rgba(255,255,255,0.03)' }} />
+                <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '60%' }} />
+                </div>
               </div>
-              <div style={{ padding: '16px 20px', textAlign: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>{drink.name}</h3>
+            ) : (
+              <div key={drink.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
+                <div style={{ height: 220, background: '#111', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {drink.image ? (
+                    <Image 
+                      src={drink.image} 
+                      alt={`Coquetel ${drink.name} premium preparado pelo Laboratório de Drinks`} 
+                      fill
+                      sizes="(max-width: 768px) 50vw, 20vw"
+                      style={{ objectFit: 'cover' }} 
+                    />
+                  ) : (
+                    <span style={{ fontSize: '4rem' }}>{drink.emoji}</span>
+                  )}
+                </div>
+                <div style={{ padding: '16px 20px', textAlign: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>{drink.name}</h3>
+                </div>
               </div>
-            </div>
+            )
           ))}
         </div>
 
@@ -584,6 +633,14 @@ export default function HomeClient() {
       </div>
       
       <style jsx global>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 0.65; }
+          50% { opacity: 0.35; }
+        }
+        .skeleton-pulse {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .galeria-nav-btn:hover { background: rgba(203, 161, 83, 0.3) !important; }
 
@@ -757,7 +814,7 @@ export default function HomeClient() {
                   <Image
                     key={midiaAtual}
                     src={eventoAberto.midias[midiaAtual]?.url}
-                    alt={`${eventoAberto.titulo} - ${midiaAtual + 1}`}
+                    alt={`Foto do evento ${eventoAberto.titulo} em ${eventoAberto.cidade || 'Juiz de Fora'} - Mídia ${midiaAtual + 1} de ${eventoAberto.midias?.length} - Laboratório de Drinks`}
                     fill
                     sizes="(max-width: 1024px) 100vw, 900px"
                     style={{ objectFit: 'contain', transition: 'opacity 0.2s' }}
@@ -814,7 +871,7 @@ export default function HomeClient() {
                   {midia.tipo === 'video' ? (
                     <FiPlay size={24} color="#FFF" style={{ zIndex: 2 }} />
                   ) : (
-                    <Image src={midia.url} alt="thumb" fill sizes="64px" style={{ objectFit: 'cover' }} />
+                    <Image src={midia.url} alt={`Miniatura da foto ${idx + 1} do evento ${eventoAberto.titulo} - Laboratório de Drinks`} fill sizes="64px" style={{ objectFit: 'cover' }} />
                   )}
                 </div>
               ))}
@@ -829,6 +886,6 @@ export default function HomeClient() {
           )}
         </div>
       )}
-    </div>
+    </main>
   );
 }

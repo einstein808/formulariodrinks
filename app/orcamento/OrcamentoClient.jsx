@@ -137,6 +137,16 @@ export default function OrcamentoClient() {
     }
   }, [currentStep]);
 
+  const getWhatsAppNumber = () => {
+    let num = general?.whatsappNumber || '';
+    if (!num && general?.adminPhone) {
+      num = general.adminPhone.split(',')[0].trim();
+    }
+    if (!num) return '5532998696519'; // User's confirmed real number
+    const cleanNum = num.replace(/\D/g, '');
+    return cleanNum.startsWith('55') ? cleanNum : `55${cleanNum}`;
+  };
+
   const handleOpenUnlockModal = () => {
     setShowUnlockModal(true);
     window.history.pushState({ step: currentStep, modal: 'unlock' }, '');
@@ -1077,7 +1087,7 @@ export default function OrcamentoClient() {
               
               <div style={{display:'flex', flexDirection:'column', gap:12, width:'100%', maxWidth:300}}>
                 <a
-                  href={`https://wa.me/5532999999999?text=${encodeURIComponent(`Olá! Acabei de preencher o formulário para o meu evento (Pacote ${formData.pacote}). Meu nome é ${formData.nome} ${formData.sobrenome}.`)}`}
+                  href={`https://wa.me/${getWhatsAppNumber()}?text=${encodeURIComponent(`Olá! Acabei de preencher o formulário para o meu evento (Pacote ${formData.pacote}). Meu nome é ${formData.nome} ${formData.sobrenome}.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn--primary success-screen__btn"

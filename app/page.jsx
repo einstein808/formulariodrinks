@@ -1,13 +1,13 @@
 import HomeClient from './HomeClient';
 
 export const metadata = {
-  title: 'Barman em Juiz de Fora | Laboratório de Drinks para Casamentos e Festas',
+  title: 'Laboratório de Drinks - Barman Juiz de Fora',
   description: 'Serviço premium de bartender e coquetelaria para casamentos, formaturas e festas em Juiz de Fora e região. Drinks exclusivos, bar móvel completo e experiência inesquecível. Avaliação 5.0 no Google.',
   alternates: {
     canonical: 'https://laboratorio.gabryelamaro.com',
   },
   openGraph: {
-    title: 'Barman em Juiz de Fora | Laboratório de Drinks',
+    title: 'Laboratório de Drinks - Barman Juiz de Fora',
     description: 'Serviço premium de barman e coquetelaria para casamentos, formaturas e festas em Juiz de Fora. Drinks exclusivos e experiência inesquecível.',
     url: 'https://laboratorio.gabryelamaro.com',
     images: [
@@ -15,7 +15,7 @@ export const metadata = {
         url: 'https://laboratorio.gabryelamaro.com/logo.webp',
         width: 800,
         height: 600,
-        alt: 'Logo Laboratório de Drinks - Barman em Juiz de Fora',
+        alt: 'Logo Laboratório de Drinks - Barman Juiz de Fora',
       }
     ],
   },
@@ -28,7 +28,7 @@ const jsonLd = {
   "image": "https://laboratorio.gabryelamaro.com/logo.webp",
   "description": "Serviço premium de bartender e coquetelaria para casamentos, formaturas e festas em Juiz de Fora e região. Drinks exclusivos, bar móvel completo e equipe profissional.",
   "url": "https://laboratorio.gabryelamaro.com",
-  "telephone": "+5532999999999",
+  "telephone": "+5532998696519",
   "priceRange": "$$",
   "address": {
     "@type": "PostalAddress",
@@ -107,7 +107,7 @@ export default function Page() {
       />
       {/* SEO: Static content visible to search engines and AI crawlers */}
       <div className="sr-only" aria-hidden="false">
-        <h1>Barman em Juiz de Fora — Laboratório de Drinks</h1>
+        <h1>Laboratório de Drinks - Barman Juiz de Fora</h1>
         <p>
           O Laboratório de Drinks oferece serviço premium de bartender e coquetelaria para casamentos, 
           formaturas, aniversários, festas corporativas e eventos em Juiz de Fora e toda a região da 

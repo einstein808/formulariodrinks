@@ -11,7 +11,7 @@ import Image from 'next/image';
 // Card component with slideshow animation
 function EventoCard({ evento, onOpen, formatDate }) {
   const todasFotos = [
-    ...(evento.capa ? [{ url: evento.capa, tipo: 'imagem' }] : []),
+    ...(evento.capa ? [{ url: evento.capa, tipo: 'imagem', alt: `Foto de capa do evento ${evento.titulo} - Laboratório de Drinks` }] : []),
     ...(evento.midias || []).filter(m => m.tipo !== 'video' && m.url)
   ];
 
@@ -69,7 +69,7 @@ function EventoCard({ evento, onOpen, formatDate }) {
             <Image
               key={fotoAtual + fotoIdx}
               src={fotoAtual}
-              alt={evento.titulo}
+              alt={todasFotos[fotoIdx]?.alt || `Serviço de barman para ${evento.titulo} em ${evento.cidade || 'Juiz de Fora'} - Laboratório de Drinks`}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
               style={{
@@ -315,7 +315,7 @@ export default function GaleriaClient() {
                   <Image
                     key={midiaAtual}
                     src={eventoAberto.midias[midiaAtual]?.url}
-                    alt={`${eventoAberto.titulo} - ${midiaAtual + 1}`}
+                    alt={eventoAberto.midias[midiaAtual]?.alt || `Foto do evento ${eventoAberto.titulo} em ${eventoAberto.cidade || 'Juiz de Fora'} - Mídia ${midiaAtual + 1} de ${eventoAberto.midias?.length} - Laboratório de Drinks`}
                     fill
                     sizes="(max-width: 1024px) 100vw, 900px"
                     style={{ objectFit: 'contain' }}
@@ -368,7 +368,7 @@ export default function GaleriaClient() {
                   {midia.tipo === 'video' ? (
                     <FiPlay size={20} color="#FFF" style={{ zIndex: 2 }} />
                   ) : (
-                    <Image src={midia.url} alt="thumb" fill sizes="56px" style={{ objectFit: 'cover' }} />
+                    <Image src={midia.url} alt={midia.alt || `Miniatura da foto ${idx + 1} do evento ${eventoAberto.titulo} - Laboratório de Drinks`} fill sizes="56px" style={{ objectFit: 'cover' }} />
                   )}
                 </div>
               ))}

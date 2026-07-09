@@ -9,7 +9,7 @@ const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel' });
 
 export const metadata = {
   metadataBase: new URL('https://laboratorio.gabryelamaro.com'),
-  title: 'Barman Juiz de Fora | Laboratório de Drinks para Casamentos e Festas',
+  title: 'Laboratório de Drinks - Barman Juiz de Fora',
   description: 'Serviço premium de bartender e coquetelaria para casamentos e festas em Juiz de Fora e região. Drinks exclusivos e experiência inesquecível.',
   keywords: ['barman juiz de fora', 'bartender juiz de fora', 'drinks para casamento jf', 'bar para festas jf', 'laboratório de drinks', 'coquetelaria juiz de fora', 'barman para eventos'],
   authors: [{ name: 'Laboratório de Drinks' }],
@@ -32,7 +32,7 @@ export const metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'Barman em Juiz de Fora | Laboratório de Drinks',
+    title: 'Laboratório de Drinks - Barman Juiz de Fora',
     description: 'Serviço premium de barman para casamentos e festas em Juiz de Fora. Drinks exclusivos e experiência inesquecível.',
     url: 'https://laboratorio.gabryelamaro.com',
     siteName: 'Laboratório de Drinks',
@@ -41,7 +41,7 @@ export const metadata = {
         url: 'https://laboratorio.gabryelamaro.com/logo.webp',
         width: 800,
         height: 600,
-        alt: 'Logo Laboratório de Drinks - Barman em Juiz de Fora',
+        alt: 'Logo Laboratório de Drinks - Barman Juiz de Fora',
       },
     ],
     locale: 'pt_BR',
@@ -49,7 +49,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Barman em Juiz de Fora | Laboratório de Drinks',
+    title: 'Laboratório de Drinks - Barman Juiz de Fora',
     description: 'Serviço premium de barman para casamentos e festas em Juiz de Fora.',
     images: ['https://laboratorio.gabryelamaro.com/logo.webp'],
   },
@@ -69,7 +69,7 @@ export default function RootLayout({ children }) {
       "addressCountry": "BR"
     },
     "url": "https://laboratorio.gabryelamaro.com",
-    "telephone": "+5532999999999",
+    "telephone": "+5532998696519",
     "priceRange": "$$"
   };
 
