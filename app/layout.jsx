@@ -2,7 +2,6 @@ import './globals.css';
 import { Inter, Cinzel } from 'next/font/google';
 import SwRegister from '../components/SwRegister';
 import PwaInstallBanner from '../components/PwaInstallBanner';
-import ThemeCustomizer from '../components/ThemeCustomizer';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel' });
@@ -91,7 +90,6 @@ export default function RootLayout({ children }) {
       </head>
       <body suppressHydrationWarning>
         {children}
-        <ThemeCustomizer />
         <SwRegister />
         <PwaInstallBanner />
       </body>

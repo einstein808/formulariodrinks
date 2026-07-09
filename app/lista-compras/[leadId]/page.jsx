@@ -40,6 +40,8 @@ function ShoppingListContent() {
   const [convidadosLocal, setConvidadosLocal] = useState('');
   const [checkedItems, setCheckedItems] = useState({});
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,10 +52,23 @@ function ShoppingListContent() {
         setLead(leadData);
         setConvidadosLocal(leadData.convidados || '');
         if (leadData.shoppingListChecked) setCheckedItems(leadData.shoppingListChecked);
-        if (leadData.shoppingListFinalizada && leadData.shoppingListResult) {
-          setDrinksEscolhidos(leadData.shoppingListResult.drinksEscolhidos || []);
-          setListaGerada(leadData.shoppingListResult);
+        // Control step and checklist initialization
+        if (isBarmanView) {
           setStep(3);
+          if (leadData.shoppingListResult) {
+            setDrinksEscolhidos(leadData.shoppingListResult.drinksEscolhidos || []);
+            setListaGerada(leadData.shoppingListResult);
+          } else {
+            setDrinksEscolhidos(leadData.drinksEscolhidos || []);
+          }
+        } else {
+          if (leadData.shoppingListFinalizada && leadData.shoppingListResult) {
+            setDrinksEscolhidos(leadData.shoppingListResult.drinksEscolhidos || []);
+            setListaGerada(leadData.shoppingListResult);
+            setStep(3);
+          } else {
+            setStep(1);
+          }
         }
 
         // Fetch Configs
@@ -61,22 +76,129 @@ function ShoppingListContent() {
         if (configSnap.exists()) {
           const config = configSnap.val();
           
+          let fetchedDrinksMenu = [];
           if (config.drinksMenu) {
-            const drinksArr = Object.entries(config.drinksMenu)
+            fetchedDrinksMenu = Object.entries(config.drinksMenu)
               .map(([id, val]) => ({ id, ...val }))
               .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-            setDrinksMenu(drinksArr);
+            setDrinksMenu(fetchedDrinksMenu);
           }
           
+          let fetchedShoppingConfig = { margemSeguranca: 10, itensFixos: [] };
           if (config.shoppingConfig) {
-            setShoppingConfig(config.shoppingConfig);
+            fetchedShoppingConfig = config.shoppingConfig;
+            setShoppingConfig(fetchedShoppingConfig);
           } else {
-            // Default se não existir
-            setShoppingConfig({ margemSeguranca: 10, itensFixos: [] });
+            setShoppingConfig(fetchedShoppingConfig);
           }
 
           if (config.maxDrinks) {
             setMaxDrinks(config.maxDrinks);
+          }
+
+          // If barman view and no list generated, calculate it automatically on-the-fly!
+          if (isBarmanView && !leadData.shoppingListResult) {
+            const initialDrinks = leadData.drinksEscolhidos || [];
+            const conv = Math.max(Number(leadData.convidados) || 0, 40);
+            const totalDrinks = Math.ceil(conv * 3.5);
+            const margem = fetchedShoppingConfig.margemSeguranca ? (1 + (Number(fetchedShoppingConfig.margemSeguranca) / 100)) : 1.10;
+            
+            const drinksSel = fetchedDrinksMenu.filter(d => initialDrinks.includes(d.id));
+            
+            if (drinksSel.length > 0) {
+              const agregInsumos = {};
+              const selAlcool = drinksSel.filter(d => !d.isNonAlcoholic);
+              const selSemAlcool = drinksSel.filter(d => d.isNonAlcoholic);
+              const pctSemAlcool = selSemAlcool.length > 0 ? (Number(fetchedShoppingConfig.nonAlcoholicPercentage) || 15) / 100 : 0;
+              const pctAlcool = 1 - pctSemAlcool;
+              
+              const totalAlcool = Math.ceil(totalDrinks * pctAlcool);
+              const totalSemAlcool = Math.ceil(totalDrinks * pctSemAlcool);
+              
+              const totalWAlcool = selAlcool.reduce((sum, d) => sum + (Number(d.popularityWeight) || 5), 0);
+              const totalWSemAlcool = selSemAlcool.reduce((sum, d) => sum + (Number(d.popularityWeight) || 5), 0);
+              
+              drinksSel.forEach(drink => {
+                const isNonAlc = drink.isNonAlcoholic;
+                const peso = Number(drink.popularityWeight) || 5;
+                let proportion = 0;
+                let drinksDesteTipo = 0;
+                if (isNonAlc) {
+                  proportion = totalWSemAlcool > 0 ? peso / totalWSemAlcool : 1 / selSemAlcool.length;
+                  drinksDesteTipo = Math.ceil(totalSemAlcool * proportion);
+                } else {
+                  proportion = totalWAlcool > 0 ? peso / totalWAlcool : 1 / selAlcool.length;
+                  drinksDesteTipo = Math.ceil(totalAlcool * proportion);
+                }
+                if (drink.receita && Array.isArray(drink.receita)) {
+                  drink.receita.forEach(item => {
+                    if (!item.insumo || !item.quantidade) return;
+                    const baseQ = Number(item.quantidade) * drinksDesteTipo;
+                    const key = item.insumo.trim().charAt(0).toUpperCase() + item.insumo.trim().slice(1).toLowerCase();
+                    if (!agregInsumos[key]) {
+                      agregInsumos[key] = { qtd: 0, unidade: item.unidade || 'ml' };
+                    }
+                    agregInsumos[key].qtd += (baseQ * margem);
+                  });
+                }
+              });
+              
+              const insFormatados = {};
+              Object.entries(agregInsumos).forEach(([nome, data]) => {
+                let q = data.qtd;
+                let u = data.unidade;
+                if (u === 'ml') {
+                  q = Math.ceil(q / 1000);
+                  u = 'Litros';
+                } else if (u === 'g' && q >= 1000) {
+                  q = Math.ceil(q / 1000);
+                  u = 'Kg';
+                } else {
+                  q = Math.ceil(q);
+                }
+                insFormatados[nome] = `${q} ${u}`;
+              });
+              
+              const fixBase = fetchedShoppingConfig.itensFixos && fetchedShoppingConfig.itensFixos.length > 0 ? fetchedShoppingConfig.itensFixos : DEFAULT_FIXED_ITEMS;
+              const fixFormatados = fixBase.map(fixo => {
+                if (!fixo.nome) return null;
+                const tot = fixo.tipoCalc === 'porConvidado' ? Math.ceil(Number(fixo.quantidade) * conv) : Math.ceil(Number(fixo.quantidade));
+                return {
+                  id: fixo.id || fixo.nome.toLowerCase().replace(/\s+/g, '_'),
+                  nome: fixo.nome,
+                  quantidade: tot,
+                  unidade: fixo.unidade || 'un',
+                  categoria: fixo.categoria || 'bar',
+                };
+              }).filter(Boolean);
+              
+              setListaGerada({
+                insumos: insFormatados,
+                fixos: fixFormatados,
+                drinksEscolhidos: initialDrinks,
+                convidadosCalculados: conv
+              });
+            } else {
+              const fixBase = fetchedShoppingConfig.itensFixos && fetchedShoppingConfig.itensFixos.length > 0 ? fetchedShoppingConfig.itensFixos : DEFAULT_FIXED_ITEMS;
+              const fixFormatados = fixBase.map(fixo => {
+                if (!fixo.nome) return null;
+                const tot = fixo.tipoCalc === 'porConvidado' ? Math.ceil(Number(fixo.quantidade) * conv) : Math.ceil(Number(fixo.quantidade));
+                return {
+                  id: fixo.id || fixo.nome.toLowerCase().replace(/\s+/g, '_'),
+                  nome: fixo.nome,
+                  quantidade: tot,
+                  unidade: fixo.unidade || 'un',
+                  categoria: fixo.categoria || 'bar',
+                };
+              }).filter(Boolean);
+
+              setListaGerada({
+                insumos: {},
+                fixos: fixFormatados,
+                drinksEscolhidos: [],
+                convidadosCalculados: conv
+              });
+            }
           }
         }
       } catch (err) {
@@ -454,109 +576,235 @@ function ShoppingListContent() {
               {isBarmanView ? (
                 /* 📋 BARMAN VIEW: INTERACTIVE CHECKLIST */
                 <>
-                  <div style={{ background: 'var(--bg-card)', padding: '28px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)', marginBottom: '20px' }}>
-                    {/* Header */}
-                    <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, background: 'rgba(76,175,80,0.1)', color: '#4CAF50', borderRadius: '50%', marginBottom: '12px' }}>
-                        <FiShoppingCart size={32} />
-                      </div>
-                      <h2 style={{ margin: 0, fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>Checklist do Barman</h2>
-                      <p style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '0.9rem' }}>
-                        Para {listaGerada.convidadosCalculados || convidadosLocal} convidados · margem de {shoppingConfig?.margemSeguranca || 10}% incluída
-                      </p>
-                      {saving && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '4px' }}>💾 Salvando...</p>}
-                    </div>
+                  {(() => {
+                    const flatItems = [
+                      ...Object.entries(listaGerada.insumos).map(([nome, qtd]) => ({
+                        id: `insumo_${nome}`,
+                        nome,
+                        quantidade: qtd,
+                        categoria: 'drinks',
+                      })),
+                      ...(listaGerada.fixos || []).map((f, idx) => ({
+                        id: `fixo_${f.id || f.nome?.toLowerCase().replace(/\s+/g, '_') || idx}`,
+                        nome: f.nome,
+                        quantidade: `${f.quantidade} ${f.unidade}`,
+                        categoria: f.categoria || 'bar',
+                      }))
+                    ];
 
-                    {/* Progress Bar */}
-                    <div style={{ marginBottom: '28px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Itens comprados / conferidos</span>
-                        <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: progressPct === 100 ? '#4CAF50' : 'var(--primary)' }}>
-                          {checkedCount} / {totalCount} {progressPct === 100 ? '🎉 Tudo conferido!' : `(${progressPct}%)`}
-                        </span>
-                      </div>
-                      <div style={{ height: '10px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${progressPct}%`, background: progressPct === 100 ? 'linear-gradient(90deg, #4CAF50, #66BB6A)' : 'linear-gradient(90deg, var(--primary-dark), var(--primary))', borderRadius: '999px', transition: 'width 0.4s ease' }} />
-                      </div>
-                    </div>
+                    const totalCount = flatItems.length;
+                    const checkedCount = flatItems.filter(item => checkedItems[item.id]).length;
+                    const progressPct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
 
-                    {/* Bebidas e Insumos */}
-                    <div style={{ marginBottom: '28px' }}>
-                      <h3 style={{ margin: '0 0 14px 0', color: CATEGORY_LABELS.drinks.color, borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', fontSize: '1rem' }}>
-                        {CATEGORY_LABELS.drinks.label}
-                      </h3>
-                      {Object.keys(listaGerada.insumos).length === 0 ? (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nenhuma receita cadastrada.</p>
-                      ) : (
-                        <div style={{ display: 'grid', gap: '8px' }}>
-                          {Object.entries(listaGerada.insumos).map(([nome, qtd]) => {
-                            const id = `insumo_${nome}`;
-                            const checked = !!checkedItems[id];
-                            return (
-                              <div key={id} onClick={() => toggleItem(id)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '10px', border: `1px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? 'rgba(76,175,80,0.06)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.2s ease', userSelect: 'none' }}>
-                                <div style={{ width: 24, height: 24, borderRadius: '6px', border: `2px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s ease' }}>
-                                  {checked && <FiCheck size={14} color="#fff" strokeWidth={3} />}
-                                </div>
-                                <span style={{ flex: 1, color: checked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: checked ? 'line-through' : 'none', fontSize: '0.95rem' }}>{nome}</span>
-                                <strong style={{ color: checked ? 'var(--text-muted)' : 'var(--primary)', flexShrink: 0, fontSize: '0.9rem' }}>{qtd}</strong>
+                    const filteredItems = flatItems.filter(item => {
+                      const matchesCategory = categoryFilter === 'all' || item.categoria === categoryFilter;
+                      const matchesSearch = item.nome.toLowerCase().includes(searchTerm.toLowerCase());
+                      return matchesCategory && matchesSearch;
+                    });
+
+                    return (
+                      <>
+                        <div style={{ background: 'var(--bg-card)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)', marginBottom: '20px' }}>
+                          
+                          {/* OPERATIONAL HEADER */}
+                          <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '20px', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                              <div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                  Painel Operacional do Bartender
+                                </span>
+                                <h2 style={{ margin: '4px 0 0 0', fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                  Conferência de Insumos e Materiais
+                                </h2>
+                                <p style={{ margin: '6px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                  Evento para {listaGerada.convidadosCalculados || convidadosLocal} convidados · Margem de {shoppingConfig?.margemSeguranca || 10}% ativa
+                                </p>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Fixed Items by Category */}
-                    {Object.entries(
-                      (listaGerada.fixos || []).reduce((acc, f) => {
-                        const cat = f.categoria || 'bar';
-                        if (!acc[cat]) acc[cat] = [];
-                        acc[cat].push(f);
-                        return acc;
-                      }, {})
-                    ).map(([cat, items]) => (
-                      <div key={cat} style={{ marginBottom: '24px' }}>
-                        <h3 style={{ margin: '0 0 14px 0', color: CATEGORY_LABELS[cat]?.color || 'var(--primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', fontSize: '1rem' }}>
-                          {CATEGORY_LABELS[cat]?.label || cat}
-                        </h3>
-                        <div style={{ display: 'grid', gap: '8px' }}>
-                          {items.map(f => {
-                            const id = `fixo_${f.id}`;
-                            const checked = !!checkedItems[id];
-                            const catColor = CATEGORY_LABELS[cat]?.color || 'var(--primary)';
-                            return (
-                              <div key={id} onClick={() => toggleItem(id)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '10px', border: `1px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? 'rgba(76,175,80,0.06)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.2s ease', userSelect: 'none' }}>
-                                <div style={{ width: 24, height: 24, borderRadius: '6px', border: `2px solid ${checked ? '#4CAF50' : 'var(--border-color)'}`, background: checked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s ease' }}>
-                                  {checked && <FiCheck size={14} color="#fff" strokeWidth={3} />}
+                              <div style={{ background: progressPct === 100 ? 'rgba(76,175,80,0.1)' : 'rgba(203,161,83,0.08)', border: `1px solid ${progressPct === 100 ? '#4CAF50' : 'var(--border-color)'}`, padding: '8px 16px', borderRadius: '8px', textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Status Geral</div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: progressPct === 100 ? '#4CAF50' : 'var(--primary)' }}>
+                                  {progressPct === 100 ? 'Concluído' : `${progressPct}% Conferido`}
                                 </div>
-                                <span style={{ flex: 1, color: checked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: checked ? 'line-through' : 'none', fontSize: '0.95rem' }}>{f.nome}</span>
-                                <strong style={{ color: checked ? 'var(--text-muted)' : catColor, flexShrink: 0, fontSize: '0.9rem' }}>{f.quantidade} {f.unidade}</strong>
                               </div>
-                            );
-                          })}
+                            </div>
+
+                            {/* Operational Progress Bar */}
+                            <div style={{ height: '6px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden', marginTop: '16px' }}>
+                              <div style={{ height: '100%', width: `${progressPct}%`, background: progressPct === 100 ? '#4CAF50' : 'var(--primary)', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                            </div>
+                            
+                            {saving && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                <div className="btn__spinner" style={{ width: 12, height: 12, borderWidth: 1.5 }} />
+                                Sincronizando com o painel administrador...
+                              </div>
+                            )}
+                          </div>
+
+                          {/* SEARCH & FILTERS BAR */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                            {/* Search bar */}
+                            <div style={{ position: 'relative' }}>
+                              <input
+                                type="text"
+                                className="form-input"
+                                placeholder="🔍 Pesquisar item na lista..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ paddingLeft: '36px', height: '40px', fontSize: '0.9rem', width: '100%', background: 'var(--bg-input)' }}
+                              />
+                              {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                  Limpar
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Category Filter Tabs */}
+                            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
+                              {[
+                                { id: 'all', label: '📋 Todos' },
+                                { id: 'drinks', label: '🍹 Bebidas/Insumos' },
+                                { id: 'insumo', label: '🍋 Frescos' },
+                                { id: 'bar', label: '🍸 Equipamentos' },
+                                { id: 'descartavel', label: '🧾 Descartáveis' },
+                                { id: 'decoracao', label: '✨ Decoração' }
+                              ].map(tab => {
+                                const isActive = categoryFilter === tab.id;
+                                return (
+                                  <button
+                                    key={tab.id}
+                                    onClick={() => setCategoryFilter(tab.id)}
+                                    style={{
+                                      padding: '8px 14px',
+                                      fontSize: '0.8rem',
+                                      fontWeight: isActive ? 'bold' : 'normal',
+                                      borderRadius: '20px',
+                                      border: `1px solid ${isActive ? 'var(--primary)' : 'var(--border-color)'}`,
+                                      background: isActive ? 'var(--primary)' : 'var(--bg-input)',
+                                      color: isActive ? '#000' : 'var(--text-secondary)',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                  >
+                                    {tab.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* INVENTORY CHECKLIST TABLE */}
+                          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--border-color)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                            {/* Table Headers */}
+                            <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              <div style={{ width: '40px' }}>Status</div>
+                              <div style={{ flex: 1, paddingLeft: '8px' }}>Item</div>
+                              <div style={{ width: '100px', textAlign: 'right' }}>Qtd</div>
+                            </div>
+
+                            {/* Table Body Rows */}
+                            {filteredItems.length === 0 ? (
+                              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', fontSize: '0.85rem' }}>
+                                Nenhum item encontrado para esta busca ou categoria.
+                              </div>
+                            ) : (
+                              filteredItems.map(item => {
+                                const isChecked = !!checkedItems[item.id];
+                                return (
+                                  <div
+                                    key={item.id}
+                                    onClick={() => toggleItem(item.id)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      padding: '12px 16px',
+                                      background: isChecked ? 'rgba(76,175,80,0.04)' : 'var(--bg-card)',
+                                      borderBottom: '1px solid var(--border-color)',
+                                      cursor: 'pointer',
+                                      transition: 'background 0.15s ease',
+                                      userSelect: 'none'
+                                    }}
+                                  >
+                                    {/* Checked Box */}
+                                    <div style={{ width: '40px', display: 'flex', alignItems: 'center' }}>
+                                      <div style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '4px',
+                                        border: `2px solid ${isChecked ? '#4CAF50' : 'var(--border-color)'}`,
+                                        background: isChecked ? '#4CAF50' : 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all 0.1s ease'
+                                      }}>
+                                        {isChecked && <FiCheck size={12} color="#fff" strokeWidth={3} />}
+                                      </div>
+                                    </div>
+
+                                    {/* Item Details */}
+                                    <div style={{ flex: 1, paddingLeft: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                      <span style={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: '600',
+                                        color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)',
+                                        textDecoration: isChecked ? 'line-through' : 'none'
+                                      }}>
+                                        {item.nome}
+                                      </span>
+                                      <div style={{ display: 'flex', gap: '6px' }}>
+                                        <span style={{
+                                          fontSize: '0.7rem',
+                                          padding: '2px 8px',
+                                          borderRadius: '4px',
+                                          background: 'rgba(255,255,255,0.04)',
+                                          border: '1px solid var(--border-color)',
+                                          color: 'var(--text-muted)'
+                                        }}>
+                                          {CATEGORY_LABELS[item.categoria]?.label.split(' ').slice(1).join(' ') || item.categoria}
+                                        </span>
+                                        <span style={{
+                                          fontSize: '0.7rem',
+                                          padding: '2px 8px',
+                                          borderRadius: '4px',
+                                          background: isChecked ? 'rgba(76,175,80,0.1)' : 'rgba(203,161,83,0.06)',
+                                          color: isChecked ? '#4CAF50' : 'var(--primary)',
+                                          fontWeight: 'bold'
+                                        }}>
+                                          {isChecked ? 'CONFERIDO' : 'PENDENTE'}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Quantity */}
+                                    <div style={{ width: '100px', textAlign: 'right' }}>
+                                      <strong style={{
+                                        fontSize: '0.9rem',
+                                        color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)'
+                                      }}>
+                                        {item.quantidade}
+                                      </strong>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+
                         </div>
-                      </div>
-                    ))}
 
-                    {/* Drinks no cardápio */}
-                    <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-muted)', fontSize: '0.82rem', textTransform: 'uppercase' }}>Drinks no cardápio:</h4>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {drinksMenu.filter(d => listaGerada.drinksEscolhidos.includes(d.id)).map(d => (
-                          <span key={d.id} style={{ background: 'rgba(203,161,83,0.08)', border: '1px solid var(--border-color)', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            {d.emoji} {d.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions for Barman */}
-                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                    <button className="btn btn--secondary" onClick={compartilharLista} style={{ width: 'auto', gap: '6px' }}>
-                      <FiShare2 size={14} /> Compartilhar Lista
-                    </button>
-                  </div>
+                        {/* Backoffice Footer Info */}
+                        <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                          <span>Fim da lista de insumos. Todas as alterações são salvas automaticamente na nuvem.</span>
+                          <button className="btn btn--outline" onClick={compartilharLista} style={{ width: 'auto', padding: '6px 12px', fontSize: '0.75rem', height: 'auto', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <FiShare2 size={12} /> Copiar Link
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </>
               ) : (
                 /* 👤 CLIENT VIEW: CLEAN STATIC SUMMARY */

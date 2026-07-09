@@ -35,7 +35,21 @@ export default function ThemeCustomizer() {
         }
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+      // Clean up and restore default dark theme when leaving admin path
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.style.removeProperty('--primary');
+      document.documentElement.style.removeProperty('--primary-light');
+      document.documentElement.style.removeProperty('--primary-dark');
+      document.documentElement.style.removeProperty('--text-accent');
+      document.documentElement.style.removeProperty('--primary-glow');
+      document.documentElement.style.removeProperty('--border-color');
+      document.documentElement.style.removeProperty('--border-focus');
+      document.documentElement.style.removeProperty('--shadow-glow');
+    };
   }, []);
+
   return null;
 }

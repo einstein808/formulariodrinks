@@ -1,3 +1,5 @@
+import ThemeCustomizer from '../../components/ThemeCustomizer';
+
 export const metadata = {
   title: 'Painel Administrativo | Laboratório de Drinks',
   robots: {
@@ -7,5 +9,10 @@ export const metadata = {
 };
 
 export default function AdminLayout({ children }) {
-  return children;
+  return (
+    <>
+      <ThemeCustomizer />
+      {children}
+    </>
+  );
 }

@@ -135,6 +135,10 @@ export default function LeadsKanban() {
   const [modalTab, setModalTab] = useState('info'); // 'info' | 'equipe' | 'drinks' | 'scripts' | 'financeiro'
   const [isEditingShoppingList, setIsEditingShoppingList] = useState(false);
   const [editedShoppingList, setEditedShoppingList] = useState(null);
+  const [modalSearchTerm, setModalSearchTerm] = useState('');
+  const [modalCategoryFilter, setModalCategoryFilter] = useState('all');
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewMode, setPreviewMode] = useState('desktop'); // 'desktop' | 'mobile'
   const [financeiroPresets, setFinanceiroPresets] = useState({});
   const [newCost, setNewCost] = useState({ descricao: '', valor: '', quantidade: '', valorUnitario: '', categoria: 'insumos', itemIdEstoque: '' });
   const [estoque, setEstoque] = useState([]);
@@ -222,12 +226,16 @@ export default function LeadsKanban() {
       setModalTab('info');
       setIsEditingShoppingList(false);
       setEditedShoppingList(null);
+      setModalSearchTerm('');
+      setModalCategoryFilter('all');
       setFaturamentoInput(selectedLead.financeiro?.faturamento ?? '');
       setDescontoInput(selectedLead.financeiro?.desconto ?? '');
       setValorPagoInput(selectedLead.financeiro?.valorPago ?? '');
     } else {
       setIsEditingShoppingList(false);
       setEditedShoppingList(null);
+      setModalSearchTerm('');
+      setModalCategoryFilter('all');
       setFaturamentoInput('');
       setDescontoInput('');
       setValorPagoInput('');
@@ -2445,6 +2453,29 @@ export default function LeadsKanban() {
                           >
                             Copiar
                           </button>
+                          <button
+                            onClick={() => {
+                              const url = `${generalConfigs?.siteUrl ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl) : window.location.origin}/lista-compras/${selectedLead.id}`;
+                              setPreviewUrl(url);
+                            }}
+                            className="btn"
+                            style={{
+                              padding: '8px 14px',
+                              background: 'var(--primary)',
+                              border: 'none',
+                              color: '#000',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <FiEye size={12} /> Abrir
+                          </button>
                         </div>
                       </div>
 
@@ -2491,10 +2522,11 @@ export default function LeadsKanban() {
                           >
                             Copiar
                           </button>
-                          <a
-                            href={`${generalConfigs?.siteUrl ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl) : window.location.origin}/lista-compras/${selectedLead.id}?barman=true`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => {
+                              const url = `${generalConfigs?.siteUrl ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl) : window.location.origin}/lista-compras/${selectedLead.id}?barman=true`;
+                              setPreviewUrl(url);
+                            }}
                             className="btn"
                             style={{
                               padding: '8px 14px',
@@ -2504,8 +2536,6 @@ export default function LeadsKanban() {
                               borderRadius: '6px',
                               cursor: 'pointer',
                               fontSize: '0.8rem',
-                              textDecoration: 'none',
-                              textAlign: 'center',
                               whiteSpace: 'nowrap',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -2514,7 +2544,7 @@ export default function LeadsKanban() {
                             }}
                           >
                             <FiEye size={12} /> Abrir
-                          </a>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -2620,99 +2650,181 @@ export default function LeadsKanban() {
                       {!isEditingShoppingList ? (
                         /* 🔍 INTERACTIVE CHECKLIST VIEW */
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
-                          {/* Progress bar */}
                           {(() => {
-                            const allItemIds = [
-                              ...(selectedLead.shoppingListResult.insumos ? Object.keys(selectedLead.shoppingListResult.insumos).map(n => `insumo_${n}`) : []),
-                              ...(selectedLead.shoppingListResult.fixos ? selectedLead.shoppingListResult.fixos.map(f => `fixo_${f.id}`) : [])
+                            const flatItems = [
+                              ...Object.entries(selectedLead.shoppingListResult.insumos || {}).map(([nome, qtd]) => ({
+                                id: `insumo_${nome}`,
+                                nome,
+                                quantidade: qtd,
+                                categoria: 'drinks',
+                              })),
+                              ...(selectedLead.shoppingListResult.fixos || []).map((f, idx) => ({
+                                id: `fixo_${f.id || f.nome?.toLowerCase().replace(/\s+/g, '_') || idx}`,
+                                nome: f.nome,
+                                quantidade: `${f.quantidade} ${f.unidade}`,
+                                categoria: f.categoria || 'bar',
+                              }))
                             ];
-                            const checkedCount = allItemIds.filter(id => selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[id]).length;
-                            const totalCount = allItemIds.length;
+
+                            const totalCount = flatItems.length;
+                            const checkedCount = flatItems.filter(item => selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[item.id]).length;
                             const progressPct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+
+                            const filteredItems = flatItems.filter(item => {
+                              const matchesCategory = modalCategoryFilter === 'all' || item.categoria === modalCategoryFilter;
+                              const matchesSearch = item.nome.toLowerCase().includes(modalSearchTerm.toLowerCase());
+                              return matchesCategory && matchesSearch;
+                            });
+
                             return (
-                              <div style={{ marginBottom: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Conferência de itens:</span>
-                                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: progressPct === 100 ? '#4CAF50' : 'var(--primary)' }}>
-                                    {checkedCount}/{totalCount} ({progressPct}%)
-                                  </span>
+                              <>
+                                {/* Progress feedback */}
+                                <div style={{ background: 'rgba(255,255,255,0.01)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '4px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8rem' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Status da Conferência:</span>
+                                    <strong style={{ color: progressPct === 100 ? '#4CAF50' : 'var(--primary)' }}>
+                                      {checkedCount}/{totalCount} itens ({progressPct}%)
+                                    </strong>
+                                  </div>
+                                  <div style={{ height: '6px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: `${progressPct}%`, background: progressPct === 100 ? '#4CAF50' : 'var(--primary)', transition: 'width 0.3s ease' }} />
+                                  </div>
                                 </div>
-                                <div style={{ height: '6px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', width: `${progressPct}%`, background: progressPct === 100 ? '#4CAF50' : 'var(--primary)', transition: 'width 0.3s ease' }} />
+
+                                {/* SEARCH & FILTER CHIPS */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
+                                  <div style={{ position: 'relative' }}>
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      placeholder="Pesquisar item..."
+                                      value={modalSearchTerm}
+                                      onChange={(e) => setModalSearchTerm(e.target.value)}
+                                      style={{ paddingLeft: '32px', height: '34px', fontSize: '0.8rem', width: '100%', background: 'var(--bg-input)' }}
+                                    />
+                                    <span style={{ position: 'absolute', left: '10px', top: '52%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>🔍</span>
+                                    {modalSearchTerm && (
+                                      <button onClick={() => setModalSearchTerm('')} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                        Limpar
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Categories pills */}
+                                  <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+                                    {[
+                                      { id: 'all', label: 'Todos' },
+                                      { id: 'drinks', label: 'Bebidas/Insumos' },
+                                      { id: 'insumo', label: 'Frescos' },
+                                      { id: 'bar', label: 'Equipamentos' },
+                                      { id: 'descartavel', label: 'Descartáveis' },
+                                      { id: 'decoracao', label: 'Decoração' }
+                                    ].map(tab => {
+                                      const isActive = modalCategoryFilter === tab.id;
+                                      return (
+                                        <button
+                                          key={tab.id}
+                                          onClick={() => setModalCategoryFilter(tab.id)}
+                                          style={{
+                                            padding: '4px 10px',
+                                            fontSize: '0.72rem',
+                                            borderRadius: '12px',
+                                            border: `1px solid ${isActive ? 'var(--primary)' : 'var(--border-color)'}`,
+                                            background: isActive ? 'var(--primary)' : 'var(--bg-input)',
+                                            color: isActive ? '#000' : 'var(--text-secondary)',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                            transition: 'all 0.1s ease'
+                                          }}
+                                        >
+                                          {tab.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>
+
+                                {/* TABLE LIST */}
+                                <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--border-color)', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)', maxHeight: '350px', overflowY: 'auto' }}>
+                                  {/* Table Header */}
+                                  <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '8px 12px', fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', textTransform: 'uppercase' }}>
+                                    <div style={{ width: '32px' }}>Status</div>
+                                    <div style={{ flex: 1, paddingLeft: '6px' }}>Item</div>
+                                    <div style={{ width: '80px', textAlign: 'right' }}>Qtd</div>
+                                  </div>
+
+                                  {filteredItems.length === 0 ? (
+                                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', fontSize: '0.8rem' }}>
+                                      Nenhum item localizado.
+                                    </div>
+                                  ) : (
+                                    filteredItems.map(item => {
+                                      const isChecked = !!(selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[item.id]);
+                                      return (
+                                        <div
+                                          key={item.id}
+                                          onClick={() => toggleShoppingListItem(selectedLead, item.id)}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            padding: '10px 12px',
+                                            background: isChecked ? 'rgba(76,175,80,0.04)' : 'var(--bg-card)',
+                                            borderBottom: '1px solid var(--border-color)',
+                                            cursor: 'pointer',
+                                            userSelect: 'none',
+                                            fontSize: '0.8rem'
+                                          }}
+                                        >
+                                          {/* Status checkbox */}
+                                          <div style={{ width: '32px', display: 'flex', alignItems: 'center' }}>
+                                            <div style={{
+                                              width: '16px',
+                                              height: '16px',
+                                              borderRadius: '3px',
+                                              border: `2px solid ${isChecked ? '#4CAF50' : 'var(--border-color)'}`,
+                                              background: isChecked ? '#4CAF50' : 'transparent',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              transition: 'all 0.1s ease'
+                                            }}>
+                                              {isChecked && <FiCheck size={10} color="#fff" strokeWidth={3} />}
+                                            </div>
+                                          </div>
+
+                                          {/* Name and labels */}
+                                          <div style={{ flex: 1, paddingLeft: '6px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <span style={{
+                                              fontWeight: '600',
+                                              color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)',
+                                              textDecoration: isChecked ? 'line-through' : 'none'
+                                            }}>
+                                              {item.nome}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                              <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '3px', background: 'rgba(255,255,255,0.03)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
+                                                {item.categoria === 'drinks' ? 'Insumo Bebida' : (item.categoria === 'bar' ? 'Equipamento' : (item.categoria === 'insumo' ? 'Fresco' : (item.categoria === 'descartavel' ? 'Descartável' : 'Decoração')))}
+                                              </span>
+                                              <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '3px', background: isChecked ? 'rgba(76,175,80,0.08)' : 'rgba(203,161,83,0.04)', color: isChecked ? '#4CAF50' : 'var(--primary)', fontWeight: 'bold' }}>
+                                                {isChecked ? 'CONFERIDO' : 'PENDENTE'}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          {/* Quantity */}
+                                          <div style={{ width: '80px', textAlign: 'right' }}>
+                                            <strong style={{ color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                                              {item.quantidade}
+                                            </strong>
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </>
                             );
                           })()}
-
-                          {selectedLead.shoppingListResult.insumos && Object.keys(selectedLead.shoppingListResult.insumos).length > 0 && (
-                            <div>
-                              <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Insumos e Bebidas:</strong>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                {Object.entries(selectedLead.shoppingListResult.insumos).map(([insumo, qtd]) => {
-                                  const itemId = `insumo_${insumo}`;
-                                  const isChecked = !!(selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[itemId]);
-                                  return (
-                                    <div 
-                                      key={insumo} 
-                                      onClick={() => toggleShoppingListItem(selectedLead, itemId)}
-                                      style={{ 
-                                        padding: '8px 12px', 
-                                        background: isChecked ? 'rgba(76,175,80,0.06)' : 'rgba(255,255,255,0.02)', 
-                                        borderRadius: '8px', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: '10px',
-                                        border: `1px solid ${isChecked ? '#4CAF50' : 'rgba(255,255,255,0.04)'}`,
-                                        cursor: 'pointer',
-                                        userSelect: 'none'
-                                      }}
-                                    >
-                                      <div style={{ width: 18, height: 18, borderRadius: '4px', border: `2px solid ${isChecked ? '#4CAF50' : 'var(--border-color)'}`, background: isChecked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                        {isChecked && <FiCheck size={12} color="#fff" strokeWidth={3} />}
-                                      </div>
-                                      <span style={{ flex: 1, color: isChecked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: isChecked ? 'line-through' : 'none', fontSize: '0.82rem' }}>{insumo}</span>
-                                      <strong style={{ color: isChecked ? 'var(--text-muted)' : 'var(--primary)', fontSize: '0.82rem' }}>{qtd}</strong>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {selectedLead.shoppingListResult.fixos && selectedLead.shoppingListResult.fixos.length > 0 && (
-                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                              <strong style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Itens Fixos / Descartáveis:</strong>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                {selectedLead.shoppingListResult.fixos.map((item, idx) => {
-                                  const itemId = `fixo_${item.id}`;
-                                  const isChecked = !!(selectedLead.shoppingListChecked && selectedLead.shoppingListChecked[itemId]);
-                                  return (
-                                    <div 
-                                      key={idx} 
-                                      onClick={() => toggleShoppingListItem(selectedLead, itemId)}
-                                      style={{ 
-                                        padding: '8px 12px', 
-                                        background: isChecked ? 'rgba(76,175,80,0.06)' : 'rgba(255,255,255,0.02)', 
-                                        borderRadius: '8px', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: '10px',
-                                        border: `1px solid ${isChecked ? '#4CAF50' : 'rgba(255,255,255,0.04)'}`,
-                                        cursor: 'pointer',
-                                        userSelect: 'none'
-                                      }}
-                                    >
-                                      <div style={{ width: 18, height: 18, borderRadius: '4px', border: `2px solid ${isChecked ? '#4CAF50' : 'var(--border-color)'}`, background: isChecked ? '#4CAF50' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                        {isChecked && <FiCheck size={12} color="#fff" strokeWidth={3} />}
-                                      </div>
-                                      <span style={{ flex: 1, color: isChecked ? 'var(--text-muted)' : 'var(--text-secondary)', textDecoration: isChecked ? 'line-through' : 'none', fontSize: '0.82rem' }}>{item.nome}</span>
-                                      <strong style={{ color: isChecked ? 'var(--text-muted)' : 'var(--primary)', fontSize: '0.82rem' }}>{item.quantidade} {item.unidade}</strong>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ) : (
                         /* ✍️ EDITOR VIEW */
@@ -3872,6 +3984,137 @@ export default function LeadsKanban() {
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
             Por favor, aguarde a confirmação da API do WhatsApp
+          </div>
+        </div>
+      )}
+      {/* ── LIVE LINK PREVIEW OVERLAY MODAL ─────────────────── */}
+      {previewUrl && (
+        <div 
+          onClick={() => setPreviewUrl(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: '16px',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)', 
+              width: previewMode === 'mobile' ? '375px' : '90vw',
+              height: previewMode === 'mobile' ? '80vh' : '85vh',
+              maxHeight: '90vh',
+              borderRadius: '16px', 
+              overflow: 'hidden', 
+              border: '1px solid rgba(203, 161, 83, 0.2)',
+              display: 'flex', 
+              flexDirection: 'column',
+              boxShadow: '0 12px 48px rgba(0,0,0,0.8)',
+              transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }}
+          >
+            {/* PREVIEW HEADER */}
+            <div style={{ 
+              padding: '12px 18px', 
+              borderBottom: '1px solid var(--border-color)', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              background: 'var(--bg-input)' 
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                  {previewUrl.includes('barman=true') ? '📋 Preview: Checklist do Barman' : '🍹 Preview: Formulário do Cliente'}
+                </span>
+                <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)' }}>
+                  Ao Vivo (Firebase Link)
+                </span>
+              </div>
+
+              {/* View mode toggle */}
+              <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.2)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <button 
+                  onClick={() => setPreviewMode('mobile')}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.72rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: previewMode === 'mobile' ? 'var(--primary)' : 'transparent',
+                    color: previewMode === 'mobile' ? '#000' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    transition: 'all 0.1s ease'
+                  }}
+                >
+                  📱 Mobile
+                </button>
+                <button 
+                  onClick={() => setPreviewMode('desktop')}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.72rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: previewMode === 'desktop' ? 'var(--primary)' : 'transparent',
+                    color: previewMode === 'desktop' ? '#000' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    transition: 'all 0.1s ease'
+                  }}
+                >
+                  💻 Desktop
+                </button>
+              </div>
+
+              {/* Header Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(previewUrl);
+                    showToast('Link copiado para a área de transferência!', 'success');
+                  }}
+                  className="btn"
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '0.75rem',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    height: 'auto',
+                    minHeight: 'auto'
+                  }}
+                >
+                  Copiar Link
+                </button>
+                <button 
+                  onClick={() => setPreviewUrl(null)}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+                    padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s'
+                  }}
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* PREVIEW FRAME */}
+            <div style={{ flex: 1, background: '#000', position: 'relative' }}>
+              <iframe
+                src={previewUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  background: 'var(--bg-main)'
+                }}
+                title="Live Link Preview"
+              />
+            </div>
           </div>
         </div>
       )}
