@@ -317,9 +317,9 @@ function ShoppingListContent() {
 
     const fixosFormatados = fixosBase.map(fixo => {
       if (!fixo.nome) return null;
-      const total = fixo.tipoCalc === 'porConvidado'
-        ? Math.ceil(Number(fixo.quantidade) * convidados)
-        : Math.ceil(Number(fixo.quantidade));
+      const total = fixo.tipoCalc === 'fixo'
+        ? Math.ceil(Number(fixo.quantidade))
+        : Math.ceil(Number(fixo.quantidade) * convidados);
       return {
         id: fixo.id || fixo.nome.toLowerCase().replace(/\s+/g, '_'),
         nome: fixo.nome,

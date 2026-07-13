@@ -62,7 +62,16 @@ export default function ConfigsEditor() {
         if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
         if (data.galeriaEventos) setGaleria(firebaseObjToArray(data.galeriaEventos));
-        if (data.shoppingConfig) setShoppingConfig(data.shoppingConfig);
+        if (data.shoppingConfig) {
+        const cfg = { ...data.shoppingConfig };
+        if (cfg.itensFixos) {
+          cfg.itensFixos = cfg.itensFixos.map(item => ({
+            ...item,
+            tipoCalc: item.tipoCalc || 'porConvidado'
+          }));
+        }
+        setShoppingConfig(cfg);
+      }
         if (data.tiposEvento) setTiposEvento(firebaseObjToArray(data.tiposEvento));
         if (data.custosCategorias) {
           setCustosCategorias(firebaseObjToArray(data.custosCategorias));
