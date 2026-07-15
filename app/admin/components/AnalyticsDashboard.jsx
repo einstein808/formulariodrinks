@@ -1303,7 +1303,17 @@ export default function AnalyticsDashboard() {
 
         {/* INSIGHT: Oportunidade Mão de Obra em Festas Grandes */}
         {(() => {
-          const LIMIAR_CONVIDADOS = 150;
+          // Calcula o limiar dinamicamente: 70º percentil dos convidados nos leads com valor informado
+          const convidadosValidos = leads
+            .map(l => Number(l.convidados))
+            .filter(n => !isNaN(n) && n > 0)
+            .sort((a, b) => a - b);
+
+          if (convidadosValidos.length < 3) return null; // poucos dados para gerar insight
+
+          const idx70 = Math.floor(convidadosValidos.length * 0.7);
+          const LIMIAR_CONVIDADOS = convidadosValidos[idx70] || 100;
+
           const maoDeObraKeywords = ['mão de obra', 'mao de obra', 'obra'];
           const isMaoDeObra = (pacote) => {
             const p = (pacote || '').toLowerCase();
@@ -1351,7 +1361,7 @@ export default function AnalyticsDashboard() {
                     <h3 style={{ margin: 0, color: '#FF9800', fontSize: '1.1rem' }}>Oportunidade de Receita Detectada</h3>
                   </div>
                   <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', maxWidth: '600px', lineHeight: '1.5' }}>
-                    Eventos com <strong style={{ color: '#FFF' }}>{LIMIAR_CONVIDADOS}+ convidados</strong> que escolheram <strong style={{ color: '#FF9800' }}>Mão de Obra</strong> geram um ticket médio significativamente menor do que os que contratam um pacote completo.
+                    Eventos com <strong style={{ color: '#FFF' }}>{LIMIAR_CONVIDADOS}+ convidados</strong> que escolheram <strong style={{ color: '#FF9800' }}>Mão de Obra</strong> geram um ticket médio significativamente menor do que os que contratam um pacote completo. O limiar de <strong style={{ color: '#FFF' }}>{LIMIAR_CONVIDADOS} convidados</strong> foi calculado automaticamente com base no perfil dos seus eventos.
                   </p>
                 </div>
                 {receitaNaoCapturada > 0 && (
