@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { 
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
-  LineChart, Line, ComposedChart
+  LineChart, Line, ComposedChart, RadarChart, PolarGrid,
+  PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 import { FiHeart, FiTrendingUp, FiDollarSign } from 'react-icons/fi';
 
@@ -1127,6 +1128,178 @@ export default function AnalyticsDashboard() {
             </div>
           )}
         </div>
+
+        {/* BLOCO 3 — Análise de Convidados e Pacotes */}
+        {(() => {
+          // --- Histograma de Convidados ---
+          const faixas = [
+            { label: 'Até 50', min: 0, max: 50 },
+            { label: '51–100', min: 51, max: 100 },
+            { label: '101–150', min: 101, max: 150 },
+            { label: '151–200', min: 151, max: 200 },
+            { label: '201–300', min: 201, max: 300 },
+            { label: '300+', min: 301, max: Infinity },
+          ];
+          const histData = faixas.map(f => ({
+            name: f.label,
+            Eventos: leads.filter(l => {
+              const n = Number(l.convidados);
+              return !isNaN(n) && n >= f.min && n <= f.max;
+            }).length
+          }));
+
+          // --- Média de convidados por pacote ---
+          const pacoteConvidados = {};
+          leads.forEach(lead => {
+            const pacote = normalizePackageName(lead.pacote);
+            const n = Number(lead.convidados);
+            if (!isNaN(n) && n > 0) {
+              if (!pacoteConvidados[pacote]) pacoteConvidados[pacote] = { soma: 0, count: 0 };
+              pacoteConvidados[pacote].soma += n;
+              pacoteConvidados[pacote].count += 1;
+            }
+          });
+          const mediaConvPacote = Object.entries(pacoteConvidados)
+            .map(([name, { soma, count }]) => ({ name, Media: Math.round(soma / count) }))
+            .sort((a, b) => b.Media - a.Media);
+
+          // --- Ticket médio por faixa de convidados ---
+          const ticketPorFaixa = faixas.map(f => {
+            const leadsNaFaixa = leads.filter(l => {
+              const n = Number(l.convidados);
+              const fat = parseFloat(l.financeiro?.faturamento) || 0;
+              return !isNaN(n) && n >= f.min && n <= f.max && fat > 0;
+            });
+            const totalFat = leadsNaFaixa.reduce((acc, l) => acc + (parseFloat(l.financeiro?.faturamento) || 0), 0);
+            const ticket = leadsNaFaixa.length > 0 ? Math.round(totalFat / leadsNaFaixa.length) : 0;
+            return { faixa: f.label, eventos: leadsNaFaixa.length, ticket };
+          }).filter(r => r.eventos > 0);
+
+          // --- Radar: tipo de evento × pacote ---
+          const tiposUnicos = [...new Set(leads.map(l => normalizeEventType(l.tipoEvento)).filter(t => t && t !== 'Não informado'))].slice(0, 6);
+          const pacotesUnicos = [...new Set(leads.map(l => normalizePackageName(l.pacote)).filter(Boolean))];
+          const radarData = tiposUnicos.map(tipo => {
+            const entry = { tipo };
+            pacotesUnicos.forEach(pac => {
+              entry[pac] = leads.filter(l =>
+                normalizeEventType(l.tipoEvento) === tipo &&
+                normalizePackageName(l.pacote) === pac
+              ).length;
+            });
+            return entry;
+          });
+          const RADAR_COLORS = ['#cba153', '#00E5FF', '#4CAF50', '#F44336', '#FF9800'];
+
+          return (
+            <>
+              {/* Histograma */}
+              <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0 }}>
+                <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)' }}>👥 Distribuição de Convidados por Faixa</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Quantos eventos você realizou em cada tamanho de festa.</p>
+                {histData.some(d => d.Eventos > 0) ? (
+                  <ResponsiveContainer width="99%" height={280}>
+                    <BarChart data={histData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                      <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888' }} />
+                      <YAxis stroke="#888" tick={{ fill: '#888' }} allowDecimals={false} />
+                      <RechartsTooltip
+                        contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }}
+                        formatter={(value) => [`${value} evento${value !== 1 ? 's' : ''}`, 'Quantidade']}
+                      />
+                      <Bar dataKey="Eventos" radius={[6, 6, 0, 0]}>
+                        {histData.map((entry, index) => (
+                          <Cell key={`hist-${index}`} fill={entry.Eventos === Math.max(...histData.map(d => d.Eventos)) ? 'var(--primary)' : 'rgba(203,161,83,0.35)'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                    Nenhum lead com número de convidados informado.
+                  </div>
+                )}
+              </div>
+
+              {/* Média de convidados por pacote */}
+              <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
+                <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)' }}>📦 Média de Convidados por Pacote</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Qual pacote tende a ser escolhido para eventos maiores.</p>
+                {mediaConvPacote.length > 0 ? (
+                  <ResponsiveContainer width="99%" height={260}>
+                    <BarChart data={mediaConvPacote} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
+                      <XAxis type="number" stroke="#888" tick={{ fill: '#888' }} />
+                      <YAxis type="category" dataKey="name" stroke="#888" tick={{ fill: '#ccc', fontSize: 12 }} width={100} />
+                      <RechartsTooltip
+                        contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }}
+                        formatter={(value) => [`${value} convidados`, 'Média']}
+                      />
+                      <Bar dataKey="Media" fill="#00E5FF" radius={[0, 6, 6, 0]} barSize={22} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                    Nenhum dado de pacotes disponível.
+                  </div>
+                )}
+              </div>
+
+              {/* Ticket Médio por Faixa */}
+              <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
+                <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)' }}>💰 Ticket Médio por Faixa de Convidados</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Quanto você cobra em média, de acordo com o tamanho do evento.</p>
+                {ticketPorFaixa.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {ticketPorFaixa.map((row, idx) => {
+                      const maxTicket = Math.max(...ticketPorFaixa.map(r => r.ticket));
+                      const pct = maxTicket > 0 ? (row.ticket / maxTicket) * 100 : 0;
+                      return (
+                        <div key={idx}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                              👥 {row.faixa} convidados
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '8px' }}>({row.eventos} evento{row.eventos !== 1 ? 's' : ''})</span>
+                            </span>
+                            <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.ticket)}
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', background: 'var(--primary)', borderRadius: '10px', transition: 'width 0.5s ease-out' }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    Nenhum lead com dados financeiros e de convidados informados.
+                  </div>
+                )}
+              </div>
+
+              {/* Radar: Tipo de Evento × Pacote */}
+              {radarData.length > 0 && pacotesUnicos.length > 0 && (
+                <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
+                  <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)' }}>🎯 Tipo de Evento × Pacote Contratado</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Qual pacote cada tipo de evento costuma contratar.</p>
+                  <ResponsiveContainer width="99%" height={300}>
+                    <RadarChart data={radarData}>
+                      <PolarGrid stroke="#333" />
+                      <PolarAngleAxis dataKey="tipo" tick={{ fill: '#aaa', fontSize: 12 }} />
+                      <PolarRadiusAxis tick={{ fill: '#666', fontSize: 10 }} />
+                      {pacotesUnicos.slice(0, 5).map((pac, i) => (
+                        <Radar key={pac} name={pac} dataKey={pac} stroke={RADAR_COLORS[i % RADAR_COLORS.length]} fill={RADAR_COLORS[i % RADAR_COLORS.length]} fillOpacity={0.2} />
+                      ))}
+                      <Legend />
+                      <RechartsTooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* Ranking de Parceiros */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0, borderTop: '4px solid #E91E63' }}>
