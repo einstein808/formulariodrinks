@@ -504,9 +504,26 @@ export default function ConfigsEditor() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {pacotes.map((pacote) => (
-              <div key={pacote.id} style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, color: 'var(--primary)' }}>{pacote.name}</h3>
+              <div key={pacote.id} style={{
+                background: 'var(--bg-input)',
+                padding: '20px',
+                borderRadius: '8px',
+                border: `1px solid ${pacote.hidden ? '#FF9800' : 'var(--border-color)'}`,
+                opacity: pacote.hidden ? 0.75 : 1,
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3 style={{ margin: 0, color: 'var(--primary)' }}>{pacote.name}</h3>
+                    {pacote.hidden && (
+                      <span style={{
+                        background: 'rgba(255,152,0,0.15)', color: '#FF9800',
+                        border: '1px solid rgba(255,152,0,0.4)', borderRadius: '6px',
+                        fontSize: '0.72rem', fontWeight: '700', padding: '2px 8px',
+                        letterSpacing: '0.05em'
+                      }}>🙈 OCULTO DA VITRINE</span>
+                    )}
+                  </div>
                   <button onClick={() => removePacote(pacote.id)} style={{ background: 'none', color: '#F44336', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiTrash2 /> Excluir Pacote
                   </button>
@@ -549,10 +566,21 @@ export default function ConfigsEditor() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '16px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                     <input type="checkbox" checked={pacote.popular || false} onChange={(e) => updatePacote(pacote.id, 'popular', e.target.checked)} />
                     Destacar como "Mais popular"
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={pacote.hidden || false}
+                      onChange={(e) => updatePacote(pacote.id, 'hidden', e.target.checked)}
+                      style={{ accentColor: '#FF9800' }}
+                    />
+                    <span style={{ color: pacote.hidden ? '#FF9800' : 'inherit' }}>
+                      🙈 Ocultar da vitrine (orçamento e contrato)
+                    </span>
                   </label>
                 </div>
 

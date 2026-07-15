@@ -441,7 +441,7 @@ export default function OrcamentoClient() {
         return (
           <div className="step-enter" key="step-0">
             <div className="packages-grid">
-              {pacotes.map(p => (
+              {pacotes.filter(p => !p.hidden).map(p => (
                 <button
                   key={p.id}
                   type="button"
@@ -828,7 +828,7 @@ export default function OrcamentoClient() {
                 onChange={e => updateField('cidade', e.target.value)}
               >
                 <option value="">Selecione sua cidade</option>
-                {cidades.map(c => (
+                {cidades.filter(c => !c.hidden).map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>

@@ -146,6 +146,11 @@ export default function LeadsKanban() {
   const [newPaymentForma, setNewPaymentForma] = useState('Pix');
   const [custosCategorias, setCustosCategorias] = useState([]);
 
+  // AI Follow-up state
+  const [aiFollowupLoading, setAiFollowupLoading] = useState(false);
+  const [aiFollowupResult, setAiFollowupResult] = useState(null);
+  const [aiFollowupCopied, setAiFollowupCopied] = useState(false);
+
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [itemsPerPage, setItemsPerPage] = useState('20');
   const [currentPage, setCurrentPage] = useState(1);
@@ -162,6 +167,34 @@ export default function LeadsKanban() {
   const [isMobile, setIsMobile] = useState(false);
 
   const lastModalRef = useRef(null);
+
+  const handleGenerateFollowup = async () => {
+    if (!selectedLead) return;
+    setAiFollowupLoading(true);
+    setAiFollowupResult(null);
+    setAiFollowupCopied(false);
+    try {
+      const res = await fetch('/api/gerar-followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead: selectedLead })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
+      setAiFollowupResult(data.message);
+    } catch (err) {
+      showToast(`Erro ao gerar follow-up: ${err.message}`, 'error');
+    } finally {
+      setAiFollowupLoading(false);
+    }
+  };
+
+  const handleCopyFollowup = () => {
+    if (!aiFollowupResult) return;
+    navigator.clipboard.writeText(aiFollowupResult);
+    setAiFollowupCopied(true);
+    setTimeout(() => setAiFollowupCopied(false), 2500);
+  };
 
   // Watch modal changes in LeadsKanban
   useEffect(() => {
@@ -1905,8 +1938,8 @@ export default function LeadsKanban() {
               {/* 📋 TAB 1: GENERAL INFO */}
               {modalTab === 'info' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
-                  {/* Call WhatsApp shortcut */}
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  {/* Call WhatsApp shortcut + AI Follow-up */}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <a 
                       href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.nome}, vi que solicitou um orçamento para o pacote ${selectedLead.pacote}!`)}`}
                       target="_blank" rel="noopener noreferrer"
@@ -1929,7 +1962,88 @@ export default function LeadsKanban() {
                     >
                       <FiPhone /> Abrir WhatsApp do Cliente
                     </a>
+
+                    <button
+                      onClick={() => { setAiFollowupResult(null); handleGenerateFollowup(); }}
+                      disabled={aiFollowupLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+                        background: aiFollowupLoading ? 'rgba(203,161,83,0.3)' : 'linear-gradient(135deg, rgba(203,161,83,0.18), rgba(203,161,83,0.08))',
+                        border: '1px solid rgba(203,161,83,0.45)',
+                        color: 'var(--primary)', borderRadius: '8px', padding: '10px 14px',
+                        cursor: aiFollowupLoading ? 'not-allowed' : 'pointer',
+                        fontWeight: '600', fontSize: '0.85rem', minHeight: 44, whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {aiFollowupLoading ? (
+                        <><div className="btn__spinner" style={{ width: 16, height: 16, borderWidth: 2, borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /> Gerando...</>
+                      ) : (
+                        <>✨ Follow-up com IA</>
+                      )}
+                    </button>
                   </div>
+
+                  {/* AI Follow-up Result Modal */}
+                  {aiFollowupResult && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(203,161,83,0.08), rgba(30,30,30,0.95))',
+                      border: '1px solid rgba(203,161,83,0.35)',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      position: 'relative',
+                      animation: 'fadeIn 0.3s ease'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--primary)', textTransform: 'uppercase' }}>✨ Mensagem gerada pela IA</span>
+                        <button onClick={() => setAiFollowupResult(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}>✕</button>
+                      </div>
+                      <p style={{
+                        margin: 0, fontSize: '0.9rem', lineHeight: '1.6',
+                        color: 'var(--text-primary)', whiteSpace: 'pre-wrap',
+                        background: 'rgba(0,0,0,0.25)', borderRadius: '8px', padding: '12px'
+                      }}>{aiFollowupResult}</p>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <button
+                          onClick={handleCopyFollowup}
+                          style={{
+                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                            background: aiFollowupCopied ? 'rgba(76,175,80,0.2)' : 'rgba(203,161,83,0.15)',
+                            border: `1px solid ${aiFollowupCopied ? '#4CAF50' : 'rgba(203,161,83,0.4)'}`,
+                            color: aiFollowupCopied ? '#4CAF50' : 'var(--primary)',
+                            borderRadius: '8px', padding: '9px 14px', cursor: 'pointer',
+                            fontWeight: '600', fontSize: '0.82rem', transition: 'all 0.2s'
+                          }}
+                        >
+                          {aiFollowupCopied ? '✓ Copiado!' : '📋 Copiar Mensagem'}
+                        </button>
+                        <a
+                          href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(aiFollowupResult)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{
+                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                            background: '#25D366', border: 'none', color: 'white',
+                            borderRadius: '8px', padding: '9px 14px', textDecoration: 'none',
+                            fontWeight: '600', fontSize: '0.82rem'
+                          }}
+                        >
+                          <FiPhone size={14} /> Enviar no WhatsApp
+                        </a>
+                        <button
+                          onClick={handleGenerateFollowup}
+                          disabled={aiFollowupLoading}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                            background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)',
+                            color: 'var(--text-muted)', borderRadius: '8px', padding: '9px 12px',
+                            cursor: aiFollowupLoading ? 'not-allowed' : 'pointer', fontSize: '0.82rem'
+                          }}
+                          title="Gerar nova versão"
+                        >
+                          🔄
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Cerimonialista Parceiro */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '16px', border: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>

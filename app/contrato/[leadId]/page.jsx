@@ -1007,7 +1007,7 @@ export default function ClienteContratoPage() {
               <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Tipo de Serviço (Pacote) *</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {pacotes.map(p => (
+                  {pacotes.filter(p => !p.hidden).map(p => (
                     <div
                       key={p.name}
                       onClick={() => handleInput({ target: { name: 'Servico', value: p.name } })}
