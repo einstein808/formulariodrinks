@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
@@ -464,11 +464,12 @@ export default function GeradorContrato() {
 
     // Mapeia o pacote do Lead tentando casar com Firebase pacotes
     let servicoText = lead.pacote || '';
-    const foundPacote = pacotes.find(p => p.name.toLowerCase() === servicoText.toLowerCase());
+    const foundPacote = pacotes.find(p => p.id === servicoText || p.name.toLowerCase() === servicoText.toLowerCase());
     if (foundPacote) {
       servicoText = foundPacote.name;
     } else {
       if (servicoText.toLowerCase().includes('premium')) servicoText = 'Premium';
+      else if (servicoText.toLowerCase().includes('frozen') || servicoText.toLowerCase().includes('standard + frozen')) servicoText = 'Standard + Frozen';
       else if (servicoText.toLowerCase().includes('inicial') || servicoText.toLowerCase().includes('standard')) servicoText = 'Standard';
       else if (servicoText.toLowerCase().includes('ajudante')) servicoText = 'Mão de Obra + Ajudante';
       else if (servicoText.toLowerCase().includes('obra')) servicoText = 'Mão de Obra';

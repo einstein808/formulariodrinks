@@ -108,6 +108,13 @@ export default function ClienteContratoPage() {
           setAllDrinks(loadedDrinks);
         }
 
+        // Fetch pacotes config
+        let loadedPacotes = [];
+        const pacotesSnapshot = await get(ref(db, 'config/pacotes'));
+        if (pacotesSnapshot.exists()) {
+          loadedPacotes = Object.entries(pacotesSnapshot.val()).map(([id, val]) => ({ id, ...val }));
+        }
+
         const snapshot = await get(ref(db, `leads/${leadId}`));
         if (snapshot.exists()) {
           const lead = snapshot.val();
@@ -134,10 +141,16 @@ export default function ClienteContratoPage() {
           // Map service / packet
           let servicoText = lead.pacote || '';
           if (servicoText) {
-            if (servicoText.toLowerCase().includes('premium')) servicoText = 'Premium';
-            else if (servicoText.toLowerCase().includes('inicial') || servicoText.toLowerCase().includes('standard')) servicoText = 'Standard';
-            else if (servicoText.toLowerCase().includes('ajudante')) servicoText = 'Mão de Obra + Ajudante';
-            else if (servicoText.toLowerCase().includes('obra')) servicoText = 'Mão de Obra';
+            const foundPacote = loadedPacotes.find(p => p.id === servicoText || p.name.toLowerCase() === servicoText.toLowerCase());
+            if (foundPacote) {
+              servicoText = foundPacote.name;
+            } else {
+              if (servicoText.toLowerCase().includes('premium')) servicoText = 'Premium';
+              else if (servicoText.toLowerCase().includes('frozen') || servicoText.toLowerCase().includes('standard + frozen')) servicoText = 'Standard + Frozen';
+              else if (servicoText.toLowerCase().includes('inicial') || servicoText.toLowerCase().includes('standard')) servicoText = 'Standard';
+              else if (servicoText.toLowerCase().includes('ajudante')) servicoText = 'Mão de Obra + Ajudante';
+              else if (servicoText.toLowerCase().includes('obra')) servicoText = 'Mão de Obra';
+            }
           }
 
           // Map drink types
