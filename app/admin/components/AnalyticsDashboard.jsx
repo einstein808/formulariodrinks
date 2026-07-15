@@ -1301,6 +1301,148 @@ export default function AnalyticsDashboard() {
           );
         })()}
 
+        {/* INSIGHT: Oportunidade Mão de Obra em Festas Grandes */}
+        {(() => {
+          const LIMIAR_CONVIDADOS = 150;
+          const maoDeObraKeywords = ['mão de obra', 'mao de obra', 'obra'];
+          const isMaoDeObra = (pacote) => {
+            const p = (pacote || '').toLowerCase();
+            return maoDeObraKeywords.some(k => p.includes(k));
+          };
+
+          const leadsGrandes = leads.filter(l => Number(l.convidados) >= LIMIAR_CONVIDADOS);
+          if (leadsGrandes.length === 0) return null;
+
+          const grandesMaoObra = leadsGrandes.filter(l => isMaoDeObra(l.pacote));
+          const grandesPacote = leadsGrandes.filter(l => !isMaoDeObra(l.pacote));
+
+          const avgTicket = (arr) => {
+            const comFat = arr.filter(l => parseFloat(l.financeiro?.faturamento) > 0);
+            if (comFat.length === 0) return 0;
+            return comFat.reduce((s, l) => s + parseFloat(l.financeiro.faturamento), 0) / comFat.length;
+          };
+
+          const avgMaoObra = avgTicket(grandesMaoObra);
+          const avgPacote = avgTicket(grandesPacote);
+          const diferencaTicket = avgPacote - avgMaoObra;
+          const receitaNaoCapturada = diferencaTicket > 0 ? Math.round(diferencaTicket * grandesMaoObra.length) : 0;
+          const pctMaoObra = leadsGrandes.length > 0 ? Math.round((grandesMaoObra.length / leadsGrandes.length) * 100) : 0;
+
+          const barCompData = [
+            { name: 'Mão de Obra', Ticket: Math.round(avgMaoObra), fill: '#FF9800' },
+            { name: 'Pacote Completo', Ticket: Math.round(avgPacote), fill: '#4CAF50' },
+          ].filter(d => d.Ticket > 0);
+
+          return (
+            <div style={{
+              gridColumn: '1 / -1',
+              background: 'rgba(255, 152, 0, 0.04)',
+              border: '1px solid rgba(255, 152, 0, 0.35)',
+              borderLeft: '5px solid #FF9800',
+              borderRadius: '12px',
+              padding: '24px',
+              minWidth: 0,
+            }}>
+              {/* Cabeçalho */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '1.4rem' }}>⚠️</span>
+                    <h3 style={{ margin: 0, color: '#FF9800', fontSize: '1.1rem' }}>Oportunidade de Receita Detectada</h3>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', maxWidth: '600px', lineHeight: '1.5' }}>
+                    Eventos com <strong style={{ color: '#FFF' }}>{LIMIAR_CONVIDADOS}+ convidados</strong> que escolheram <strong style={{ color: '#FF9800' }}>Mão de Obra</strong> geram um ticket médio significativamente menor do que os que contratam um pacote completo.
+                  </p>
+                </div>
+                {receitaNaoCapturada > 0 && (
+                  <div style={{ background: 'rgba(255,152,0,0.12)', border: '1px solid rgba(255,152,0,0.3)', borderRadius: '10px', padding: '14px 20px', textAlign: 'center', flexShrink: 0 }}>
+                    <div style={{ fontSize: '0.72rem', color: '#FF9800', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 'bold', marginBottom: '4px' }}>Receita não capturada</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#FF9800' }}>
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(receitaNaoCapturada)}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>estimativa acumulada</div>
+                  </div>
+                )}
+              </div>
+
+              {/* KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Eventos 150+ pax</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{leadsGrandes.length}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>no histórico total</div>
+                </div>
+                <div style={{ background: 'rgba(255,152,0,0.08)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(255,152,0,0.2)' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#FF9800', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Escolheram Mão de Obra</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#FF9800' }}>{grandesMaoObra.length} <span style={{ fontSize: '1rem', fontWeight: 'normal' }}>({pctMaoObra}%)</span></div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>dos eventos grandes</div>
+                </div>
+                <div style={{ background: 'rgba(76,175,80,0.08)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(76,175,80,0.2)' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#4CAF50', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Ticket Médio — Pacote</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                    {avgPacote > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(avgPacote) : '—'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>para festas grandes</div>
+                </div>
+                <div style={{ background: 'rgba(255,152,0,0.06)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(255,152,0,0.15)' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#FF9800', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Ticket Médio — Mão de Obra</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FF9800' }}>
+                    {avgMaoObra > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(avgMaoObra) : '—'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>para festas grandes</div>
+                </div>
+                {diferencaTicket > 0 && (
+                  <div style={{ background: 'rgba(244,67,54,0.08)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(244,67,54,0.2)' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#F44336', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Diferença por Evento</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#F44336' }}>
+                      -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(diferencaTicket)}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>perdidos por escolha do cliente</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Gráfico comparativo + sugestão */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                {barCompData.length >= 2 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>📊 Comparativo de Ticket Médio (150+ convidados)</h4>
+                    <ResponsiveContainer width="99%" height={180}>
+                      <BarChart data={barCompData} layout="vertical" margin={{ top: 0, right: 40, left: 10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
+                        <XAxis type="number" stroke="#888" tick={{ fill: '#888', fontSize: 11 }} />
+                        <YAxis type="category" dataKey="name" stroke="#888" tick={{ fill: '#ccc', fontSize: 12 }} width={110} />
+                        <RechartsTooltip
+                          contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }}
+                          formatter={(v) => [new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v), 'Ticket Médio']}
+                        />
+                        <Bar dataKey="Ticket" radius={[0, 6, 6, 0]} barSize={32}>
+                          {barCompData.map((entry, i) => (
+                            <Cell key={i} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
+                  <h4 style={{ margin: '0 0 4px 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>💡 Sugestões para aumentar o ticket</h4>
+                  {[
+                    { icon: '📈', text: 'Reajuste o preço da Mão de Obra para eventos acima de 150 pessoas — quanto maior a festa, mais próximo do pacote completo.' },
+                    { icon: '🧾', text: 'No formulário de orçamento, mostre uma comparação de custo real: Mão de Obra + compras vs. Pacote Completo para o cliente calcular.' },
+                    { icon: '🎁', text: 'Crie um pacote intermediário "Mão de Obra Premium" com gelo + copos incluídos, criando uma escada de valor gradual.' },
+                  ].map((s, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', background: 'rgba(0,0,0,0.15)', borderRadius: '8px', padding: '12px' }}>
+                      <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{s.icon}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{s.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Ranking de Parceiros */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0, borderTop: '4px solid #E91E63' }}>
           <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
