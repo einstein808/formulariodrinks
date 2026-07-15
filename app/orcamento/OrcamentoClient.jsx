@@ -505,17 +505,17 @@ export default function OrcamentoClient() {
                   type="range"
                   id="convidados"
                   className="form-slider"
-                  min="40"
+                  min="30"
                   max="500"
                   step="5"
                   value={formData.convidados}
                   onChange={e => updateField('convidados', Number(e.target.value))}
                   style={{
-                    background: `linear-gradient(to right, var(--primary) ${((formData.convidados - 40) / 460) * 100}%, var(--bg-input) ${((formData.convidados - 40) / 460) * 100}%)`
+                    background: `linear-gradient(to right, var(--primary) ${((formData.convidados - 30) / 470) * 100}%, var(--bg-input) ${((formData.convidados - 30) / 470) * 100}%)`
                   }}
                 />
                 <div className="slider-labels">
-                  <span>40</span>
+                  <span>30</span>
                   <span>Número total de convidados</span>
                   <span>500</span>
                 </div>
