@@ -1453,6 +1453,106 @@ export default function AnalyticsDashboard() {
           );
         })()}
 
+        {/* BLOCO 4 — Conversão por Pacote e por Faixa de Convidados */}
+        {(() => {
+          // --- Conversão por Pacote ---
+          const pkgStats = {};
+          leads.forEach(l => {
+            const pkg = normalizePackageName(l.pacote);
+            if (!pkgStats[pkg]) pkgStats[pkg] = { total: 0, fechados: 0 };
+            pkgStats[pkg].total += 1;
+            if (l.status === 'fechado' || l.status === 'realizado') pkgStats[pkg].fechados += 1;
+          });
+          const convPorPacote = Object.entries(pkgStats)
+            .map(([name, { total, fechados }]) => ({
+              name,
+              total,
+              fechados,
+              conv: total > 0 ? Math.round((fechados / total) * 100) : 0
+            }))
+            .sort((a, b) => b.conv - a.conv);
+
+          // --- Conversão por Faixa de Convidados ---
+          const faixasConv = [
+            { label: '30–40',   min: 30,  max: 40  },
+            { label: '41–50',   min: 41,  max: 50  },
+            { label: '51–75',   min: 51,  max: 75  },
+            { label: '76–100',  min: 76,  max: 100 },
+            { label: '101–150', min: 101, max: 150 },
+            { label: '151–200', min: 151, max: 200 },
+            { label: '200+',    min: 201, max: Infinity },
+          ];
+          const convPorFaixa = faixasConv.map(f => {
+            const grupo = leads.filter(l => {
+              const n = Number(l.convidados);
+              return !isNaN(n) && n >= f.min && n <= f.max;
+            });
+            const fechados = grupo.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
+            const conv = grupo.length > 0 ? Math.round((fechados / grupo.length) * 100) : 0;
+            return { label: f.label, total: grupo.length, fechados, conv };
+          }).filter(f => f.total > 0);
+
+          const convColor = (pct) => {
+            if (pct >= 60) return '#4CAF50';
+            if (pct >= 35) return '#FF9800';
+            return '#F44336';
+          };
+
+          const ConvBar = ({ name, total, fechados, conv }) => (
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500 }}>{name}</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {fechados}/{total} leads &nbsp;
+                  <span style={{ fontWeight: 700, color: convColor(conv) }}>{conv}%</span>
+                </span>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', height: '10px', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${conv}%`,
+                  height: '100%',
+                  borderRadius: '6px',
+                  background: convColor(conv),
+                  transition: 'width 0.5s ease'
+                }} />
+              </div>
+            </div>
+          );
+
+          if (convPorPacote.length === 0) return null;
+
+          return (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '20px',
+              gridColumn: '1 / -1'
+            }}>
+              {/* Conversão por Pacote */}
+              <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', borderTop: '4px solid var(--primary)' }}>
+                <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)' }}>📦 Conversão por Pacote</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>
+                  Qual pacote tem a maior taxa de fechamento?
+                </p>
+                {convPorPacote.map(p => (
+                  <ConvBar key={p.name} {...p} />
+                ))}
+              </div>
+
+              {/* Conversão por Faixa de Convidados */}
+              <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', borderTop: '4px solid #00E5FF' }}>
+                <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)' }}>👥 Conversão por Nº de Convidados</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>
+                  Qual tamanho de festa você fecha mais?
+                </p>
+                {convPorFaixa.map(f => (
+                  <ConvBar key={f.label} name={f.label} total={f.total} fechados={f.fechados} conv={f.conv} />
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Ranking de Parceiros */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0, borderTop: '4px solid #E91E63' }}>
           <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
