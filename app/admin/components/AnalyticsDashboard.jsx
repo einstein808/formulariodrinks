@@ -1131,14 +1131,15 @@ export default function AnalyticsDashboard() {
 
         {/* BLOCO 3 — Análise de Convidados e Pacotes */}
         {(() => {
-          // --- Histograma de Convidados ---
+          // --- Histograma e Faixas de Convidados ---
           const faixas = [
-            { label: 'Até 50', min: 0, max: 50 },
-            { label: '51–100', min: 51, max: 100 },
+            { label: '30–40', min: 30, max: 40 },
+            { label: '41–50', min: 41, max: 50 },
+            { label: '51–75', min: 51, max: 75 },
+            { label: '76–100', min: 76, max: 100 },
             { label: '101–150', min: 101, max: 150 },
             { label: '151–200', min: 151, max: 200 },
-            { label: '201–300', min: 201, max: 300 },
-            { label: '300+', min: 301, max: Infinity },
+            { label: '200+', min: 201, max: Infinity },
           ];
           const histData = faixas.map(f => ({
             name: f.label,
@@ -1175,9 +1176,23 @@ export default function AnalyticsDashboard() {
             return { faixa: f.label, eventos: leadsNaFaixa.length, ticket };
           }).filter(r => r.eventos > 0);
 
+          // --- Pacotes Contratados por Faixa de Convidados ---
+          const pacotesUnicos = [...new Set(leads.map(l => normalizePackageName(l.pacote)).filter(Boolean))];
+          const pacotesPorFaixaData = faixas.map(f => {
+            const entry = { faixa: f.label };
+            const leadsNaFaixa = leads.filter(l => {
+              const n = Number(l.convidados);
+              return !isNaN(n) && n >= f.min && n <= f.max;
+            });
+            pacotesUnicos.forEach(pac => {
+              entry[pac] = leadsNaFaixa.filter(l => normalizePackageName(l.pacote) === pac).length;
+            });
+            return entry;
+          }).filter(f => pacotesUnicos.some(pac => f[pac] > 0));
+          const PKG_COLORS = ['#cba153', '#00E5FF', '#4CAF50', '#FF9800', '#E91E63', '#9C27B0'];
+
           // --- Radar: tipo de evento × pacote ---
           const tiposUnicos = [...new Set(leads.map(l => normalizeEventType(l.tipoEvento)).filter(t => t && t !== 'Não informado'))].slice(0, 6);
-          const pacotesUnicos = [...new Set(leads.map(l => normalizePackageName(l.pacote)).filter(Boolean))];
           const radarData = tiposUnicos.map(tipo => {
             const entry = { tipo };
             pacotesUnicos.forEach(pac => {
@@ -1294,6 +1309,26 @@ export default function AnalyticsDashboard() {
                       <Legend />
                       <RechartsTooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }} />
                     </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Pacotes Contratados por Faixa de Convidados */}
+              {pacotesPorFaixaData.length > 0 && pacotesUnicos.length > 0 && (
+                <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0, gridColumn: '1 / -1' }}>
+                  <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)' }}>📊 Pacotes por Faixa de Convidados</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px 0' }}>Quais pacotes foram solicitados/contratados em cada tamanho de festa (30 a 200+ convidados).</p>
+                  <ResponsiveContainer width="99%" height={300}>
+                    <BarChart data={pacotesPorFaixaData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                      <XAxis dataKey="faixa" stroke="#888" tick={{ fill: '#aaa' }} />
+                      <YAxis stroke="#888" tick={{ fill: '#888' }} allowDecimals={false} />
+                      <RechartsTooltip contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }} />
+                      <Legend />
+                      {pacotesUnicos.map((pac, idx) => (
+                        <Bar key={pac} dataKey={pac} stackId="a" fill={PKG_COLORS[idx % PKG_COLORS.length]} />
+                      ))}
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               )}
