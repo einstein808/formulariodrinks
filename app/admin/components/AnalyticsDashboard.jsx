@@ -1456,6 +1456,8 @@ export default function AnalyticsDashboard() {
         {/* BLOCO 4 — Conversão por Pacote e por Faixa de Convidados */}
         {(() => {
           // --- Conversão por Pacote ---
+          // conv% = fechados_com_pacote / total_leads_geral (evita distorção em pacotes com poucos leads)
+          const totalLeads = leads.length;
           const pkgStats = {};
           leads.forEach(l => {
             const pkg = normalizePackageName(l.pacote);
@@ -1468,9 +1470,9 @@ export default function AnalyticsDashboard() {
               name,
               total,
               fechados,
-              conv: total > 0 ? Math.round((fechados / total) * 100) : 0
+              conv: totalLeads > 0 ? Math.round((fechados / totalLeads) * 100) : 0
             }))
-            .sort((a, b) => b.conv - a.conv);
+            .sort((a, b) => b.fechados - a.fechados);
 
           // --- Conversão por Faixa de Convidados ---
           const faixasConv = [
@@ -1488,13 +1490,14 @@ export default function AnalyticsDashboard() {
               return !isNaN(n) && n >= f.min && n <= f.max;
             });
             const fechados = grupo.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
-            const conv = grupo.length > 0 ? Math.round((fechados / grupo.length) * 100) : 0;
+            // conv% = fechados_na_faixa / total_leads_geral
+            const conv = totalLeads > 0 ? Math.round((fechados / totalLeads) * 100) : 0;
             return { label: f.label, total: grupo.length, fechados, conv };
           }).filter(f => f.total > 0);
 
           const convColor = (pct) => {
-            if (pct >= 60) return '#4CAF50';
-            if (pct >= 35) return '#FF9800';
+            if (pct >= 15) return '#4CAF50';
+            if (pct >= 8) return '#FF9800';
             return '#F44336';
           };
 
@@ -1503,13 +1506,13 @@ export default function AnalyticsDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500 }}>{name}</span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  {fechados}/{total} leads &nbsp;
+                  {fechados} de {totalLeads} leads ({total} pediram) &nbsp;
                   <span style={{ fontWeight: 700, color: convColor(conv) }}>{conv}%</span>
                 </span>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', height: '10px', overflow: 'hidden' }}>
                 <div style={{
-                  width: `${conv}%`,
+                  width: `${Math.min(100, conv * 3)}%`, // Scaled visually for clarity
                   height: '100%',
                   borderRadius: '6px',
                   background: convColor(conv),
