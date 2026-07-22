@@ -1542,11 +1542,27 @@ export default function LeadsKanban() {
                       >
                         <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '6px', color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span>{lead.nome} {lead.sobrenome}</span>
-                          {isFrozenLead ? (
-                            <span title={`Lead com ${followUpCount} tentativas de contato sem fechar. Marque como perdido!`} style={{ fontSize: '0.7rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>❄️ Esfriou</span>
-                          ) : (
-                            isStale && <span title="Lead sem novas interações há mais de 15 dias!" style={{ fontSize: '0.7rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>🔥 Esfriando</span>
-                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              title={lead.abGroup === 'B' ? 'Lead variante do Teste A/B (Preços B / Regras B)' : 'Lead controle do Teste A/B (Preços A)'}
+                              style={{
+                                fontSize: '0.65rem',
+                                fontWeight: '700',
+                                padding: '2px 6px',
+                                borderRadius: '5px',
+                                background: lead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(203, 161, 83, 0.15)',
+                                color: lead.abGroup === 'B' ? '#00E5FF' : 'var(--primary)',
+                                border: `1px solid ${lead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(203, 161, 83, 0.35)'}`
+                              }}
+                            >
+                              {lead.abGroup === 'B' ? '🧪 Grupo B' : '🅰️ Grupo A'}
+                            </span>
+                            {isFrozenLead ? (
+                              <span title={`Lead com ${followUpCount} tentativas de contato sem fechar. Marque como perdido!`} style={{ fontSize: '0.7rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>❄️ Esfriou</span>
+                            ) : (
+                              isStale && <span title="Lead sem novas interações há mais de 15 dias!" style={{ fontSize: '0.7rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>🔥 Esfriando</span>
+                            )}
+                          </div>
                         </div>
                         <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                           <FiCalendar size={12} /> {lead.dataEvento || 'Data não inf.'}
@@ -1697,6 +1713,20 @@ export default function LeadsKanban() {
                         <td style={{ padding: '12px 16px', color: 'var(--text-primary)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span>{lead.nome} {lead.sobrenome}</span>
+                            <span
+                              title={lead.abGroup === 'B' ? 'Lead variante do Teste A/B (Preços B / Regras B)' : 'Lead controle do Teste A/B (Preços A)'}
+                              style={{
+                                fontSize: '0.62rem',
+                                fontWeight: '700',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: lead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(203, 161, 83, 0.15)',
+                                color: lead.abGroup === 'B' ? '#00E5FF' : 'var(--primary)',
+                                border: `1px solid ${lead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(203, 161, 83, 0.35)'}`
+                              }}
+                            >
+                              {lead.abGroup === 'B' ? '🧪 B' : '🅰️ A'}
+                            </span>
                             {isFrozenLead ? (
                               <span title={`Lead com ${followUpCount} tentativas de contato sem fechar.`} style={{ fontSize: '0.65rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: '500' }}>❄️ Esfriou</span>
                             ) : (
@@ -1894,6 +1924,20 @@ export default function LeadsKanban() {
                 <div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span>{selectedLead.nome} {selectedLead.sobrenome || ''}</span>
+                    <span
+                      title={selectedLead.abGroup === 'B' ? 'Lead variante do Teste A/B (Preços B / Regras B)' : 'Lead controle do Teste A/B (Preços A)'}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: '700',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: selectedLead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(203, 161, 83, 0.15)',
+                        color: selectedLead.abGroup === 'B' ? '#00E5FF' : 'var(--primary)',
+                        border: `1px solid ${selectedLead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(203, 161, 83, 0.35)'}`
+                      }}
+                    >
+                      {selectedLead.abGroup === 'B' ? '🧪 Grupo B (Variante)' : '🅰️ Grupo A (Controle)'}
+                    </span>
                     {(() => {
                       const { isStale, followUpCount } = getLeadStatusHelper(selectedLead);
                       if (followUpCount >= 3) {
