@@ -62,7 +62,8 @@ export default function ClienteContratoPage() {
     autorizarimagem: true,
     coposDeVidro: false,
     desconto: 0,
-    aplicarDescontoMaoDeObra: false
+    aplicarDescontoMaoDeObra: false,
+    abGroup: 'A'
   });
 
   const [errors, setErrors] = useState({});
@@ -202,7 +203,8 @@ export default function ClienteContratoPage() {
             autorizarimagem: lead.autorizarimagem !== undefined ? lead.autorizarimagem : true,
             coposDeVidro: lead.coposDeVidro !== undefined ? lead.coposDeVidro : false,
             desconto: lead.financeiro?.desconto || 0,
-            aplicarDescontoMaoDeObra: lead.financeiro?.aplicarDescontoMaoDeObra || false
+            aplicarDescontoMaoDeObra: lead.financeiro?.aplicarDescontoMaoDeObra || false,
+            abGroup: lead.abGroup || 'A'
           });
         }
       } catch (err) {
@@ -267,6 +269,9 @@ export default function ClienteContratoPage() {
     let valorBase = 0;
     let isPerPerson = true;
 
+    const isGroupB = formData.abGroup === 'B';
+    const rawPrice = (isGroupB && pacote?.priceB && pacote.priceB.trim() !== '') ? pacote.priceB : (pacote?.price || '');
+
     if (isMaoDeObra) {
       isPerPerson = false;
       const barmansBase = barmansCount > 0 ? 350 + (barmansCount - 1) * 200 : 0;
@@ -274,7 +279,7 @@ export default function ClienteContratoPage() {
     } else if (pacote) {
       const label = (pacote.priceLabel || '').toLowerCase();
       isPerPerson = label.includes('pessoa') || label.includes('convidado') || label.includes('cliente');
-      const numericPrice = parseFloat((pacote.price || '').replace(/[^\d]/g, '')) || 0;
+      const numericPrice = parseFloat(rawPrice.replace(/[^\d]/g, '')) || 0;
       
       if (isPerPerson) {
         valorPorConvidado = numericPrice;
