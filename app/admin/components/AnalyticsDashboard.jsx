@@ -1591,6 +1591,119 @@ export default function AnalyticsDashboard() {
           );
         })()}
 
+        {/* BLOCO 5 — Relatório do Teste A/B de Preços & Variantes */}
+        {(() => {
+          const leadsA = leads.filter(l => l.abGroup === 'A' || !l.abGroup);
+          const leadsB = leads.filter(l => l.abGroup === 'B');
+
+          const getStats = (arr) => {
+            const total = arr.length;
+            const fechados = arr.filter(l => l.status === 'fechado' || l.status === 'realizado');
+            const conv = total > 0 ? Math.round((fechados.length / total) * 100) : 0;
+            const fatList = fechados.map(l => parseFloat(l.financeiro?.faturamento || 0)).filter(v => v > 0);
+            const totalFat = fatList.reduce((s, v) => s + v, 0);
+            const ticket = fatList.length > 0 ? Math.round(totalFat / fatList.length) : 0;
+            return { total, fechados: fechados.length, conv, totalFat, ticket };
+          };
+
+          const sA = getStats(leadsA);
+          const sB = getStats(leadsB);
+
+          return (
+            <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', borderTop: '4px solid #00E5FF', gridColumn: '1 / -1', minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    🧪 Relatório de Desempenho — Teste A/B de Preços & Variantes
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
+                    Comparação direta de conversão e receita gerada pelo Grupo A (Controle) vs. Grupo B (Variante).
+                  </p>
+                </div>
+                {leadsB.length > 0 ? (
+                  <span style={{ background: 'rgba(0,229,255,0.15)', color: '#00E5FF', border: '1px solid rgba(0,229,255,0.4)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 'bold' }}>
+                    🟢 COLETANDO DADOS A/B
+                  </span>
+                ) : (
+                  <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem' }}>
+                    ⚪ Nenhum lead no Grupo B ainda
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                {/* Card Grupo A */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <span style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1rem' }}>Grupo A (Controle)</span>
+                    <span style={{ fontSize: '0.75rem', background: 'rgba(203,161,83,0.15)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '6px' }}>Preços Padrão</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Leads Captados</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{sA.total}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fechamentos</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#4CAF50' }}>{sA.fechados}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Taxa Conversão</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#00E5FF' }}>{sA.conv}%</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ticket Médio</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                        {sA.ticket > 0 ? `R$ ${sA.ticket}` : '—'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Faturamento Total:</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sA.totalFat)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Grupo B */}
+                <div style={{ background: 'rgba(0,229,255,0.02)', padding: '20px', borderRadius: '10px', border: '1px solid rgba(0,229,255,0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <span style={{ fontWeight: 'bold', color: '#00E5FF', fontSize: '1rem' }}>Grupo B (Variante)</span>
+                    <span style={{ fontSize: '0.75rem', background: 'rgba(0,229,255,0.15)', color: '#00E5FF', padding: '2px 8px', borderRadius: '6px' }}>Novos Preços / Regras</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Leads Captados</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{sB.total}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fechamentos</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#4CAF50' }}>{sB.fechados}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Taxa Conversão</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#00E5FF' }}>{sB.conv}%</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ticket Médio</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#00E5FF' }}>
+                        {sB.ticket > 0 ? `R$ ${sB.ticket}` : '—'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Faturamento Total:</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sB.totalFat)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Ranking de Parceiros */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0, borderTop: '4px solid #E91E63' }}>
           <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>

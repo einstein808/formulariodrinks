@@ -58,6 +58,20 @@ export default function OrcamentoClient() {
   const [currentLeadId, setCurrentLeadId] = useState(null)
   const [general, setGeneral] = useState(null)
 
+  const [abGroup, setAbGroup] = useState('A')
+  const [abTestingConfig, setAbTestingConfig] = useState(null)
+
+  useEffect(() => {
+    try {
+      let group = localStorage.getItem('DRINKS_AB_GROUP')
+      if (!group) {
+        group = Math.random() < 0.5 ? 'A' : 'B'
+        localStorage.setItem('DRINKS_AB_GROUP', group)
+      }
+      setAbGroup(group)
+    } catch (e) {}
+  }, [])
+
   useEffect(() => {
     get(ref(db, 'config'))
       .then((snap) => {
@@ -91,6 +105,7 @@ export default function OrcamentoClient() {
         if (d.general) {
           setGeneral(d.general)
         }
+        if (d.abTesting) setAbTestingConfig(d.abTesting)
       })
       .catch((err) => console.error('Erro ao carregar config:', err))
       .finally(() => setConfigLoading(false))
@@ -279,16 +294,28 @@ export default function OrcamentoClient() {
   const handleUnlockSubmit = async (e) => {
     e.preventDefault();
     if (!formData.nome.trim() || !formData.sobrenome.trim() || !formData.telefone || formData.telefone.replace(/\D/g, '').length < 10) {
-      alert("Por favor, preencha todos os campos corretamente com um WhatsApp válido.");
+      alert("Por favor, preencha todos os campos com um WhatsApp válido.");
+      return;
+    }
+    if (!formData.dataEvento) {
+      alert("Por favor, informe a Data do Evento.");
+      return;
+    }
+    if (!formData.horarioEvento) {
+      alert("Por favor, informe o Horário de Início.");
       return;
     }
     
     setIsSubmitting(true);
     try {
+      const isAbActive = abTestingConfig?.active;
       const leadDataToSave = {
         nome: formData.nome,
         sobrenome: formData.sobrenome,
         telefone: formData.telefone,
+        dataEvento: formData.dataEvento,
+        horarioEvento: formData.horarioEvento,
+        abGroup: isAbActive ? abGroup : 'A',
         status: 'novo',
         criadoEm: serverTimestamp(),
       };
@@ -386,9 +413,11 @@ export default function OrcamentoClient() {
         }).catch(console.error);
       }
 
+      const isAbActive = abTestingConfig?.active;
       const leadDataToSave = {
         ...formData,
         cidade: finalCity,
+        abGroup: isAbActive ? abGroup : (formData.abGroup || 'A'),
         status: 'novo',
       }
       delete leadDataToSave.novaCidade;
@@ -402,8 +431,8 @@ export default function OrcamentoClient() {
         finalLeadId = newRef.key;
       }
       
-      // Enviar mensagem via WhatsApp com resumo dos pacotes
-      await sendWhatsAppQuote(leadDataToSave, pacotes, finalLeadId)
+      // Enviar mensagem via WhatsApp com resumo dos pacotes (usando pacotes visíveis segundo Grupo A/B)
+      await sendWhatsAppQuote(leadDataToSave, visiblePacotes, finalLeadId)
 
       setIsSuccess(true)
       try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
@@ -434,6 +463,29 @@ export default function OrcamentoClient() {
   /* ============================
      Render Steps
      ============================ */
+
+  /* ---- Visible packages computation (handles A/B testing & hidden flags) ---- */
+  const isAbActive = abTestingConfig?.active;
+  const isGroupB = isAbActive && abGroup === 'B';
+
+  const visiblePacotes = pacotes
+    .filter(p => !p.hidden)
+    .filter(p => {
+      if (isGroupB && abTestingConfig?.hideMaoDeObraInB) {
+        const name = (p.name || '').toLowerCase();
+        const id = (p.id || '').toLowerCase();
+        if (name.includes('obra') || id.includes('obra')) return false;
+      }
+      return true;
+    })
+    .map(p => {
+      if (isGroupB && p.priceB && p.priceB.trim() !== '') {
+        return { ...p, price: p.priceB };
+      }
+      return p;
+    });
+
+  /* ---- Render Steps ---- */
   const renderStep = () => {
     switch (currentStep) {
       /* ---- Step 0: Package Selection ---- */
@@ -441,7 +493,7 @@ export default function OrcamentoClient() {
         return (
           <div className="step-enter" key="step-0">
             <div className="packages-grid">
-              {pacotes.filter(p => !p.hidden).map(p => (
+              {visiblePacotes.map(p => (
                 <button
                   key={p.id}
                   type="button"
@@ -941,6 +993,26 @@ export default function OrcamentoClient() {
                         placeholder="WhatsApp: (00) 00000-0000"
                         value={formData.telefone}
                         onChange={handlePhoneChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Data do Evento *</label>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={formData.dataEvento || ''}
+                        onChange={e => updateField('dataEvento', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Horário de Início *</label>
+                      <input
+                        type="time"
+                        className="form-input"
+                        value={formData.horarioEvento || ''}
+                        onChange={e => updateField('horarioEvento', e.target.value)}
                         required
                       />
                     </div>

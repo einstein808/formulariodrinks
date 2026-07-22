@@ -43,6 +43,10 @@ export default function ConfigsEditor() {
   const [galeria, setGaleria] = useState([]);
   const [tiposEvento, setTiposEvento] = useState([]);
   const [custosCategorias, setCustosCategorias] = useState([]);
+  const [abTesting, setAbTesting] = useState({
+    active: false,
+    hideMaoDeObraInB: false
+  });
   
   // Shopping List Config
   const [shoppingConfig, setShoppingConfig] = useState({
@@ -58,6 +62,7 @@ export default function ConfigsEditor() {
         const data = snapshot.val();
         if (data.drinksMenu) setDrinks(firebaseObjToArray(data.drinksMenu));
         if (data.pacotes) setPacotes(firebaseObjToArray(data.pacotes));
+        if (data.abTesting) setAbTesting(data.abTesting);
         if (data.general) setGeneral(data.general);
         if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
@@ -114,6 +119,7 @@ export default function ConfigsEditor() {
       } else if (activeTab === 'pacotes') {
         const sorted = pacotes.map((p, i) => ({ ...p, order: i }));
         await set(ref(db, 'config/pacotes'), arrayToFirebaseObj(sorted));
+        await set(ref(db, 'config/abTesting'), abTesting);
       } else if (activeTab === 'scripts') {
         await set(ref(db, 'config/general'), general);
         await set(ref(db, 'config/evolutionApi'), evolutionApi);
@@ -227,7 +233,7 @@ export default function ConfigsEditor() {
   /* Pacotes Handlers */
   const addPacote = () => {
     const newId = `pacote-${Date.now()}`;
-    setPacotes([...pacotes, { id: newId, name: 'Novo Pacote', emoji: '📦', price: 'R$ 0,00', priceLabel: 'convidado', hoursLimit: 5, extraHourPrice: 'R$ 5,00', features: ['Feature 1'] }]);
+    setPacotes([...pacotes, { id: newId, name: 'Novo Pacote', emoji: '📦', price: 'R$ 0,00', priceB: 'R$ 0,00', priceLabel: 'convidado', hoursLimit: 5, extraHourPrice: 'R$ 5,00', features: ['Feature 1'] }]);
   };
   const updatePacote = (id, field, value) => {
     setPacotes(pacotes.map(p => p.id === id ? { ...p, [field]: value } : p));
@@ -498,6 +504,51 @@ export default function ConfigsEditor() {
 
       {activeTab === 'pacotes' && (
         <div>
+          {/* Painel de Controle do Teste A/B */}
+          <div style={{
+            background: abTesting.active ? 'rgba(0, 229, 255, 0.05)' : 'var(--bg-input)',
+            border: `1px solid ${abTesting.active ? '#00E5FF' : 'var(--border-color)'}`,
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '24px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', color: abTesting.active ? '#00E5FF' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  🧪 Teste A/B de Preços & Variantes
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Divida novos visitantes 50/50 entre Grupo A (Controle) e Grupo B (Variante com novos preços/regras).
+                </p>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
+                <input
+                  type="checkbox"
+                  checked={abTesting.active || false}
+                  onChange={(e) => setAbTesting({ ...abTesting, active: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#00E5FF', cursor: 'pointer' }}
+                />
+                <span style={{ fontWeight: 'bold', color: abTesting.active ? '#00E5FF' : 'var(--text-muted)' }}>
+                  {abTesting.active ? 'TESTE A/B ATIVO 🚀' : 'TESTE A/B INATIVO'}
+                </span>
+              </label>
+            </div>
+
+            {abTesting.active && (
+              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                  <input
+                    type="checkbox"
+                    checked={abTesting.hideMaoDeObraInB || false}
+                    onChange={(e) => setAbTesting({ ...abTesting, hideMaoDeObraInB: e.target.checked })}
+                    style={{ width: '16px', height: '16px', accentColor: '#FF9800', cursor: 'pointer' }}
+                  />
+                  <span>🙈 Ocultar o pacote <strong>Mão de Obra</strong> apenas no Grupo B (testar eliminação da opção barata)</span>
+                </label>
+              </div>
+            )}
+          </div>
+
           <button className="btn btn--outline" onClick={addPacote} style={{ marginBottom: '16px', width: 'auto' }}>
             <FiPlus /> Adicionar Novo Pacote
           </button>
@@ -540,14 +591,25 @@ export default function ConfigsEditor() {
                   </div>
                 </div>
 
-                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>
                     <label className="form-label">Emoji</label>
                     <input type="text" className="form-input" value={pacote.emoji || ''} onChange={(e) => updatePacote(pacote.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
                   </div>
                   <div>
-                    <label className="form-label">Preço (ex: R$ 40,00)</label>
-                    <input type="text" className="form-input" value={pacote.price || ''} onChange={(e) => updatePacote(pacote.id, 'price', e.target.value)} />
+                    <label className="form-label">Preço A (Controle)</label>
+                    <input type="text" className="form-input" value={pacote.price || ''} onChange={(e) => updatePacote(pacote.id, 'price', e.target.value)} placeholder="Ex: R$ 40,00" />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ color: abTesting.active ? '#00E5FF' : 'var(--text-secondary)' }}>Preço B (Variante)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={pacote.priceB || ''}
+                      onChange={(e) => updatePacote(pacote.id, 'priceB', e.target.value)}
+                      placeholder="Ex: R$ 48,00"
+                      style={{ borderColor: abTesting.active ? '#00E5FF' : 'var(--border-color)' }}
+                    />
                   </div>
                   <div>
                     <label className="form-label">Unidade (ex: convidado)</label>
