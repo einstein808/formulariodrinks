@@ -316,6 +316,7 @@ export default function OrcamentoClient() {
         dataEvento: formData.dataEvento,
         horarioEvento: formData.horarioEvento,
         abGroup: isAbActive ? abGroup : 'A',
+        abCampaign: isAbActive ? (abTestingConfig?.campaignName || 'padrao') : 'padrao',
         status: 'novo',
         criadoEm: serverTimestamp(),
       };
@@ -418,6 +419,7 @@ export default function OrcamentoClient() {
         ...formData,
         cidade: finalCity,
         abGroup: isAbActive ? abGroup : (formData.abGroup || 'A'),
+        abCampaign: isAbActive ? (abTestingConfig?.campaignName || formData.abCampaign || 'padrao') : (formData.abCampaign || 'padrao'),
         status: 'novo',
       }
       delete leadDataToSave.novaCidade;

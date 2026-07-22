@@ -38,6 +38,7 @@ export default function AnalyticsDashboard() {
   const [cerimonialistas, setCerimonialistas] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('geral'); // 'geral' | 'financeiro'
+  const [selectedCampaignFilter, setSelectedCampaignFilter] = useState('todas');
   const [custosCategorias, setCustosCategorias] = useState([]);
 
   const [selectedYear, setSelectedYear] = useState('todos');
@@ -1593,8 +1594,14 @@ export default function AnalyticsDashboard() {
 
         {/* BLOCO 5 — Relatório do Teste A/B de Preços & Variantes */}
         {(() => {
-          const leadsA = leads.filter(l => l.abGroup === 'A' || !l.abGroup);
-          const leadsB = leads.filter(l => l.abGroup === 'B');
+          const campaignsList = Array.from(new Set(leads.map(l => l.abCampaign).filter(Boolean)));
+
+          const leadsForAb = selectedCampaignFilter === 'todas'
+            ? leads
+            : leads.filter(l => l.abCampaign === selectedCampaignFilter);
+
+          const leadsA = leadsForAb.filter(l => l.abGroup === 'A' || !l.abGroup);
+          const leadsB = leadsForAb.filter(l => l.abGroup === 'B');
 
           const getStats = (arr) => {
             const total = arr.length;
@@ -1620,15 +1627,42 @@ export default function AnalyticsDashboard() {
                     Comparação direta de conversão e receita gerada pelo Grupo A (Controle) vs. Grupo B (Variante).
                   </p>
                 </div>
-                {leadsB.length > 0 ? (
-                  <span style={{ background: 'rgba(0,229,255,0.15)', color: '#00E5FF', border: '1px solid rgba(0,229,255,0.4)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 'bold' }}>
-                    🟢 COLETANDO DADOS A/B
-                  </span>
-                ) : (
-                  <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem' }}>
-                    ⚪ Nenhum lead no Grupo B ainda
-                  </span>
-                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  {campaignsList.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Campanha:</label>
+                      <select
+                        value={selectedCampaignFilter}
+                        onChange={(e) => setSelectedCampaignFilter(e.target.value)}
+                        style={{
+                          background: 'rgba(255,255,255,0.08)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.82rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="todas">Todas as Campanhas</option>
+                        {campaignsList.map(c => (
+                          <option key={c} value={c}>🏷️ {c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {leadsB.length > 0 ? (
+                    <span style={{ background: 'rgba(0,229,255,0.15)', color: '#00E5FF', border: '1px solid rgba(0,229,255,0.4)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 'bold' }}>
+                      🟢 COLETANDO DADOS A/B
+                    </span>
+                  ) : (
+                    <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem' }}>
+                      ⚪ Nenhum lead no Grupo B ainda
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>

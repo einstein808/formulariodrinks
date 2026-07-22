@@ -45,7 +45,8 @@ export default function ConfigsEditor() {
   const [custosCategorias, setCustosCategorias] = useState([]);
   const [abTesting, setAbTesting] = useState({
     active: false,
-    hideMaoDeObraInB: false
+    hideMaoDeObraInB: false,
+    campaignName: 'campanha_padrao'
   });
   
   // Shopping List Config
@@ -535,7 +536,24 @@ export default function ConfigsEditor() {
             </div>
 
             {abTesting.active && (
-              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.85rem', color: '#00E5FF' }}>
+                    🏷️ Identificador / Nome da Campanha (ex: aumento_julho_48)
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Ex: aumento_julho_48"
+                    value={abTesting.campaignName || ''}
+                    onChange={(e) => setAbTesting({ ...abTesting, campaignName: e.target.value.toLowerCase().trim().replace(/\s+/g, '_') })}
+                    style={{ maxWidth: '350px', borderColor: '#00E5FF' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Nome único para separar este teste dos testes passados no Analytics.
+                  </span>
+                </div>
+
                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                   <input
                     type="checkbox"
