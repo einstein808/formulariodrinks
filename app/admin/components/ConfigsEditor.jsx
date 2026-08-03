@@ -622,6 +622,36 @@ export default function ConfigsEditor() {
                     </span>
                   </div>
                 </div>
+
+                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '600' }}>🔗 Testar Formulário ao Vivo:</span>
+                  <a
+                    href="/orcamento?ab=A"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      color: '#60A5FA', padding: '6px 12px', borderRadius: '6px',
+                      fontSize: '0.82rem', fontWeight: 'bold', textDecoration: 'none'
+                    }}
+                  >
+                    🅰️ Testar Grupo A ↗️
+                  </a>
+                  <a
+                    href="/orcamento?ab=B"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: 'rgba(168, 85, 247, 0.15)',
+                      border: '1px solid rgba(168, 85, 247, 0.4)',
+                      color: '#C084FC', padding: '6px 12px', borderRadius: '6px',
+                      fontSize: '0.82rem', fontWeight: 'bold', textDecoration: 'none'
+                    }}
+                  >
+                    🧪 Testar Grupo B ↗️
+                  </a>
+                </div>
               </div>
             )}
           </div>

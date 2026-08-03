@@ -65,6 +65,16 @@ export default function OrcamentoClient() {
   useEffect(() => {
     if (configLoading) return;
     try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const forced = params.get('ab')?.toUpperCase();
+        if (forced === 'A' || forced === 'B') {
+          localStorage.setItem('DRINKS_AB_GROUP', forced);
+          setAbGroup(forced);
+          return;
+        }
+      }
+
       let group = localStorage.getItem('DRINKS_AB_GROUP');
       const targetPercentA = abTestingConfig && abTestingConfig.percentA !== undefined ? parseInt(abTestingConfig.percentA, 10) : 70;
       const thresholdA = targetPercentA / 100;
@@ -323,7 +333,7 @@ export default function OrcamentoClient() {
         convidados: formData.convidados || 40,
         dataEvento: formData.dataEvento,
         horarioEvento: formData.horarioEvento,
-        abGroup: isAbActive ? abGroup : 'A',
+        abGroup: abGroup || 'A',
         abCampaign: isAbActive ? (abTestingConfig?.campaignName || 'padrao') : 'padrao',
         status: 'novo',
         criadoEm: serverTimestamp(),
@@ -426,7 +436,7 @@ export default function OrcamentoClient() {
       const leadDataToSave = {
         ...formData,
         cidade: finalCity,
-        abGroup: isAbActive ? abGroup : (formData.abGroup || 'A'),
+        abGroup: abGroup || 'A',
         abCampaign: isAbActive ? (abTestingConfig?.campaignName || formData.abCampaign || 'padrao') : (formData.abCampaign || 'padrao'),
         status: 'novo',
       }

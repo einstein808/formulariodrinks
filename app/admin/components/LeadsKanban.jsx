@@ -1363,8 +1363,8 @@ export default function LeadsKanban() {
       </div>
       </div>
 
-      {/* ── ADVANCED FILTERS PANEL ──────────────────────────────── */}
-      <div style={{ marginBottom: '16px' }}>
+      {/* ── ADVANCED FILTERS & TEST SHORTCUTS ──────────────────────────────── */}
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
         <button
           onClick={() => setShowFilters(f => !f)}
           style={{
@@ -1384,6 +1384,41 @@ export default function LeadsKanban() {
             }}>{activeFilterCount}</span>
           )}
         </button>
+
+        <a
+          href="/orcamento?ab=A"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            background: 'rgba(59, 130, 246, 0.15)',
+            border: '1px solid rgba(59, 130, 246, 0.4)',
+            color: '#60A5FA', borderRadius: '10px', padding: '8px 14px',
+            fontSize: '0.82rem', fontWeight: '600', textDecoration: 'none',
+            transition: 'all 0.2s'
+          }}
+          title="Abrir o formulário no Teste A (Por Convidado)"
+        >
+          🅰️ Testar Grupo A (Por Convidado) ↗️
+        </a>
+
+        <a
+          href="/orcamento?ab=B"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            background: 'rgba(168, 85, 247, 0.15)',
+            border: '1px solid rgba(168, 85, 247, 0.4)',
+            color: '#C084FC', borderRadius: '10px', padding: '8px 14px',
+            fontSize: '0.82rem', fontWeight: '600', textDecoration: 'none',
+            transition: 'all 0.2s'
+          }}
+          title="Abrir o formulário no Teste B (Preço Fixo por Faixa)"
+        >
+          🧪 Testar Grupo B (Preço Fixo) ↗️
+        </a>
+      </div>
 
         {showFilters && (
           <div style={{
