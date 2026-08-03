@@ -323,15 +323,7 @@ export default function OrcamentoClient() {
   const handleUnlockSubmit = async (e) => {
     e.preventDefault();
     if (!formData.nome.trim() || !formData.sobrenome.trim() || !formData.telefone || formData.telefone.replace(/\D/g, '').length < 10) {
-      alert("Por favor, preencha todos os campos com um WhatsApp válido.");
-      return;
-    }
-    if (!formData.dataEvento) {
-      alert("Por favor, informe a Data do Evento.");
-      return;
-    }
-    if (!formData.horarioEvento) {
-      alert("Por favor, informe o Horário de Início.");
+      alert("Por favor, preencha seu nome, sobrenome e um WhatsApp válido.");
       return;
     }
     
@@ -339,12 +331,12 @@ export default function OrcamentoClient() {
     try {
       const isAbActive = abTestingConfig?.active;
       const leadDataToSave = {
-        nome: formData.nome,
-        sobrenome: formData.sobrenome,
+        nome: formData.nome.trim(),
+        sobrenome: formData.sobrenome.trim(),
         telefone: formData.telefone,
         convidados: formData.convidados || 40,
-        dataEvento: formData.dataEvento,
-        horarioEvento: formData.horarioEvento,
+        dataEvento: formData.dataEvento || '',
+        horarioEvento: formData.horarioEvento || '',
         abGroup: abGroup || 'A',
         abCampaign: isAbActive ? (abTestingConfig?.campaignName || 'padrao') : 'padrao',
         status: 'novo',
@@ -912,8 +904,32 @@ export default function OrcamentoClient() {
 
       /* ---- Step 4: Personal Info ---- */
       case 4:
+        const alreadyHasContactInfo = isPriceUnlocked && formData.nome && formData.telefone;
         return (
           <div className="step-enter" key="step-4">
+            {alreadyHasContactInfo && (
+              <div style={{
+                background: 'rgba(203, 161, 83, 0.12)',
+                border: '1px solid var(--primary)',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <span style={{ fontSize: '1.4rem' }}>✅</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', color: '#FFF', fontSize: '0.9rem' }}>
+                    Dados de contato preenchidos!
+                  </div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '2px' }}>
+                    Seus dados foram preenchidos no desbloqueio. Confira abaixo e selecione a cidade para finalizar.
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="nome" className="form-label">Nome</label>
@@ -958,7 +974,7 @@ export default function OrcamentoClient() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="cidade" className="form-label">Cidade</label>
+              <label htmlFor="cidade" className="form-label">Cidade do Evento *</label>
               <select
                 id="cidade"
                 className={`form-select ${errors.cidade ? 'form-input--error' : ''}`}
@@ -1033,96 +1049,101 @@ export default function OrcamentoClient() {
             {showUnlockModal && (
               <div style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
                 zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '20px', animation: 'fadeIn 0.3s ease'
+                padding: '16px', animation: 'fadeIn 0.25s ease',
+                overflowY: 'auto'
               }}>
                 <div style={{
-                  background: 'var(--bg-main)', borderRadius: '16px', padding: '32px',
-                  maxWidth: 400, width: '100%', border: '1px solid var(--primary)',
-                  boxShadow: '0 24px 64px rgba(203, 161, 83, 0.2)'
+                  background: 'var(--bg-main, #0F172A)', borderRadius: '20px', padding: '24px 20px',
+                  maxWidth: 420, width: '100%', border: '1px solid rgba(203, 161, 83, 0.4)',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(203, 161, 83, 0.15)',
+                  position: 'relative', maxHeight: '90vh', overflowY: 'auto', margin: 'auto'
                 }}>
-                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔓</div>
-                    <h3 style={{ margin: '0 0 8px', fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.5rem' }}>
-                      Desbloquear Valores
+                  <button
+                    type="button"
+                    onClick={handleCloseUnlockModal}
+                    style={{
+                      position: 'absolute', top: '14px', right: '14px',
+                      background: 'rgba(255,255,255,0.08)', border: 'none',
+                      color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer',
+                      borderRadius: '50%', width: '32px', height: '32px', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                    }}
+                    title="Fechar"
+                  >
+                    ✕
+                  </button>
+
+                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🔓</div>
+                    <h3 style={{ margin: '0 0 6px', fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.4rem' }}>
+                      Desbloquear Preços
                     </h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
-                      Para ver a tabela de preços exclusiva dos nossos pacotes, informe seus dados básicos.
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, lineHeight: 1.4 }}>
+                      Informe seu nome e WhatsApp para visualizar os valores e pacotes exclusivos.
                     </p>
                   </div>
 
-                  <form onSubmit={handleUnlockSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <form onSubmit={handleUnlockSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Nome *</label>
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Seu Nome"
+                        placeholder="Seu primeiro nome"
                         value={formData.nome}
                         onChange={e => updateField('nome', e.target.value)}
                         required
+                        style={{ padding: '12px 14px', fontSize: '0.95rem' }}
                       />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Sobrenome *</label>
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Seu Sobrenome"
+                        placeholder="Seu sobrenome"
                         value={formData.sobrenome}
                         onChange={e => updateField('sobrenome', e.target.value)}
                         required
+                        style={{ padding: '12px 14px', fontSize: '0.95rem' }}
                       />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>WhatsApp *</label>
                       <input
                         type="tel"
                         className="form-input"
-                        placeholder="WhatsApp: (00) 00000-0000"
+                        placeholder="(00) 00000-0000"
                         value={formData.telefone}
                         onChange={handlePhoneChange}
                         required
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Quantidade de Convidados *</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        placeholder="Ex: 50 convidados"
-                        min="30"
-                        value={formData.convidados || ''}
-                        onChange={e => updateField('convidados', Math.max(0, parseInt(e.target.value, 10) || 0))}
-                        required
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Data do Evento *</label>
-                      <input
-                        type="date"
-                        className="form-input"
-                        value={formData.dataEvento || ''}
-                        onChange={e => updateField('dataEvento', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Horário de Início *</label>
-                      <input
-                        type="time"
-                        className="form-input"
-                        value={formData.horarioEvento || ''}
-                        onChange={e => updateField('horarioEvento', e.target.value)}
-                        required
+                        style={{ padding: '12px 14px', fontSize: '0.95rem' }}
                       />
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                      <button type="button" className="btn btn--secondary" onClick={handleCloseUnlockModal} disabled={isSubmitting}>
-                        Voltar
-                      </button>
-                      <button type="submit" className="btn btn--primary" disabled={isSubmitting} style={{ flex: 1 }}>
-                        {isSubmitting ? 'Liberando...' : 'Liberar Preços'}
-                      </button>
-                    </div>
+                    <button 
+                      type="submit" 
+                      className="btn btn--primary" 
+                      disabled={isSubmitting} 
+                      style={{ 
+                        width: '100%', marginTop: '8px', padding: '14px', 
+                        fontSize: '1rem', fontWeight: 'bold', display: 'flex', 
+                        alignItems: 'center', justifyContent: 'center', gap: '8px'
+                      }}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="btn__spinner" />
+                          <span>Liberando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🔓 Liberar Tabela de Preços</span>
+                        </>
+                      )}
+                    </button>
                   </form>
                 </div>
               </div>
