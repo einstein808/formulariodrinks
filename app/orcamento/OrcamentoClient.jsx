@@ -475,8 +475,7 @@ export default function OrcamentoClient() {
      ============================ */
 
   /* ---- Visible packages computation (handles A/B testing & hidden flags) ---- */
-  const isAbActive = abTestingConfig?.active;
-  const isGroupB = isAbActive && abGroup === 'B';
+  const isGroupB = abGroup === 'B';
 
   const visiblePacotes = pacotes
     .filter(p => !p.hidden)
@@ -525,7 +524,7 @@ export default function OrcamentoClient() {
                     {isPriceUnlocked ? (
                       (() => {
                         const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup });
-                        if (isGroupB || (calc.isTier && calc.tierLabel)) {
+                        if (isGroupB) {
                           return (
                             <>
                               <span className="package-card__price-value">
@@ -560,7 +559,7 @@ export default function OrcamentoClient() {
                       </span>
                     </div>
                   )}
-                  {isPriceUnlocked && p.pricingMode === 'tier' && p.priceTiers?.length > 0 && (
+                  {isPriceUnlocked && isGroupB && p.priceTiers?.length > 0 && (
                     <div style={{
                       marginTop: '12px',
                       padding: '10px 12px',
