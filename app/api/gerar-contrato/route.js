@@ -580,6 +580,20 @@ const getStandardTemplate = (data) => {
               <td>Sim (5 por convidado - R$ ${Number(data.precoCopoVidro !== undefined ? data.precoCopoVidro : 5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/pessoa)</td>
             </tr>
             ` : ''}
+            ${data.is_tier ? `
+            <tr>
+              <td><strong>Modalidade de Precificação</strong></td>
+              <td>Preço Fixo por Faixa</td>
+            </tr>
+            <tr>
+              <td><strong>Faixa de Convidados Contratada</strong></td>
+              <td><strong>${data.tier_label || ''}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Convidados informados</strong></td>
+              <td>${data.convidados_informados || 0}</td>
+            </tr>
+            ` : `
             <tr>
               <td><strong>Convidados informados</strong></td>
               <td>${data.convidados_informados || 0}</td>
@@ -596,6 +610,7 @@ const getStandardTemplate = (data) => {
               <td><strong>Valor por convidado</strong></td>
               <td>R$ ${data.valor_por_convidado_formatado || '0,00'}</td>
             </tr>
+            `}
             ${data.desconto && parseFloat(data.desconto) > 0 ? `
             <tr>
               <td>Valor bruto</td>

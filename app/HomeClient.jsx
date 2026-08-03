@@ -821,6 +821,7 @@ export default function HomeClient() {
                     alt={`Foto do evento ${eventoAberto.titulo} em ${eventoAberto.cidade || 'Juiz de Fora'} - Mídia ${midiaAtual + 1} de ${eventoAberto.midias?.length} - Laboratório de Drinks`}
                     fill
                     sizes="(max-width: 1024px) 100vw, 900px"
+                    unoptimized={eventoAberto.midias[midiaAtual]?.url?.toLowerCase().includes('.gif')}
                     style={{ objectFit: 'contain', transition: 'opacity 0.2s' }}
                   />
                 )}
@@ -875,7 +876,7 @@ export default function HomeClient() {
                   {midia.tipo === 'video' ? (
                     <FiPlay size={24} color="#FFF" style={{ zIndex: 2 }} />
                   ) : (
-                    <Image src={midia.url} alt={`Miniatura da foto ${idx + 1} do evento ${eventoAberto.titulo} - Laboratório de Drinks`} fill sizes="64px" style={{ objectFit: 'cover' }} />
+                    <Image src={midia.url} alt={`Miniatura da foto ${idx + 1} do evento ${eventoAberto.titulo} - Laboratório de Drinks`} fill sizes="64px" unoptimized={midia.url?.toLowerCase().includes('.gif')} style={{ objectFit: 'cover' }} />
                   )}
                 </div>
               ))}

@@ -9,6 +9,7 @@ import {
 import { BiDrink, BiParty } from 'react-icons/bi'
 import { MdCelebration } from 'react-icons/md'
 import { sendWhatsAppQuote } from '../../lib/whatsappService'
+import { calculatePackagePrice, getMinTierPrice } from '../../lib/pricingUtils'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
 /* ============================
@@ -313,6 +314,7 @@ export default function OrcamentoClient() {
         nome: formData.nome,
         sobrenome: formData.sobrenome,
         telefone: formData.telefone,
+        convidados: formData.convidados || 40,
         dataEvento: formData.dataEvento,
         horarioEvento: formData.horarioEvento,
         abGroup: isAbActive ? abGroup : 'A',
@@ -407,11 +409,11 @@ export default function OrcamentoClient() {
         
         get(cityRef).then(snap => {
           if (snap.exists()) {
-            update(cityRef, { count: (snap.val().count || 0) + 1 }).catch(console.error);
+            update(cityRef, { count: (snap.val().count || 0) + 1 }).catch(() => {});
           } else {
-            set(cityRef, { name: finalCity, count: 1 }).catch(console.error);
+            set(cityRef, { name: finalCity, count: 1 }).catch(() => {});
           }
-        }).catch(console.error);
+        }).catch(() => {});
       }
 
       const isAbActive = abTestingConfig?.active;
@@ -515,10 +517,21 @@ export default function OrcamentoClient() {
                   <h3 className="package-card__name">{p.name}</h3>
                   <div className="package-card__price">
                     {isPriceUnlocked ? (
-                      <>
-                        <span className="package-card__price-value">{p.price}</span>
-                        <span className="package-card__price-label">/{p.priceLabel}</span>
-                      </>
+                      p.pricingMode === 'tier' && p.priceTiers?.length > 0 ? (
+                        <>
+                          <span className="package-card__price-value">
+                            R$ {calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup }).finalPrice.toLocaleString('pt-BR')}
+                          </span>
+                          <span className="package-card__price-label">
+                            ({calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup }).tierLabel})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="package-card__price-value">{p.price}</span>
+                          <span className="package-card__price-label">/{p.priceLabel}</span>
+                        </>
+                      )
                     ) : (
                       <div style={{ filter: 'blur(5px)', userSelect: 'none', transition: 'filter 0.3s' }}>
                         <span className="package-card__price-value">R$ 0000</span>
@@ -533,7 +546,50 @@ export default function OrcamentoClient() {
                       </span>
                     </div>
                   )}
-                  <ul className="package-card__features" style={{ marginTop: !isPriceUnlocked ? '16px' : '0' }}>
+                  {isPriceUnlocked && p.pricingMode === 'tier' && p.priceTiers?.length > 0 && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '10px 12px',
+                      background: 'rgba(203, 161, 83, 0.05)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(203, 161, 83, 0.18)',
+                      textAlign: 'left',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}>
+                      <div style={{ fontWeight: 'bold', color: 'var(--primary)', marginBottom: '6px', textAlign: 'center', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        📋 Tabela de Preços por Convidados
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {p.priceTiers.map((t, tIdx) => {
+                          const isCurrent = (formData.convidados >= t.minGuests && formData.convidados <= t.maxGuests);
+                          return (
+                            <div
+                              key={tIdx}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                background: isCurrent ? 'rgba(203, 161, 83, 0.25)' : 'transparent',
+                                border: isCurrent ? '1px solid var(--primary)' : '1px solid transparent',
+                                fontSize: '0.78rem'
+                              }}
+                            >
+                              <span style={{ color: isCurrent ? '#FFF' : 'var(--text-secondary)', fontWeight: isCurrent ? 'bold' : 'normal' }}>
+                                {(t.minGuests <= 30 && t.maxGuests === 50) ? 'Até 50 pessoas:' : `${t.minGuests}–${t.maxGuests} pessoas:`}
+                              </span>
+                              <span style={{ color: isCurrent ? 'var(--primary)' : '#DDD', fontWeight: isCurrent ? 'bold' : 'normal' }}>
+                                R$ {Number(t.fixedPrice).toLocaleString('pt-BR')}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <ul className="package-card__features" style={{ marginTop: !isPriceUnlocked ? '16px' : '12px' }}>
                     {p.features.map((f, i) => (
                       <li key={i}><FiCheck size={14} /> {f}</li>
                     ))}
@@ -550,29 +606,22 @@ export default function OrcamentoClient() {
         return (
           <div className="step-enter" key="step-1">
             <div className="form-group">
-              <label className="form-label">Quantidade de Convidados</label>
-              <div className="slider-container">
-                <div className="slider-value">
-                  {formData.convidados} <span>convidados</span>
-                </div>
+              <label htmlFor="convidadosInput" className="form-label">Quantidade de Convidados</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
                 <input
-                  type="range"
-                  id="convidados"
-                  className="form-slider"
+                  id="convidadosInput"
+                  type="number"
+                  className="form-input"
                   min="30"
-                  max="500"
-                  step="5"
-                  value={formData.convidados}
-                  onChange={e => updateField('convidados', Number(e.target.value))}
-                  style={{
-                    background: `linear-gradient(to right, var(--primary) ${((formData.convidados - 30) / 470) * 100}%, var(--bg-input) ${((formData.convidados - 30) / 470) * 100}%)`
-                  }}
+                  max="1000"
+                  placeholder="Ex: 50"
+                  value={formData.convidados || ''}
+                  onChange={e => updateField('convidados', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  style={{ fontSize: '1.25rem', fontWeight: 'bold', width: '150px', textAlign: 'center' }}
                 />
-                <div className="slider-labels">
-                  <span>30</span>
-                  <span>Número total de convidados</span>
-                  <span>500</span>
-                </div>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                  convidados (Mínimo recomendado: 40)
+                </span>
               </div>
             </div>
 
@@ -995,6 +1044,18 @@ export default function OrcamentoClient() {
                         placeholder="WhatsApp: (00) 00000-0000"
                         value={formData.telefone}
                         onChange={handlePhoneChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Quantidade de Convidados *</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="Ex: 50 convidados"
+                        min="30"
+                        value={formData.convidados || ''}
+                        onChange={e => updateField('convidados', Math.max(0, parseInt(e.target.value, 10) || 0))}
                         required
                       />
                     </div>

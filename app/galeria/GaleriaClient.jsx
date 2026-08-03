@@ -318,6 +318,7 @@ export default function GaleriaClient() {
                     alt={eventoAberto.midias[midiaAtual]?.alt || `Foto do evento ${eventoAberto.titulo} em ${eventoAberto.cidade || 'Juiz de Fora'} - Mídia ${midiaAtual + 1} de ${eventoAberto.midias?.length} - Laboratório de Drinks`}
                     fill
                     sizes="(max-width: 1024px) 100vw, 900px"
+                    unoptimized={eventoAberto.midias[midiaAtual]?.url?.toLowerCase().includes('.gif')}
                     style={{ objectFit: 'contain' }}
                   />
                 )}
@@ -368,7 +369,7 @@ export default function GaleriaClient() {
                   {midia.tipo === 'video' ? (
                     <FiPlay size={20} color="#FFF" style={{ zIndex: 2 }} />
                   ) : (
-                    <Image src={midia.url} alt={midia.alt || `Miniatura da foto ${idx + 1} do evento ${eventoAberto.titulo} - Laboratório de Drinks`} fill sizes="56px" style={{ objectFit: 'cover' }} />
+                    <Image src={midia.url} alt={midia.alt || `Miniatura da foto ${idx + 1} do evento ${eventoAberto.titulo} - Laboratório de Drinks`} fill sizes="56px" unoptimized={midia.url?.toLowerCase().includes('.gif')} style={{ objectFit: 'cover' }} />
                   )}
                 </div>
               ))}

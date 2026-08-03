@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+import { calculatePackagePrice } from '../../../lib/pricingUtils';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
 import Image from 'next/image';
 
@@ -203,8 +204,83 @@ export default function GeradorContrato() {
     const barmansCount = parseInt(formData.barmans !== undefined ? formData.barmans : 1, 10);
     const ajudantesCount = parseInt(formData.ajudantes !== undefined ? formData.ajudantes : 0, 10);
 
-    // Localizar pacote no Firebase config
-    const pacote = pacotes.find(p => p.name === formData.Servico);
+    // Localizar pacote no Firebase config (suporta busca por id ou nome)
+    const pacote = pacotes.find(p => 
+      p.id === formData.pacote || 
+      p.name === formData.Servico || 
+      p.id === formData.Servico ||
+      (p.name && formData.Servico && (
+        p.name.toLowerCase() === formData.Servico.toLowerCase() ||
+        formData.Servico.toLowerCase().includes(p.name.toLowerCase()) ||
+        p.name.toLowerCase().includes(formData.Servico.toLowerCase())
+      ))
+    );
+
+    const isTier = pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0;
+    
+    if (isTier) {
+      const calc = calculatePackagePrice(pacote, convidadosInformados, formData.duracao || 5, {
+        upsellFrozen: formData.upsellFrozen,
+        abGroup: formData.abGroup || 'A'
+      });
+
+      let valorTotal = calc.finalPrice;
+      const descontoValue = (isMaoDeObra && !formData.aplicarDescontoMaoDeObra) ? 0 : (parseFloat(formData.desconto) || 0);
+      const valorOriginal = valorTotal;
+      valorTotal = Math.max(0, valorTotal - descontoValue);
+
+      const parcela1 = +(valorTotal / 2).toFixed(2);
+      const parcela2 = +(valorTotal - parcela1).toFixed(2);
+
+      return {
+        is_per_person: false,
+        is_tier: true,
+        tier_label: calc.tierLabel,
+        convidados_informados: convidadosInformados,
+        minimo_convidados: 0,
+        convidados_cobrados: convidadosInformados,
+        valor_por_convidado: 0,
+        valor_por_convidado_formatado: '0,00',
+        valor_original: valorOriginal,
+        valor_original_formatado: formatBRL(valorOriginal),
+        desconto: descontoValue,
+        desconto_formatado: formatBRL(descontoValue),
+        valor_total: valorTotal,
+        valor_total_formatado: formatBRLCurrency(valorTotal),
+        
+        parcela_1_valor: parcela1,
+        parcela_1_valor_formatado: formatBRL(parcela1),
+        parcela_1_data: hojeFormatado,
+
+        parcela_2_valor: parcela2,
+        parcela_2_valor_formatado: formatBRL(parcela2),
+        parcela_2_data: formatDateBR(formData.data),
+
+        valor_entrada: parcela1,
+        valor_entrada_formatado: formatBRLCurrency(parcela1),
+        valor_final: parcela2,
+        valor_final_formatado: formatBRLCurrency(parcela2),
+        valor_mao_de_obra: 0,
+        valor_mao_de_obra_formatado: '',
+        valor_ajudante: 0,
+        valor_ajudante_formatado: '',
+        
+        valor_hora_extra: calc.tier?.extraHourPrice || 0,
+        valor_hora_extra_formatado: formatBRL(calc.tier?.extraHourPrice || 0),
+        valor_hora_extra_barman: 0,
+        valor_hora_extra_barman_formatado: '0,00',
+        valor_hora_extra_ajudante: 0,
+        valor_hora_extra_ajudante_formatado: '0,00',
+
+        data_formatada: formatDateBR(formData.data),
+        hora_inicio: formData.hora || '',
+        hora_fim: horaFim,
+        horario_evento: horarioEvento,
+        data_contrato_formatada: hojeFormatado,
+        local_data_assinatura: `Juiz de Fora - MG, ${hojeFormatado}`
+      };
+    }
+
     let valorPorConvidado = 0;
     let valorBase = 0;
     let isPerPerson = true;

@@ -266,6 +266,45 @@ export default function ConfigsEditor() {
       return { ...p, features: newFeatures };
     }));
   };
+  const addPacoteTier = (pacoteId) => {
+    setPacotes(pacotes.map(p => {
+      if (p.id !== pacoteId) return p;
+      const currentTiers = p.priceTiers || [];
+      const lastMax = currentTiers.length > 0 ? (currentTiers[currentTiers.length - 1].maxGuests || 50) : 30;
+      const newTier = {
+        minGuests: lastMax + 1,
+        maxGuests: lastMax + 30,
+        fixedPrice: 2000,
+        extraHourPrice: 150
+      };
+      return { ...p, priceTiers: [...currentTiers, newTier] };
+    }));
+  };
+  const updatePacoteTier = (pacoteId, index, field, value) => {
+    setPacotes(pacotes.map(p => {
+      if (p.id !== pacoteId) return p;
+      const newTiers = [...(p.priceTiers || [])];
+      newTiers[index] = { ...newTiers[index], [field]: value };
+      return { ...p, priceTiers: newTiers };
+    }));
+  };
+  const removePacoteTier = (pacoteId, index) => {
+    setPacotes(pacotes.map(p => {
+      if (p.id !== pacoteId) return p;
+      const newTiers = [...(p.priceTiers || [])];
+      newTiers.splice(index, 1);
+      return { ...p, priceTiers: newTiers };
+    }));
+  };
+  const applyRecommendedTiers = (pacoteId) => {
+    const recommended = [
+      { minGuests: 30, maxGuests: 50, fixedPrice: 1800, extraHourPrice: 150 },
+      { minGuests: 51, maxGuests: 80, fixedPrice: 2800, extraHourPrice: 200 },
+      { minGuests: 81, maxGuests: 120, fixedPrice: 3800, extraHourPrice: 250 },
+      { minGuests: 121, maxGuests: 200, fixedPrice: 5500, extraHourPrice: 350 },
+    ];
+    setPacotes(pacotes.map(p => p.id === pacoteId ? { ...p, pricingMode: 'tier', priceTiers: recommended } : p));
+  };
 
   /* Galeria Handlers */
   const addEvento = () => {
@@ -615,7 +654,19 @@ export default function ConfigsEditor() {
                     <input type="text" className="form-input" value={pacote.emoji || ''} onChange={(e) => updatePacote(pacote.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
                   </div>
                   <div>
-                    <label className="form-label">Preço A (Controle)</label>
+                    <label className="form-label">Modo de Precificação</label>
+                    <select
+                      className="form-input"
+                      value={pacote.pricingMode || 'person'}
+                      onChange={(e) => updatePacote(pacote.id, 'pricingMode', e.target.value)}
+                      style={{ background: 'var(--bg-input)', color: '#fff' }}
+                    >
+                      <option value="person">Por Convidado (Preço linear)</option>
+                      <option value="tier">Por Faixas (Preço fixo)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Preço A (Linear)</label>
                     <input type="text" className="form-input" value={pacote.price || ''} onChange={(e) => updatePacote(pacote.id, 'price', e.target.value)} placeholder="Ex: R$ 40,00" />
                   </div>
                   <div>
@@ -629,11 +680,102 @@ export default function ConfigsEditor() {
                       style={{ borderColor: abTesting.active ? '#00E5FF' : 'var(--border-color)' }}
                     />
                   </div>
-                  <div>
-                    <label className="form-label">Unidade (ex: convidado)</label>
-                    <input type="text" className="form-input" value={pacote.priceLabel || ''} onChange={(e) => updatePacote(pacote.id, 'priceLabel', e.target.value)} />
-                  </div>
                 </div>
+
+                {pacote.pricingMode === 'tier' && (
+                  <div style={{
+                    background: 'rgba(203, 161, 83, 0.08)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(203, 161, 83, 0.3)',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, color: 'var(--primary)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        📊 Tabela de Faixas de Preço Fixo
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => applyRecommendedTiers(pacote.id)}
+                        style={{
+                          background: 'var(--primary)',
+                          color: '#000',
+                          border: 'none',
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ⚡ Carregar 4 Faixas Recomendadas
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr 1.5fr 40px', gap: '8px', fontWeight: 'bold', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <span>Mín. Convidados</span>
+                        <span>Máx. Convidados</span>
+                        <span>Preço Fixo Total (R$)</span>
+                        <span>Hora Extra (R$/h)</span>
+                        <span></span>
+                      </div>
+                      {(pacote.priceTiers || []).map((tier, tIdx) => (
+                        <div key={tIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr 1.5fr 40px', gap: '8px' }}>
+                          <input
+                            type="number"
+                            className="form-input"
+                            value={tier.minGuests || ''}
+                            onChange={(e) => updatePacoteTier(pacote.id, tIdx, 'minGuests', parseInt(e.target.value, 10) || 0)}
+                          />
+                          <input
+                            type="number"
+                            className="form-input"
+                            value={tier.maxGuests || ''}
+                            onChange={(e) => updatePacoteTier(pacote.id, tIdx, 'maxGuests', parseInt(e.target.value, 10) || 0)}
+                          />
+                          <input
+                            type="number"
+                            className="form-input"
+                            value={tier.fixedPrice || ''}
+                            onChange={(e) => updatePacoteTier(pacote.id, tIdx, 'fixedPrice', parseFloat(e.target.value) || 0)}
+                            placeholder="Ex: 1800"
+                          />
+                          <input
+                            type="number"
+                            className="form-input"
+                            value={tier.extraHourPrice || ''}
+                            onChange={(e) => updatePacoteTier(pacote.id, tIdx, 'extraHourPrice', parseFloat(e.target.value) || 0)}
+                            placeholder="Ex: 150"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePacoteTier(pacote.id, tIdx)}
+                            style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: '#F44336' }}
+                          >
+                            X
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => addPacoteTier(pacote.id)}
+                      style={{
+                        background: 'none',
+                        border: '1px dashed var(--border-color)',
+                        color: 'var(--primary)',
+                        padding: '6px 12px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      + Adicionar Nova Faixa
+                    </button>
+                  </div>
+                )}
 
                 <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>

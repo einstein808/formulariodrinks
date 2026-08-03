@@ -74,18 +74,18 @@ export default function RootLayout({ children }) {
   };
 
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${cinzel.variable}`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${inter.variable} ${cinzel.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/* DNS Prefetch & Preconnect for Performance */}
-        <link rel="preconnect" href="https://s3.gabryelamaro.com" crossorigin="anonymous" />
+        <link rel="preconnect" href="https://s3.gabryelamaro.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://s3.gabryelamaro.com" />
-        <link rel="preconnect" href="https://formsbar-default-rtdb.firebaseio.com" crossorigin="anonymous" />
+        <link rel="preconnect" href="https://formsbar-default-rtdb.firebaseio.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://formsbar-default-rtdb.firebaseio.com" />
-        <link rel="preconnect" href="https://formsbar.firebaseapp.com" crossorigin="anonymous" />
+        <link rel="preconnect" href="https://formsbar.firebaseapp.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://formsbar.firebaseapp.com" />
-        <link rel="preconnect" href="https://www.googleapis.com" crossorigin="anonymous" />
+        <link rel="preconnect" href="https://www.googleapis.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.googleapis.com" />
-        <link rel="preconnect" href="https://apis.google.com" crossorigin="anonymous" />
+        <link rel="preconnect" href="https://apis.google.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://apis.google.com" />
 
         <script
