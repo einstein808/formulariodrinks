@@ -105,6 +105,21 @@ export default function LeadsKanban() {
     }, 4000);
   };
 
+  const toggleLeadAbGroup = async (leadId, currentGroup) => {
+    const nextGroup = currentGroup === 'B' ? 'A' : 'B';
+    const labelNext = nextGroup === 'B' ? 'Grupo B (Preço Fixo por Faixa)' : 'Grupo A (Preço por Convidado)';
+    try {
+      await update(ref(db, `leads/${leadId}`), { abGroup: nextGroup });
+      if (selectedLead && selectedLead.id === leadId) {
+        setSelectedLead(prev => ({ ...prev, abGroup: nextGroup }));
+      }
+      showToast(`Lead alterado para ${labelNext}!`);
+    } catch (err) {
+      console.error("Erro ao alterar grupo A/B:", err);
+      showToast("Erro ao alterar o grupo do lead.", "error");
+    }
+  };
+
   const showConfirm = (message, onConfirm, title = "Confirmação") => {
     setConfirmModal({
       title,
@@ -1543,8 +1558,10 @@ export default function LeadsKanban() {
                         <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '6px', color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span>{lead.nome} {lead.sobrenome}</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span
-                              title={lead.abGroup === 'B' ? 'Lead variante do Teste A/B (Preços B / Regras B)' : 'Lead controle do Teste A/B (Preços A)'}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleLeadAbGroup(lead.id, lead.abGroup); }}
+                              title="Clique para alternar entre Grupo A (Por Convidado) e Grupo B (Preço Fixo por Faixa)"
                               style={{
                                 fontSize: '0.65rem',
                                 fontWeight: '700',
@@ -1552,11 +1569,12 @@ export default function LeadsKanban() {
                                 borderRadius: '5px',
                                 background: lead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(203, 161, 83, 0.15)',
                                 color: lead.abGroup === 'B' ? '#00E5FF' : 'var(--primary)',
-                                border: `1px solid ${lead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(203, 161, 83, 0.35)'}`
+                                border: `1px solid ${lead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(203, 161, 83, 0.35)'}`,
+                                cursor: 'pointer'
                               }}
                             >
-                              {lead.abGroup === 'B' ? '🧪 Grupo B' : '🅰️ Grupo A'}
-                            </span>
+                              {lead.abGroup === 'B' ? '🧪 Grupo B 🔄' : '🅰️ Grupo A 🔄'}
+                            </button>
                             {isFrozenLead ? (
                               <span title={`Lead com ${followUpCount} tentativas de contato sem fechar. Marque como perdido!`} style={{ fontSize: '0.7rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>❄️ Esfriou</span>
                             ) : (
@@ -1924,20 +1942,27 @@ export default function LeadsKanban() {
                 <div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span>{selectedLead.nome} {selectedLead.sobrenome || ''}</span>
-                    <span
-                      title={selectedLead.abGroup === 'B' ? 'Lead variante do Teste A/B (Preços B / Regras B)' : 'Lead controle do Teste A/B (Preços A)'}
+                    <button
+                      type="button"
+                      onClick={() => toggleLeadAbGroup(selectedLead.id, selectedLead.abGroup)}
+                      title="Clique para alternar entre Grupo A (Por Convidado) e Grupo B (Preço Fixo por Faixa)"
                       style={{
-                        fontSize: '0.72rem',
+                        fontSize: '0.75rem',
                         fontWeight: '700',
-                        padding: '2px 8px',
+                        padding: '3px 10px',
                         borderRadius: '6px',
                         background: selectedLead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(203, 161, 83, 0.15)',
                         color: selectedLead.abGroup === 'B' ? '#00E5FF' : 'var(--primary)',
-                        border: `1px solid ${selectedLead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(203, 161, 83, 0.35)'}`
+                        border: `1px solid ${selectedLead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(203, 161, 83, 0.35)'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}
                     >
-                      {selectedLead.abGroup === 'B' ? '🧪 Grupo B (Variante)' : '🅰️ Grupo A (Controle)'}
-                    </span>
+                      {selectedLead.abGroup === 'B' ? '🧪 Grupo B (Preço Fixo) 🔄' : '🅰️ Grupo A (Por Convidado) 🔄'}
+                    </button>
                     {(() => {
                       const { isStale, followUpCount } = getLeadStatusHelper(selectedLead);
                       if (followUpCount >= 3) {

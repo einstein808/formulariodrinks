@@ -739,6 +739,7 @@ export default function GeradorContrato() {
           ajudantesCount: formData.ajudantes !== undefined ? parseInt(formData.ajudantes, 10) : 0,
           autorizarimagem: formData.autorizarimagem !== undefined ? formData.autorizarimagem : true,
           coposDeVidro: formData.coposDeVidro || false,
+          abGroup: formData.abGroup || 'A',
           // Calculated values
           valorTotal: financials.valor_total,
           valorTotalFormatado: financials.valor_total_formatado,
@@ -1032,6 +1033,26 @@ export default function GeradorContrato() {
                 <input type="number" name="convidados" className={`form-input ${errors.convidados ? 'form-input--error' : ''}`} min="1" value={formData.convidados} onChange={handleInput} />
                 {errors.convidados && <span style={{ color: '#F44336', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>{errors.convidados}</span>}
               </div>
+            </div>
+
+            <div style={{ marginTop: '12px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                Modelo de Precificação A/B deste Contrato *
+              </label>
+              <select
+                name="abGroup"
+                className="form-input"
+                value={formData.abGroup || 'A'}
+                onChange={handleInput}
+                style={{
+                  borderColor: formData.abGroup === 'B' ? '#00E5FF' : 'var(--border-color)',
+                  color: formData.abGroup === 'B' ? '#00E5FF' : '#FFF',
+                  fontWeight: 'bold'
+                }}
+              >
+                <option value="A">🅰️ Grupo A — Preço por Convidado (Linear)</option>
+                <option value="B">🧪 Grupo B — Preço Fixo por Faixa</option>
+              </select>
             </div>
 
             <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>

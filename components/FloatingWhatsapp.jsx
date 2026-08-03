@@ -34,6 +34,7 @@ export default function FloatingWhatsapp() {
   const isAdmin = pathname && pathname.startsWith('/admin');
   if (isAdmin || !whatsappNumber) return null;
 
+  const isFormPage = pathname === '/orcamento' || (pathname && pathname.startsWith('/contrato'));
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=Olá! Gostaria de fazer um orçamento de drinks para meu evento.`;
 
   return (
@@ -50,20 +51,30 @@ export default function FloatingWhatsapp() {
             box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
           }
         }
+
+        .floating-wa-wrapper {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 999;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          pointer-events: auto;
+          transition: bottom 0.3s ease, left 0.3s ease, right 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+          .floating-wa-wrapper {
+            bottom: ${isFormPage ? '105px' : '85px'} !important;
+            right: 16px !important;
+          }
+        }
       `}</style>
       <div
+        className="floating-wa-wrapper"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 999,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          pointerEvents: 'auto',
-        }}
       >
         {/* Label Badge on Hover */}
         <a
