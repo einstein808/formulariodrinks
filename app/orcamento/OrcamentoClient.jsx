@@ -63,13 +63,25 @@ export default function OrcamentoClient() {
   const [abTestingConfig, setAbTestingConfig] = useState(null)
 
   useEffect(() => {
-    if (configLoading) return;
     try {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const forced = params.get('ab')?.toUpperCase();
         if (forced === 'A' || forced === 'B') {
           localStorage.setItem('DRINKS_AB_GROUP', forced);
+          setAbGroup(forced);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    if (configLoading) return;
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const forced = params.get('ab')?.toUpperCase();
+        if (forced === 'A' || forced === 'B') {
           setAbGroup(forced);
           return;
         }

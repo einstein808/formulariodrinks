@@ -1523,7 +1523,8 @@ export default function LeadsKanban() {
             )}
           </div>
         )}
-      </div>
+
+
 
       {viewMode === 'kanban' ? (
         <div className="admin-kanban-container" style={{ 
