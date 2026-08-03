@@ -525,15 +525,17 @@ export default function OrcamentoClient() {
                     {isPriceUnlocked ? (
                       (() => {
                         const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup });
-                        if (calc.isTier && calc.tierLabel) {
+                        if (isGroupB || (calc.isTier && calc.tierLabel)) {
                           return (
                             <>
                               <span className="package-card__price-value">
                                 R$ {calc.finalPrice.toLocaleString('pt-BR')}
                               </span>
-                              <span className="package-card__price-label">
-                                ({calc.tierLabel})
-                              </span>
+                              {calc.tierLabel && (
+                                <span className="package-card__price-label">
+                                  ({calc.tierLabel})
+                                </span>
+                              )}
                             </>
                           );
                         }
@@ -547,7 +549,7 @@ export default function OrcamentoClient() {
                     ) : (
                       <div style={{ filter: 'blur(5px)', userSelect: 'none', transition: 'filter 0.3s' }}>
                         <span className="package-card__price-value">R$ 0000</span>
-                        <span className="package-card__price-label">/por pessoa</span>
+                        {!isGroupB && <span className="package-card__price-label">/por pessoa</span>}
                       </div>
                     )}
                   </div>
