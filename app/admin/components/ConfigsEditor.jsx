@@ -602,6 +602,26 @@ export default function ConfigsEditor() {
                   />
                   <span>🙈 Ocultar o pacote <strong>Mão de Obra</strong> apenas no Grupo B (testar eliminação da opção barata)</span>
                 </label>
+
+                <div style={{ marginTop: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    ⚖️ <strong>Divisão de Tráfego do Teste A/B</strong>:
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="form-input"
+                      style={{ width: '90px', padding: '6px 10px', fontWeight: 'bold' }}
+                      value={abTesting.percentA !== undefined ? abTesting.percentA : 70}
+                      onChange={(e) => setAbTesting({ ...abTesting, percentA: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)) })}
+                    />
+                    <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 'bold' }}>
+                      % para o Grupo A (Por Convidado) &nbsp;•&nbsp; {100 - (abTesting.percentA !== undefined ? abTesting.percentA : 70)}% para o Grupo B (Preço Fixo por Faixa)
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

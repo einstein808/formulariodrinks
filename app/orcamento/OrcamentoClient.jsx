@@ -63,15 +63,21 @@ export default function OrcamentoClient() {
   const [abTestingConfig, setAbTestingConfig] = useState(null)
 
   useEffect(() => {
+    if (configLoading) return;
     try {
-      let group = localStorage.getItem('DRINKS_AB_GROUP')
+      let group = localStorage.getItem('DRINKS_AB_GROUP');
+      const targetPercentA = abTestingConfig && abTestingConfig.percentA !== undefined ? parseInt(abTestingConfig.percentA, 10) : 70;
+      const thresholdA = targetPercentA / 100;
+
       if (!group) {
-        group = Math.random() < 0.5 ? 'A' : 'B'
-        localStorage.setItem('DRINKS_AB_GROUP', group)
+        group = Math.random() < thresholdA ? 'A' : 'B';
+        localStorage.setItem('DRINKS_AB_GROUP', group);
       }
-      setAbGroup(group)
-    } catch (e) {}
-  }, [])
+      setAbGroup(group);
+    } catch (e) {
+      setAbGroup('A');
+    }
+  }, [configLoading, abTestingConfig]);
 
   useEffect(() => {
     get(ref(db, 'config'))
@@ -517,21 +523,27 @@ export default function OrcamentoClient() {
                   <h3 className="package-card__name">{p.name}</h3>
                   <div className="package-card__price">
                     {isPriceUnlocked ? (
-                      p.pricingMode === 'tier' && p.priceTiers?.length > 0 ? (
-                        <>
-                          <span className="package-card__price-value">
-                            R$ {calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup }).finalPrice.toLocaleString('pt-BR')}
-                          </span>
-                          <span className="package-card__price-label">
-                            ({calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup }).tierLabel})
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="package-card__price-value">{p.price}</span>
-                          <span className="package-card__price-label">/{p.priceLabel}</span>
-                        </>
-                      )
+                      (() => {
+                        const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup });
+                        if (calc.isTier && calc.tierLabel) {
+                          return (
+                            <>
+                              <span className="package-card__price-value">
+                                R$ {calc.finalPrice.toLocaleString('pt-BR')}
+                              </span>
+                              <span className="package-card__price-label">
+                                ({calc.tierLabel})
+                              </span>
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            <span className="package-card__price-value">{p.price}</span>
+                            <span className="package-card__price-label">/{p.priceLabel || 'por pessoa'}</span>
+                          </>
+                        );
+                      })()
                     ) : (
                       <div style={{ filter: 'blur(5px)', userSelect: 'none', transition: 'filter 0.3s' }}>
                         <span className="package-card__price-value">R$ 0000</span>
