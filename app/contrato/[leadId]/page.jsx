@@ -478,21 +478,32 @@ export default function ClienteContratoPage() {
     }
 
     // Cálculo das taxas de Hora Extra on-the-spot para os contratos
-    const valorHoraExtraStandard = isPerPerson ? (valorTotal / 5) * 1.3 : 0;
-    
+    let horaExtraRate = 0;
     let valorHoraExtraBarman = 0;
     let valorHoraExtraAjudante = 0;
-    if (!isPerPerson) {
-      if (isMaoDeObra) {
-        valorHoraExtraBarman = 70;
-        valorHoraExtraAjudante = 40;
-      } else if (formData.Servico === 'Mão de Obra + Ajudante') {
-        const totalExtra = pacote && pacote.extraHourPrice ? precoHoraAdicional : 110;
-        valorHoraExtraBarman = pacote && pacote.extraHourPrice ? (totalExtra * (70 / 110)) : 70;
-        valorHoraExtraAjudante = pacote && pacote.extraHourPrice ? (totalExtra * (40 / 110)) : 40;
+
+    if (isPerPerson) {
+      const rawExtra = pacote && pacote.extraHourPrice ? parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) || 0 : 0;
+      const ratePerGuest = rawExtra > 0 ? rawExtra : ((formData.Servico || '').toLowerCase().includes('premium') ? 7 : 5);
+      const convidadosParaCalc = Math.max(convidadosInformados || 0, minimoConvidados || 40);
+
+      if (ratePerGuest > 20) {
+        horaExtraRate = ratePerGuest;
       } else {
-        valorHoraExtraBarman = pacote && pacote.extraHourPrice ? precoHoraAdicional : 70;
+        horaExtraRate = ratePerGuest * convidadosParaCalc;
       }
+    } else if (isMaoDeObra) {
+      horaExtraRate = barmansCount * 70 + ajudantesCount * 40;
+      valorHoraExtraBarman = 70;
+      valorHoraExtraAjudante = 40;
+    } else if (formData.Servico === 'Mão de Obra + Ajudante') {
+      const totalExtra = pacote && pacote.extraHourPrice ? precoHoraAdicional : 110;
+      valorHoraExtraBarman = pacote && pacote.extraHourPrice ? (totalExtra * (70 / 110)) : 70;
+      valorHoraExtraAjudante = pacote && pacote.extraHourPrice ? (totalExtra * (40 / 110)) : 40;
+      horaExtraRate = totalExtra;
+    } else {
+      horaExtraRate = pacote && pacote.extraHourPrice ? parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) || 70 : 70;
+      valorHoraExtraBarman = horaExtraRate;
     }
 
     return {
@@ -530,8 +541,8 @@ export default function ClienteContratoPage() {
       valor_ajudante_formatado: isPerPerson ? '' : (valorAjudante > 0 ? formatBRLCurrency(valorAjudante) : ''),
       
       // Hora Extra taxas pré-calculadas
-      valor_hora_extra: valorHoraExtraStandard,
-      valor_hora_extra_formatado: formatBRL(valorHoraExtraStandard),
+      valor_hora_extra: horaExtraRate,
+      valor_hora_extra_formatado: formatBRL(horaExtraRate),
       valor_hora_extra_barman: valorHoraExtraBarman,
       valor_hora_extra_barman_formatado: formatBRL(valorHoraExtraBarman),
       valor_hora_extra_ajudante: valorHoraExtraAjudante,
