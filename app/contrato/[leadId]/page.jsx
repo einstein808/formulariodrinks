@@ -264,6 +264,46 @@ export default function ClienteContratoPage() {
     const barmansCount = parseInt(formData.barmans !== undefined ? formData.barmans : 1, 10);
     const ajudantesCount = parseInt(formData.ajudantes !== undefined ? formData.ajudantes : 0, 10);
 
+    const formatBRL = (val) => {
+      return Number(val || 0).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    };
+
+    const formatBRLCurrency = (val) => {
+      return Number(val || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    };
+
+    const formatDateBR = (dateStr) => {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateStr;
+    };
+
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = hoje.getFullYear();
+    const hojeFormatado = `${dia}/${mes}/${ano}`;
+
+    // Somar hora inicial + duração
+    let horaFim = '';
+    if (formData.hora && formData.duracao) {
+      const [h, m] = formData.hora.split(':').map(Number);
+      const fim = new Date();
+      fim.setHours(h, m || 0, 0, 0);
+      fim.setHours(fim.getHours() + parseInt(formData.duracao, 10));
+      horaFim = `${String(fim.getHours()).padStart(2, '0')}:${String(fim.getMinutes()).padStart(2, '0')}`;
+    }
+    const horarioEvento = formData.hora && horaFim ? `${formData.hora} às ${horaFim}` : (formData.hora || '');
+
     // Localizar pacote no Firebase config (suporta busca por id ou nome)
     const pacote = pacotes.find(p => 
       p.id === formData.pacote || 
@@ -295,7 +335,7 @@ export default function ClienteContratoPage() {
       return {
         is_per_person: false,
         is_tier: true,
-        tier_label: calc.tierLabel,
+        tier_label: calc.tierLabel || '',
         convidados_informados: convidadosInformados,
         minimo_convidados: 0,
         convidados_cobrados: convidadosInformados,
@@ -421,46 +461,6 @@ export default function ClienteContratoPage() {
     const parcela1 = +(valorTotal / 2).toFixed(2);
     const parcela2 = +(valorTotal - parcela1).toFixed(2);
 
-    const formatBRL = (val) => {
-      return Number(val).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    };
-
-    const formatBRLCurrency = (val) => {
-      return Number(val).toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-      });
-    };
-
-    const formatDateBR = (dateStr) => {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateStr;
-    };
-
-    const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const ano = hoje.getFullYear();
-    const hojeFormatado = `${dia}/${mes}/${ano}`;
-
-    // Somar hora inicial + duração
-    let horaFim = '';
-    if (formData.hora && formData.duracao) {
-      const [h, m] = formData.hora.split(':').map(Number);
-      const fim = new Date();
-      fim.setHours(h, m || 0, 0, 0);
-      fim.setHours(fim.getHours() + parseInt(formData.duracao, 10));
-      horaFim = `${String(fim.getHours()).padStart(2, '0')}:${String(fim.getMinutes()).padStart(2, '0')}`;
-    }
-    const horarioEvento = formData.hora && horaFim ? `${formData.hora} às ${horaFim}` : '';
-
     // Divisão para Mão de Obra + Ajudante
     let valorAjudante = 0;
     let valorMaoDeObra = 0;
@@ -498,7 +498,7 @@ export default function ClienteContratoPage() {
     return {
       is_per_person: isPerPerson,
       is_tier: isTier,
-      tier_label: tierInfo ? tierInfo.tierLabel : '',
+      tier_label: '',
       convidados_informados: convidadosInformados,
       minimo_convidados: isPerPerson ? minimoConvidados : 0,
       convidados_cobrados: isPerPerson ? convidadosCobrados : 0,
