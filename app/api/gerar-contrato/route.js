@@ -249,6 +249,27 @@ const getStandardTemplate = (data) => {
   const drinksSofisticadosText = Array.isArray(data.drinks_sofisticados) ? data.drinks_sofisticados.join(', ') : (data.drinks_sofisticados || 'Não selecionado');
   const drinksFrozenText = Array.isArray(data.drinks_frozen) ? data.drinks_frozen.join(', ') : (data.drinks_frozen || 'Não selecionado');
 
+  let valorHoraExtraVal = parseFloat(data.valor_hora_extra) || 0;
+  if (!valorHoraExtraVal || valorHoraExtraVal === 0) {
+    const isPerPerson = data.is_per_person !== false;
+    const isTier = data.is_tier === true;
+    const convidados = Math.max(parseInt(data.convidados_cobrados || data.convidados_informados || data.convidados || 40, 10), 40);
+    const servicoName = (data.Servico || data.pacote || '').toLowerCase();
+    
+    if (isTier) {
+      valorHoraExtraVal = 150;
+    } else if (isPerPerson) {
+      const ratePerGuest = servicoName.includes('premium') ? 7 : (servicoName.includes('frozen') ? 8 : 6);
+      valorHoraExtraVal = ratePerGuest * convidados;
+    } else {
+      valorHoraExtraVal = 70;
+    }
+  }
+
+  const valorHoraExtraStr = (data.valor_hora_extra_formatado && data.valor_hora_extra_formatado !== '0,00')
+    ? data.valor_hora_extra_formatado
+    : valorHoraExtraVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -767,7 +788,10 @@ const getStandardTemplate = (data) => {
     10.2 Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado, e havendo disponibilidade da equipe, poderão ser realizadas horas extras de atendimento mediante acordo prévio entre as partes.
   </p>
   <p>
-    10.3 A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento, não havendo obrigação de prorrogação automática do atendimento.
+    10.3 O valor de cada hora extra corresponderá a <strong>R$ ${valorHoraExtraStr}</strong> por hora excedente de atendimento para toda a equipe.
+  </p>
+  <p>
+    10.4 A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento, não havendo obrigação de prorrogação automática do atendimento.
   </p>
 </div>
 
@@ -823,19 +847,14 @@ export async function POST(request) {
     const isMaoDeObra = (data.Servico || data.servico_normalizado || '').toLowerCase().includes('mão de obra');
     const htmlContent = isMaoDeObra ? getMaoDeObraTemplate(data) : getStandardTemplate(data);
 
-    // 2. Fetch general config for Evolution API from Firebase
-    const configSnapshot = await get(ref(db, 'config'));
-    if (!configSnapshot.exists()) {
-      return NextResponse.json({ error: 'Configuração do Firebase não encontrada' }, { status: 500 });
-    }
-    const config = configSnapshot.val();
-    const evolutionApi = config?.evolutionApi;
-
-    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
-      return NextResponse.json({ error: 'Evolution API não configurada no painel administrativo' }, { status: 500 });
+    // If client requested HTML preview
+    if (data.previewType === 'html' || data.preview === true) {
+      return new NextResponse(htmlContent, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      });
     }
 
-    // 3. Send HTML to Gotenberg to convert to PDF
+    // 2. Send HTML to Gotenberg to convert to PDF
     const gotenbergUrl = 'https://gotenberg.gabryelamaro.com/forms/chromium/convert/html';
     
     // We construct a multipart/form-data payload with the HTML content
@@ -855,6 +874,29 @@ export async function POST(request) {
     }
 
     const pdfBuffer = await gotenbergResponse.arrayBuffer();
+
+    // If client requested PDF file preview directly
+    if (data.previewType === 'pdf') {
+      return new NextResponse(pdfBuffer, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'inline; filename="contrato-preview.pdf"'
+        }
+      });
+    }
+
+    // 3. Fetch general config for Evolution API from Firebase
+    const configSnapshot = await get(ref(db, 'config'));
+    if (!configSnapshot.exists()) {
+      return NextResponse.json({ error: 'Configuração do Firebase não encontrada' }, { status: 500 });
+    }
+    const config = configSnapshot.val();
+    const evolutionApi = config?.evolutionApi;
+
+    if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
+      return NextResponse.json({ error: 'Evolution API não configurada no painel administrativo' }, { status: 500 });
+    }
+
     const base64Pdf = Buffer.from(pdfBuffer).toString('base64');
 
     // 4. Send PDF to client via Evolution API

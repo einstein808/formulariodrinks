@@ -204,6 +204,46 @@ export default function GeradorContrato() {
     const barmansCount = parseInt(formData.barmans !== undefined ? formData.barmans : 1, 10);
     const ajudantesCount = parseInt(formData.ajudantes !== undefined ? formData.ajudantes : 0, 10);
 
+    const formatBRL = (val) => {
+      return Number(val || 0).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    };
+
+    const formatBRLCurrency = (val) => {
+      return Number(val || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    };
+
+    const formatDateBR = (dateStr) => {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateStr;
+    };
+
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = hoje.getFullYear();
+    const hojeFormatado = `${dia}/${mes}/${ano}`;
+
+    // Somar hora inicial + duração
+    let horaFim = '';
+    if (formData.hora && formData.duracao) {
+      const [h, m] = formData.hora.split(':').map(Number);
+      const fim = new Date();
+      fim.setHours(h, m || 0, 0, 0);
+      fim.setHours(fim.getHours() + parseInt(formData.duracao, 10));
+      horaFim = `${String(fim.getHours()).padStart(2, '0')}:${String(fim.getMinutes()).padStart(2, '0')}`;
+    }
+    const horarioEvento = formData.hora && horaFim ? `${formData.hora} às ${horaFim}` : (formData.hora || '');
+
     // Localizar pacote no Firebase config (suporta busca por id ou nome)
     const pacote = pacotes.find(p => 
       p.id === formData.pacote || 
@@ -216,7 +256,8 @@ export default function GeradorContrato() {
       ))
     );
 
-    const isTier = pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0;
+    const isGroupB = formData.abGroup === 'B';
+    const isTier = isGroupB && pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0;
     
     if (isTier) {
       const calc = calculatePackagePrice(pacote, convidadosInformados, formData.duracao || 5, {
@@ -235,7 +276,7 @@ export default function GeradorContrato() {
       return {
         is_per_person: false,
         is_tier: true,
-        tier_label: calc.tierLabel,
+        tier_label: calc.tierLabel || '',
         convidados_informados: convidadosInformados,
         minimo_convidados: 0,
         convidados_cobrados: convidadosInformados,
@@ -285,7 +326,6 @@ export default function GeradorContrato() {
     let valorBase = 0;
     let isPerPerson = true;
 
-    const isGroupB = formData.abGroup === 'B';
     const rawPrice = (isGroupB && pacote?.priceB && pacote.priceB.trim() !== '') ? pacote.priceB : (pacote?.price || '');
 
     if (isMaoDeObra) {
@@ -307,7 +347,7 @@ export default function GeradorContrato() {
       if (formData.Servico === 'Pacote Inicial' || formData.Servico === 'Standard') {
         valorPorConvidado = 30;
       } else if (formData.Servico === 'Pacote Premium' || formData.Servico === 'Premium' || formData.Servico === 'Standard + Frozen') {
-        valorPorConvidado = formData.Servico.includes('Premium') ? 42 : 40;
+        valorPorConvidado = (formData.Servico || '').includes('Premium') ? 42 : 40;
       } else if (formData.Servico === 'Mão de Obra') {
         valorBase = 350;
         isPerPerson = false;
@@ -319,20 +359,20 @@ export default function GeradorContrato() {
       }
     }
 
-    // Duração do evento e limites de horas
+    // Duração do evento e limites de horas (fixado em 5 horas)
     const totalHours = parseInt(formData.duracao || 5, 10);
-    const hoursLimit = pacote && pacote.hoursLimit !== undefined ? parseInt(pacote.hoursLimit, 10) : 5;
+    const hoursLimit = 5;
     const additionalHours = Math.max(0, totalHours - hoursLimit);
 
     // Preço da hora adicional
     let precoHoraAdicional = 0;
     if (isMaoDeObra) {
       precoHoraAdicional = barmansCount * 70 + ajudantesCount * 40;
-    } else if (pacote && pacote.extraHourPrice) {
-      precoHoraAdicional = parseFloat(pacote.extraHourPrice.replace(/[^\d]/g, '')) || 0;
+    } else if (pacote && pacote.extraHourPrice && parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) > 0) {
+      precoHoraAdicional = parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) || 0;
     } else {
       if (isPerPerson) {
-        precoHoraAdicional = formData.Servico.includes('Premium') ? 7 : 5;
+        precoHoraAdicional = (formData.Servico || '').toLowerCase().includes('premium') ? 7 : 5;
       } else {
         precoHoraAdicional = (formData.Servico === 'Mão de Obra + Ajudante') ? 110 : 70;
       }
@@ -361,46 +401,6 @@ export default function GeradorContrato() {
     const parcela1 = +(valorTotal / 2).toFixed(2);
     const parcela2 = +(valorTotal - parcela1).toFixed(2);
 
-    const formatBRL = (val) => {
-      return Number(val).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    };
-
-    const formatBRLCurrency = (val) => {
-      return Number(val).toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-      });
-    };
-
-    const formatDateBR = (dateStr) => {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateStr;
-    };
-
-    const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const ano = hoje.getFullYear();
-    const hojeFormatado = `${dia}/${mes}/${ano}`;
-
-    // Somar hora inicial + duração
-    let horaFim = '';
-    if (formData.hora && formData.duracao) {
-      const [h, m] = formData.hora.split(':').map(Number);
-      const fim = new Date();
-      fim.setHours(h, m || 0, 0, 0);
-      fim.setHours(fim.getHours() + parseInt(formData.duracao, 10));
-      horaFim = `${String(fim.getHours()).padStart(2, '0')}:${String(fim.getMinutes()).padStart(2, '0')}`;
-    }
-    const horarioEvento = formData.hora && horaFim ? `${formData.hora} às ${horaFim}` : '';
-
     // Divisão para Mão de Obra + Ajudante
     let valorAjudante = 0;
     let valorMaoDeObra = 0;
@@ -417,22 +417,33 @@ export default function GeradorContrato() {
       }
     }
 
-    // Cálculo das taxas de Hora Extra on-the-spot para os contratos
-    const valorHoraExtraStandard = isPerPerson ? (valorTotal / 5) * 1.3 : 0;
-    
+    // Cálculo da taxa de Hora Extra para o contrato
+    let horaExtraRate = 0;
     let valorHoraExtraBarman = 0;
     let valorHoraExtraAjudante = 0;
-    if (!isPerPerson) {
-      if (isMaoDeObra) {
-        valorHoraExtraBarman = 70;
-        valorHoraExtraAjudante = 40;
-      } else if (formData.Servico === 'Mão de Obra + Ajudante') {
-        const totalExtra = pacote && pacote.extraHourPrice ? precoHoraAdicional : 110;
-        valorHoraExtraBarman = pacote && pacote.extraHourPrice ? (totalExtra * (70 / 110)) : 70;
-        valorHoraExtraAjudante = pacote && pacote.extraHourPrice ? (totalExtra * (40 / 110)) : 40;
+
+    if (isPerPerson) {
+      const rawExtra = (pacote && pacote.extraHourPrice) ? parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) || 0 : 0;
+      const ratePerGuest = rawExtra > 0 ? rawExtra : ((formData.Servico || '').toLowerCase().includes('premium') ? 7 : 5);
+      const convidadosParaCalc = Math.max(convidadosInformados || 0, minimoConvidados || 40);
+
+      if (ratePerGuest > 20) {
+        horaExtraRate = ratePerGuest;
       } else {
-        valorHoraExtraBarman = pacote && pacote.extraHourPrice ? precoHoraAdicional : 70;
+        horaExtraRate = ratePerGuest * convidadosParaCalc;
       }
+    } else if (isMaoDeObra) {
+      horaExtraRate = barmansCount * 70 + ajudantesCount * 40;
+      valorHoraExtraBarman = 70;
+      valorHoraExtraAjudante = 40;
+    } else if (formData.Servico === 'Mão de Obra + Ajudante') {
+      const totalExtra = pacote && pacote.extraHourPrice ? precoHoraAdicional : 110;
+      valorHoraExtraBarman = pacote && pacote.extraHourPrice ? (totalExtra * (70 / 110)) : 70;
+      valorHoraExtraAjudante = pacote && pacote.extraHourPrice ? (totalExtra * (40 / 110)) : 40;
+      horaExtraRate = totalExtra;
+    } else {
+      horaExtraRate = pacote && pacote.extraHourPrice ? parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) || 70 : 70;
+      valorHoraExtraBarman = horaExtraRate;
     }
 
     return {
@@ -468,8 +479,8 @@ export default function GeradorContrato() {
       valor_ajudante_formatado: isPerPerson ? '' : (valorAjudante > 0 ? formatBRLCurrency(valorAjudante) : ''),
       
       // Hora Extra taxas pré-calculadas
-      valor_hora_extra: valorHoraExtraStandard,
-      valor_hora_extra_formatado: formatBRL(valorHoraExtraStandard),
+      valor_hora_extra: horaExtraRate,
+      valor_hora_extra_formatado: formatBRL(horaExtraRate),
       valor_hora_extra_barman: valorHoraExtraBarman,
       valor_hora_extra_barman_formatado: formatBRL(valorHoraExtraBarman),
       valor_hora_extra_ajudante: valorHoraExtraAjudante,

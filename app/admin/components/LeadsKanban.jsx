@@ -1180,6 +1180,86 @@ export default function LeadsKanban() {
     }, "Enviar Mensagem");
   };
 
+  const handlePreviewContractPdf = async (lead) => {
+    if (!lead) return;
+    setSendingScript(true);
+    try {
+      const isMaoDeObra = (lead.pacote || '').toLowerCase().includes('mão de obra');
+      const isGroupB = lead.abGroup === 'B';
+      
+      const convidadosInformados = parseInt(lead.convidados || 40, 10);
+      const convidadosCobrados = Math.max(convidadosInformados, 40);
+      const faturamento = parseFloat(lead.financeiro?.faturamento || 0);
+      const desconto = parseFloat(lead.financeiro?.desconto || 0);
+      const valorTotal = Math.max(0, faturamento - desconto);
+      
+      const parcela1 = +(valorTotal / 2).toFixed(2);
+      const parcela2 = +(valorTotal - parcela1).toFixed(2);
+
+      const hoje = new Date();
+      const hojeFormatado = `${String(hoje.getDate()).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
+
+      const isPremium = (lead.pacote || '').toLowerCase().includes('premium');
+      const isFrozen = (lead.pacote || '').toLowerCase().includes('frozen');
+      const ratePerGuest = isPremium ? 7 : (isFrozen ? 8 : 6);
+      const valorHoraExtraVal = isGroupB ? 200 : (isMaoDeObra ? 70 : ratePerGuest * convidadosCobrados);
+      const valorHoraExtraStr = valorHoraExtraVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const payload = {
+        previewType: 'pdf',
+        nome: `${lead.nome || ''} ${lead.sobrenome || ''}`.trim(),
+        cpf: lead.cpf || '',
+        telefone: lead.telefone || '',
+        whatsapp: lead.telefone || '',
+        rua: lead.rua || '',
+        numero: lead.numero || '',
+        bairro: lead.bairro || '',
+        cidade: lead.cidade || '',
+        data: lead.dataEvento || '',
+        data_formatada: lead.dataEvento ? lead.dataEvento.split('-').reverse().join('/') : '',
+        hora: lead.horarioEvento || '',
+        horario_evento: lead.horarioEvento || '',
+        duracao: lead.duracao || '5',
+        convidados_informados: convidadosInformados,
+        convidados_cobrados: convidadosCobrados,
+        Servico: lead.pacote || 'Standard',
+        is_tier: isGroupB,
+        is_per_person: !isGroupB && !isMaoDeObra,
+        tier_label: isGroupB ? `Até ${convidadosCobrados} convidados` : '',
+        valor_por_convidado_formatado: (valorTotal / (convidadosCobrados || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        valor_total_formatado: valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        valor_original_formatado: faturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        desconto_formatado: desconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        valor_hora_extra: valorHoraExtraVal,
+        valor_hora_extra_formatado: valorHoraExtraStr,
+        parcela_1_valor_formatado: parcela1.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        parcela_2_valor_formatado: parcela2.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        parcela_2_data: lead.dataEvento ? lead.dataEvento.split('-').reverse().join('/') : '',
+        local_data_assinatura: `Juiz de Fora - MG, ${hojeFormatado}`
+      };
+
+      const response = await fetch('/api/gerar-contrato', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao gerar o PDF do contrato');
+      }
+
+      const blob = await response.blob();
+      const pdfUrl = URL.createObjectURL(blob);
+      window.open(pdfUrl, '_blank');
+      showToast('PDF do contrato gerado para visualização em nova aba!', 'success');
+    } catch (err) {
+      console.error('Erro ao gerar preview do PDF:', err);
+      showToast(`Erro ao gerar PDF: ${err.message}`, 'error');
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
   const handleSendShoppingListViaApi = async (lead) => {
     if (!evolutionApi?.url || !evolutionApi?.instance || !evolutionApi?.apikey) {
       showToast("A API Evolution não está configurada corretamente.", "warning");
@@ -2431,7 +2511,23 @@ export default function LeadsKanban() {
 
                     {/* Action Buttons */}
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      {/* Preview Button */}
+                      {/* PDF Preview Button */}
+                      <button
+                        onClick={() => handlePreviewContractPdf(selectedLead)}
+                        disabled={sendingScript}
+                        className="btn"
+                        style={{
+                          flex: 1, minWidth: '200px', minHeight: '44px',
+                          background: 'var(--primary)', color: '#000', border: 'none',
+                          borderRadius: '8px', fontWeight: 'bold', fontSize: '0.85rem',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          cursor: sendingScript ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <FiFileText size={16} /> 📄 Visualizar PDF do Contrato
+                      </button>
+
+                      {/* Form Web Preview Button */}
                       <button
                         onClick={() => {
                           const baseSiteUrl = generalConfigs?.siteUrl
@@ -2441,14 +2537,14 @@ export default function LeadsKanban() {
                         }}
                         className="btn"
                         style={{
-                          flex: 1, minWidth: '180px', minHeight: '44px',
-                          background: 'var(--primary)', color: '#000', border: 'none',
-                          borderRadius: '8px', fontWeight: 'bold', fontSize: '0.85rem',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                          cursor: 'pointer'
+                          padding: '10px 14px', minHeight: '44px',
+                          background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)', borderRadius: '8px',
+                          fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '6px'
                         }}
                       >
-                        <FiEye size={16} /> Visualizar Preview do Contrato
+                        <FiEye size={14} /> Form Web
                       </button>
 
                       {/* Copy Link Button */}
@@ -2462,7 +2558,7 @@ export default function LeadsKanban() {
                         }}
                         className="btn"
                         style={{
-                          padding: '10px 16px', minHeight: '44px',
+                          padding: '10px 14px', minHeight: '44px',
                           background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)',
                           border: '1px solid var(--border-color)', borderRadius: '8px',
                           fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer'

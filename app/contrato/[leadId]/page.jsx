@@ -336,7 +336,8 @@ export default function ClienteContratoPage() {
       ))
     );
 
-    const isTier = pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0;
+    const isGroupB = formData.abGroup === 'B';
+    const isTier = isGroupB && pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0;
     
     if (isTier) {
       const calc = calculatePackagePrice(pacote, convidadosInformados, formData.duracao || 5, {
@@ -405,7 +406,6 @@ export default function ClienteContratoPage() {
     let valorBase = 0;
     let isPerPerson = true;
 
-    const isGroupB = formData.abGroup === 'B';
     const rawPrice = (isGroupB && pacote?.priceB && pacote.priceB.trim() !== '') ? pacote.priceB : (pacote?.price || '');
 
     if (isMaoDeObra) {
