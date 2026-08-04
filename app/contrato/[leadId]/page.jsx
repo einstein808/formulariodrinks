@@ -28,6 +28,26 @@ const isNextImageAllowed = (src) => {
   return src.includes('s3.gabryelamaro.com');
 };
 
+const maskWhatsApp = (value) => {
+  if (!value) return '';
+  let v = String(value).replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length > 7) return `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+  if (v.length > 2) return `(${v.slice(0, 2)}) ${v.slice(2)}`;
+  if (v.length > 0) return `(${v}`;
+  return v;
+};
+
+const maskCPF = (value) => {
+  if (!value) return '';
+  let v = String(value).replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length > 9) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+  if (v.length > 6) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+  if (v.length > 3) return `${v.slice(0, 3)}.${v.slice(3)}`;
+  return v;
+};
+
 export default function ClienteContratoPage() {
   const { leadId } = useParams();
   const [loading, setLoading] = useState(true);
@@ -1373,15 +1393,6 @@ export default function ClienteContratoPage() {
                     )}
                     <div style={{ fontWeight: 'bold', color: '#FFF' }}>
                       <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>Valor Total:</span> {financials.valor_total_formatado.includes('R$') ? financials.valor_total_formatado : `R$ ${financials.valor_total_formatado}`}
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Valor da Hora Extra:</span> {financials.is_per_person ? (
-                        `R$ ${financials.valor_hora_extra_formatado}/h`
-                      ) : (
-                        `Barmans: ${formData.barmans} × R$ ${financials.valor_hora_extra_barman_formatado}/h = R$ ${((parseInt(formData.barmans || 1, 10) * financials.valor_hora_extra_barman)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/h` + 
-                        (parseInt(formData.ajudantes || 0, 10) > 0 ? ` | Ajudantes: ${formData.ajudantes} × R$ ${financials.valor_hora_extra_ajudante_formatado}/h = R$ ${((parseInt(formData.ajudantes || 0, 10) * financials.valor_hora_extra_ajudante)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/h` : '') + 
-                        ` (Total: R$ ${((parseInt(formData.barmans || 1, 10) * financials.valor_hora_extra_barman) + (parseInt(formData.ajudantes || 0, 10) * financials.valor_hora_extra_ajudante)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/h)`
-                      )}
                     </div>
                   </div>
                   <div style={{ marginTop: '14px', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '10px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>

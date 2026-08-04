@@ -1919,6 +1919,7 @@ export default function LeadsKanban() {
             }}>
               {[
                 { id: 'info', label: 'Cadastro', icon: FiList },
+                { id: 'contrato', label: 'Contrato', icon: FiFileText },
                 { id: 'equipe', label: 'Equipe', icon: FiUsers },
                 { id: 'drinks', label: 'Bebidas', icon: FiPackageIcon },
                 { id: 'scripts', label: 'Ações', icon: FiPhone },
@@ -2396,6 +2397,171 @@ export default function LeadsKanban() {
                         Nenhuma interação registrada para este lead.
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* 📝 TAB: CONTRATO & PREVIEW */}
+              {modalTab === 'contrato' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
+                  {/* Contrato Quick Actions Card */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(203,161,83,0.08), rgba(20,20,20,0.6))',
+                    border: '1px solid rgba(203, 161, 83, 0.25)',
+                    borderRadius: '12px',
+                    padding: '20px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                      <h4 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FiFileText /> Gerenciador & Preview do Contrato
+                      </h4>
+                      <span style={{
+                        fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 10px', borderRadius: '6px',
+                        background: selectedLead.contratoAssinadoUrl ? 'rgba(76,175,80,0.15)' : 'rgba(255,213,79,0.15)',
+                        color: selectedLead.contratoAssinadoUrl ? '#4CAF50' : '#FFD54F',
+                        border: `1px solid ${selectedLead.contratoAssinadoUrl ? 'rgba(76,175,80,0.3)' : 'rgba(255,213,79,0.3)'}`
+                      }}>
+                        {selectedLead.contratoAssinadoUrl ? '✓ Assinado pelo Cliente' : '⏳ Pendente de Assinatura'}
+                      </span>
+                    </div>
+
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: '0 0 16px 0', lineHeight: '1.5' }}>
+                      Visualize o contrato completo com todas as informações, valores e regras antes de enviar para o cliente.
+                    </p>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      {/* Preview Button */}
+                      <button
+                        onClick={() => {
+                          const baseSiteUrl = generalConfigs?.siteUrl
+                            ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+                            : window.location.origin;
+                          setPreviewUrl(`${baseSiteUrl}/contrato/${selectedLead.id}`);
+                        }}
+                        className="btn"
+                        style={{
+                          flex: 1, minWidth: '180px', minHeight: '44px',
+                          background: 'var(--primary)', color: '#000', border: 'none',
+                          borderRadius: '8px', fontWeight: 'bold', fontSize: '0.85rem',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <FiEye size={16} /> Visualizar Preview do Contrato
+                      </button>
+
+                      {/* Copy Link Button */}
+                      <button
+                        onClick={() => {
+                          const baseSiteUrl = generalConfigs?.siteUrl
+                            ? (generalConfigs.siteUrl.endsWith('/') ? generalConfigs.siteUrl.slice(0, -1) : generalConfigs.siteUrl)
+                            : window.location.origin;
+                          navigator.clipboard.writeText(`${baseSiteUrl}/contrato/${selectedLead.id}`);
+                          showToast('Link do contrato copiado com sucesso!', 'success');
+                        }}
+                        className="btn"
+                        style={{
+                          padding: '10px 16px', minHeight: '44px',
+                          background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)', borderRadius: '8px',
+                          fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer'
+                        }}
+                      >
+                        📋 Copiar Link
+                      </button>
+
+                      {/* Send WhatsApp Button */}
+                      <button
+                        onClick={() => handleSendEvolution('contrato')}
+                        disabled={sendingScript}
+                        className="btn"
+                        style={{
+                          padding: '10px 16px', minHeight: '44px',
+                          background: '#25D366', color: '#FFF', border: 'none',
+                          borderRadius: '8px', fontSize: '0.85rem', fontWeight: 'bold',
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          cursor: sendingScript ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <FiPhone size={14} /> Enviar no WhatsApp
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Resumo dos Dados do Contrato */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none' }}>
+                    <h4 style={{ margin: '0 0 14px 0', color: 'var(--text-primary)', fontSize: '0.9rem', borderBottom: '1px solid rgba(203,161,83,0.1)', paddingBottom: '8px' }}>
+                      📊 Dados Cadastrais e Valores para o Contrato
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>Cliente:</strong> {selectedLead.nome} {selectedLead.sobrenome || ''}</div>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>CPF:</strong> {selectedLead.cpf || 'Não informado'}</div>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>Cidade:</strong> {selectedLead.cidade || '—'}</div>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>Data/Hora:</strong> {selectedLead.dataEvento ? selectedLead.dataEvento.split('-').reverse().join('/') : '—'} às {selectedLead.horarioEvento || '—'}</div>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>Convidados:</strong> {selectedLead.convidados || '—'}</div>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>Pacote:</strong> <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{selectedLead.pacote || 'Standard'}</span></div>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>Modelo de Preço:</strong> {selectedLead.abGroup === 'B' ? 'Faixa Fixa (Grupo B)' : 'Por Convidado (Grupo A)'}</div>
+                      <div><strong style={{ color: 'var(--text-secondary)' }}>Faturamento:</strong> R$ {parseFloat(selectedLead.financeiro?.faturamento || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                    </div>
+                  </div>
+
+                  {/* Seção do Contrato Assinado */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '0.9rem', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FiFileText style={{ color: 'var(--primary)' }} /> Documento do Contrato Assinado
+                    </h4>
+
+                    {selectedLead.contratoAssinadoUrl ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(76, 175, 80, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(76, 175, 80, 0.2)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            ✓ Contrato Assinado Anexado
+                          </span>
+                          <button
+                            onClick={() => {
+                              showConfirm("Deseja remover o contrato assinado deste lead?", async () => {
+                                await update(ref(db, `leads/${selectedLead.id}`), { contratoAssinadoUrl: null });
+                                setSelectedLead(prev => ({ ...prev, contratoAssinadoUrl: null }));
+                                showToast("Contrato assinado removido!", "success");
+                              }, "Remover Contrato");
+                            }}
+                            style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 'bold' }}
+                          >
+                            Remover
+                          </button>
+                        </div>
+                        <a
+                          href={selectedLead.contratoAssinadoUrl}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ color: 'var(--primary)', textDecoration: 'underline', fontSize: '0.85rem', wordBreak: 'break-all' }}
+                        >
+                          📄 Abrir Contrato Assinado pelo Cliente
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ background: 'rgba(255, 213, 79, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 213, 79, 0.12)', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                        ⏳ Nenhum contrato assinado anexado ainda.
+                      </div>
+                    )}
+
+                    <div>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                        Anexar ou Atualizar Arquivo do Contrato Assinado (PDF ou Imagem):
+                      </label>
+                      <MinioImageUpload
+                        value={selectedLead.contratoAssinadoUrl || ''}
+                        accept="application/pdf,image/*"
+                        placeholder="Cole a URL ou suba o arquivo do contrato"
+                        onChange={async (url) => {
+                          if (url) {
+                            await update(ref(db, `leads/${selectedLead.id}`), { contratoAssinadoUrl: url });
+                            setSelectedLead(prev => ({ ...prev, contratoAssinadoUrl: url }));
+                            showToast("Contrato assinado anexado com sucesso!", "success");
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -4244,7 +4410,7 @@ export default function LeadsKanban() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  {previewUrl.includes('barman=true') ? '📋 Preview: Checklist do Barman' : '🍹 Preview: Formulário do Cliente'}
+                  {previewUrl.includes('barman=true') ? '📋 Preview: Checklist do Barman' : (previewUrl.includes('/contrato/') ? '📄 Preview: Contrato do Cliente' : '🍹 Preview: Formulário do Cliente')}
                 </span>
                 <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)' }}>
                   Ao Vivo (Firebase Link)
