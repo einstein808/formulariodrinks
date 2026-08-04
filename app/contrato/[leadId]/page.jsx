@@ -439,20 +439,20 @@ export default function ClienteContratoPage() {
       }
     }
 
-    // Duração do evento e limites de horas
+    // Duração do evento e limites de horas (fixado em 5 horas)
     const totalHours = parseInt(formData.duracao || 5, 10);
-    const hoursLimit = pacote && pacote.hoursLimit !== undefined ? parseInt(pacote.hoursLimit, 10) : 5;
+    const hoursLimit = 5;
     const additionalHours = Math.max(0, totalHours - hoursLimit);
 
     // Preço da hora adicional
     let precoHoraAdicional = 0;
     if (isMaoDeObra) {
       precoHoraAdicional = barmansCount * 70 + ajudantesCount * 40;
-    } else if (pacote && pacote.extraHourPrice) {
-      precoHoraAdicional = parseFloat(pacote.extraHourPrice.replace(/[^\d]/g, '')) || 0;
+    } else if (pacote && pacote.extraHourPrice && parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) > 0) {
+      precoHoraAdicional = parseFloat(String(pacote.extraHourPrice).replace(/[^\d]/g, '')) || 0;
     } else {
       if (isPerPerson) {
-        precoHoraAdicional = formData.Servico.includes('Premium') ? 7 : 5;
+        precoHoraAdicional = (formData.Servico || '').toLowerCase().includes('premium') ? 7 : 5;
       } else {
         precoHoraAdicional = (formData.Servico === 'Mão de Obra + Ajudante') ? 110 : 70;
       }

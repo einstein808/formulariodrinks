@@ -176,20 +176,10 @@ const getMaoDeObraTemplate = (data) => {
 
         <h2>Cláusula 3 – Horas Extras</h2>
         <p class="clausula">
-            <span class="highlight">3.1</span> Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado, e havendo disponibilidade do profissional, poderão ser realizadas horas extras de atendimento.
+            <span class="highlight">3.1</span> O serviço contratado tem a duração limite de <strong>${data.duracao || '5'} horas</strong>. Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado, e havendo disponibilidade da equipe, poderão ser realizadas horas extras de atendimento mediante acordo prévio entre as partes.
         </p>
         <p class="clausula">
-            <span class="highlight">3.2</span> O valor da hora extra é calculado com base no tamanho da equipe e valores de diária contratados, conforme a modalidade do serviço.
-        </p>
-        <p class="clausula">
-            <span class="highlight">3.3</span> Os valores de hora extra ficam definidos da seguinte forma:
-        </p>
-        <ul>
-            ${barmansHoraExtra}
-            ${ajudanteHoraExtra}
-        </ul>
-        <p class="clausula">
-            <span class="highlight">3.4</span> A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento.
+            <span class="highlight">3.2</span> A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento, não havendo obrigação de prorrogação automática do atendimento.
         </p>
 
         <h2>Cláusula 4 – Cancelamento</h2>
@@ -622,10 +612,6 @@ const getStandardTemplate = (data) => {
             </tr>
             ` : ''}
             <tr>
-              <td><strong>Hora extra (adicional)</strong></td>
-              <td>R$ ${data.valor_hora_extra_formatado || '0,00'}/hora</td>
-            </tr>
-            <tr>
               <td><strong>Valor total</strong></td>
               <td class="valor-destaque">R$ ${data.valor_total_formatado || '0,00'}</td>
             </tr>
@@ -634,14 +620,20 @@ const getStandardTemplate = (data) => {
       </div>
 
       <p>
-        2.1 O valor deste contrato foi calculado com base em <strong>${data.convidados_cobrados || 0} convidados cobrados</strong>,
-        ao valor unitário de <strong>R$ ${data.valor_por_convidado_formatado || '0,00'}</strong> por convidado,
-        totalizando <strong>R$ ${data.valor_total_formatado || '0,00'}</strong>${data.desconto && parseFloat(data.desconto) > 0 ? ` (sendo o valor bruto de R$ ${data.valor_original_formatado || '0,00'} com desconto de R$ ${data.desconto_formatado || '0,00'})` : ''}.
+        2.1 ${data.is_tier ? `
+          O valor deste contrato foi calculado com base na faixa de <strong>${data.tier_label || 'convidados'}</strong> (${data.convidados_informados || 0} convidados informados), totalizando <strong>${data.valor_total_formatado?.includes('R$') ? data.valor_total_formatado : `R$ ${data.valor_total_formatado || '0,00'}`}</strong>${data.desconto && parseFloat(data.desconto) > 0 ? ` (sendo o valor bruto de R$ ${data.valor_original_formatado || '0,00'} com desconto de R$ ${data.desconto_formatado || '0,00'})` : ''}.
+        ` : (data.is_per_person ? `
+          O valor deste contrato foi calculado com base em <strong>${data.convidados_cobrados || 40} convidados cobrados</strong>, ao valor unitário de <strong>R$ ${data.valor_por_convidado_formatado || '0,00'}</strong> por convidado, totalizando <strong>${data.valor_total_formatado?.includes('R$') ? data.valor_total_formatado : `R$ ${data.valor_total_formatado || '0,00'}`}</strong>${data.desconto && parseFloat(data.desconto) > 0 ? ` (sendo o valor bruto de R$ ${data.valor_original_formatado || '0,00'} com desconto de R$ ${data.desconto_formatado || '0,00'})` : ''}.
+        ` : `
+          O valor deste contrato foi ajustado no valor total de <strong>${data.valor_total_formatado?.includes('R$') ? data.valor_total_formatado : `R$ ${data.valor_total_formatado || '0,00'}`}</strong>${data.desconto && parseFloat(data.desconto) > 0 ? ` (sendo o valor bruto de R$ ${data.valor_original_formatado || '0,00'} com desconto de R$ ${data.desconto_formatado || '0,00'})` : ''}.
+        `)}
       </p>
+      ${data.is_per_person ? `
       <p>
         2.2 Ainda que o CONTRATANTE informe número inferior de participantes, fica estabelecido o mínimo contratual de
         <strong>${data.minimo_convidados || 40} convidados</strong> para fins de cobrança.
       </p>
+      ` : ''}
       <p>
         2.3 O valor total será pago em duas parcelas, conforme abaixo:
       </p>
@@ -769,32 +761,13 @@ const getStandardTemplate = (data) => {
     <div class="clausula">
   <h2>Cláusula 10 – Hora Extra</h2>
   <p>
-    10.1 O serviço contratado foi ajustado para a duração de <strong>${data.duracao || ''} horas</strong>,
-    conforme descrito neste contrato.
+    10.1 O serviço contratado foi ajustado para a duração de <strong>${data.duracao || '5'} horas</strong> de evento (limite contratual de 5 horas).
   </p>
   <p>
-    10.2 Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado,
-    e havendo disponibilidade do CONTRATADO, será cobrado valor adicional a título de hora extra.
+    10.2 Caso o CONTRATANTE solicite a permanência do CONTRATADO além do período inicialmente contratado, e havendo disponibilidade da equipe, poderão ser realizadas horas extras de atendimento mediante acordo prévio entre as partes.
   </p>
   <p>
-    10.3 O valor de cada hora extra corresponderá ao valor total do pedido dividido por 5 (cinco),
-    acrescido de 30% (trinta por cento), totalizando:
-    <strong>
-      R$ ${data.valor_hora_extra_formatado || ''}
-    </strong>
-    por hora excedente.
-  </p>
-  <p>
-    10.4 Para fins de cálculo, será utilizada a seguinte fórmula:
-    <strong>(valor total do pedido ÷ 5) + 30%</strong>.
-  </p>
-  <p>
-    10.5 A hora extra será cobrada proporcionalmente por período iniciado superior a 30 (trinta) minutos,
-    podendo o pagamento ser realizado ao final do evento ou no prazo máximo de 24 horas após sua realização.
-  </p>
-  <p>
-    10.6 A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento,
-    não havendo obrigação de prorrogação automática do atendimento.
+    10.3 A realização de hora extra dependerá exclusivamente da disponibilidade do CONTRATADO no momento do evento, não havendo obrigação de prorrogação automática do atendimento.
   </p>
 </div>
 
