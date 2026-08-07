@@ -2822,6 +2822,101 @@ export default function LeadsKanban() {
                     </div>
                   </div>
 
+                  {/* UPLOAD DE CONTRATO PARA O S3 (MINIO) */}
+                  <div style={{
+                    background: 'rgba(0, 229, 255, 0.03)',
+                    border: '1px solid rgba(0, 229, 255, 0.2)',
+                    borderRadius: '12px',
+                    padding: '20px'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#00E5FF', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      ☁️ Upload de Contrato Assinado para o S3 (MinIO)
+                    </h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '0 0 14px 0', lineHeight: '1.5' }}>
+                      Faça o upload do contrato assinado (PDF, imagem ou documento) para salvar permanentemente no S3 e vincular a este evento.
+                    </p>
+
+                    {selectedLead.contratoAssinadoUrl ? (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        background: 'rgba(76, 175, 80, 0.1)',
+                        border: '1px solid rgba(76, 175, 80, 0.3)',
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        flexWrap: 'wrap'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '1.4rem' }}>📄</span>
+                          <div>
+                            <div style={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.88rem' }}>
+                              Contrato salvo no S3
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                              {selectedLead.contratoAssinadoUrl}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <a
+                            href={selectedLead.contratoAssinadoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              background: '#4CAF50',
+                              color: '#000',
+                              padding: '8px 14px',
+                              borderRadius: '6px',
+                              fontWeight: 'bold',
+                              fontSize: '0.8rem',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <FiEye /> Abrir Arquivo
+                          </a>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Tem certeza que deseja remover este contrato do S3?')) {
+                                await update(ref(db, `leads/${selectedLead.id}`), { contratoAssinadoUrl: null });
+                                setSelectedLead(prev => ({ ...prev, contratoAssinadoUrl: null }));
+                                showToast('Contrato removido com sucesso.', 'info');
+                              }
+                            }}
+                            style={{
+                              background: 'rgba(244, 67, 54, 0.15)',
+                              border: '1px solid rgba(244, 67, 54, 0.4)',
+                              color: '#F44336',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <FiTrash2 /> Remover
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <MinioImageUpload
+                        accept="application/pdf,image/*,.doc,.docx"
+                        placeholder="Nenhum arquivo enviado ainda"
+                        value={selectedLead.contratoAssinadoUrl || ''}
+                        onChange={async (newUrl) => {
+                          if (newUrl) {
+                            await update(ref(db, `leads/${selectedLead.id}`), { contratoAssinadoUrl: newUrl });
+                            setSelectedLead(prev => ({ ...prev, contratoAssinadoUrl: newUrl }));
+                            showToast('Contrato enviado para o S3 e salvo com sucesso!', 'success');
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
+
                   {/* Resumo dos Dados do Contrato */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none' }}>
                     <h4 style={{ margin: '0 0 14px 0', color: 'var(--text-primary)', fontSize: '0.9rem', borderBottom: '1px solid rgba(203,161,83,0.1)', paddingBottom: '8px' }}>
