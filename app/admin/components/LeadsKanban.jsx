@@ -2238,12 +2238,9 @@ export default function LeadsKanban() {
               flexShrink: 0
             }}>
               {[
-                { id: 'info', label: 'Cadastro', icon: FiList },
-                { id: 'contrato', label: 'Contrato', icon: FiFileText },
-                { id: 'equipe', label: 'Equipe', icon: FiUsers },
-                { id: 'drinks', label: 'Bebidas', icon: FiPackageIcon },
-                { id: 'scripts', label: 'Ações', icon: FiPhone },
-                { id: 'financeiro', label: 'Financeiro', icon: FiTrendingUp }
+                { id: 'info', label: '📱 Resumo & Contato', icon: FiList },
+                { id: 'operacao', label: '🍸 Operação & Equipe', icon: FiUsers },
+                { id: 'financeiro', label: '💰 Financeiro', icon: FiTrendingUp }
               ].map(tab => {
                 const TabIcon = tab.icon;
                 const isActive = modalTab === tab.id;
@@ -2722,7 +2719,7 @@ export default function LeadsKanban() {
               )}
 
               {/* 📝 TAB: CONTRATO & PREVIEW */}
-              {modalTab === 'contrato' && (
+              {(modalTab === 'info' || modalTab === 'contrato') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
                   {/* Contrato Quick Actions Card */}
                   <div style={{
@@ -2902,8 +2899,8 @@ export default function LeadsKanban() {
                 </div>
               )}
 
-              {/* 👥 TAB 2: STAFF & SCHEDULES */}
-              {modalTab === 'equipe' && (
+              {/* 👥 TAB: STAFF & SCHEDULES */}
+              {(modalTab === 'operacao' || modalTab === 'equipe') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
                   {/* Event Team management */}
                   <div style={{ background: 'rgba(255, 255, 255, 0.015)', borderRadius: '12px', padding: '18px', border: 'none' }}>
@@ -3118,8 +3115,8 @@ export default function LeadsKanban() {
                 </div>
               )}
 
-              {/* 🍹 TAB 3: DRINKS & PURCHASES */}
-              {modalTab === 'drinks' && (
+              {/* 🍹 TAB: DRINKS & PURCHASES */}
+              {(modalTab === 'operacao' || modalTab === 'drinks') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
                   {/* Generate shopping list widget */}
                   <div style={{ background: 'rgba(0, 229, 255, 0.03)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(0, 229, 255, 0.15)' }}>
@@ -3667,8 +3664,8 @@ export default function LeadsKanban() {
                 </div>
               )}
 
-              {/* 💬 TAB 4: SCRIPTS & MESSAGES HISTORY */}
-              {modalTab === 'scripts' && (
+              {/* 💬 TAB: SCRIPTS & MESSAGES HISTORY */}
+              {(modalTab === 'info' || modalTab === 'scripts') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
                   
                   {/* WhatsApp actions */}
@@ -4454,23 +4451,115 @@ export default function LeadsKanban() {
 
             </div>
             
-            {/* MODAL FOOTER */}
-            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', justifyContent: 'flex-end', background: 'var(--bg-app)' }}>
-              <button 
-                onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} 
-                style={{
-                  background: 'none',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: 'var(--text-primary)',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  minHeight: 44
-                }}
-              >
-                Fechar
-              </button>
+            {/* MODAL FOOTER WITH MOBILE QUICK ACTIONS */}
+            <div style={{
+              padding: '12px 20px',
+              borderTop: '1px solid rgba(203, 161, 83, 0.12)',
+              display: 'flex',
+              justify: 'space-between',
+              alignItems: 'center',
+              gap: '10px',
+              background: 'var(--bg-app)',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
+                {selectedLead.telefone && (
+                  <a
+                    href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedLead.nome}, vi seu orçamento no Laboratório de Drinks...`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: '#25D366',
+                      color: '#FFF',
+                      borderRadius: '8px',
+                      padding: '8px 14px',
+                      fontSize: '0.82rem',
+                      fontWeight: 'bold',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      minHeight: 40
+                    }}
+                  >
+                    💬 WhatsApp
+                  </a>
+                )}
+                <a
+                  href={`/contrato/${selectedLead.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: 'rgba(203, 161, 83, 0.12)',
+                    border: '1px solid rgba(203, 161, 83, 0.3)',
+                    color: 'var(--primary)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '0.82rem',
+                    fontWeight: 'bold',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    minHeight: 40
+                  }}
+                >
+                  📄 Contrato
+                </a>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {!isEditingLead ? (
+                  <button
+                    onClick={startEditingLead}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      minHeight: 40,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    ✏️ Editar
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSaveEditLead}
+                    style={{
+                      background: 'var(--primary)',
+                      border: 'none',
+                      color: '#000',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      minHeight: 40,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    💾 Salvar
+                  </button>
+                )}
+                <button 
+                  onClick={() => { setSelectedLead(null); setIsEditingLead(false); }} 
+                  style={{
+                    background: 'none',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'var(--text-secondary)',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    minHeight: 40
+                  }}
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
 
           </div>
