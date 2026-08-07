@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, FiPackage, FiX, FiPhone, FiClock, FiUsers, FiHeart, FiUserCheck } from 'react-icons/fi';
+import { FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, FiPackage, FiX, FiPhone, FiClock, FiUsers, FiHeart, FiUserCheck, FiList, FiGrid } from 'react-icons/fi';
 
 function formatPhone(value) {
   let v = (value || '').replace(/\D/g, '');
@@ -19,6 +19,7 @@ export default function AgendaEventos() {
   const [selectedEvento, setSelectedEvento] = useState(null);
   const [cerimonialistas, setCerimonialistas] = useState({});
   const [ajudantes, setAjudantes] = useState({});
+  const [modoVisao, setModoVisao] = useState('grade');
 
   const modalOpenRef = useRef(false);
 
@@ -136,8 +137,31 @@ export default function AgendaEventos() {
           <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Visualize as datas de todas as festas fechadas.</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'var(--bg-input)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <button onClick={prevMonth} className="btn btn--outline" style={{ padding: '8px', minWidth: 'auto', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          {/* Toggle Grade/Lista */}
+          <div style={{ display: 'flex', background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '4px' }}>
+            <button 
+              onClick={() => setModoVisao('grade')} 
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: modoVisao === 'grade' ? 'bold' : 'normal',
+                background: modoVisao === 'grade' ? 'var(--primary)' : 'transparent', color: modoVisao === 'grade' ? '#000' : 'var(--text-secondary)'
+              }}
+            >
+              <FiGrid /> Grade
+            </button>
+            <button 
+              onClick={() => setModoVisao('lista')} 
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: modoVisao === 'lista' ? 'bold' : 'normal',
+                background: modoVisao === 'lista' ? 'var(--primary)' : 'transparent', color: modoVisao === 'lista' ? '#000' : 'var(--text-secondary)'
+              }}
+            >
+              <FiList /> Lista
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'var(--bg-input)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+            <button onClick={prevMonth} className="btn btn--outline" style={{ padding: '8px', minWidth: 'auto', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <FiChevronLeft size={20} />
           </button>
           
@@ -154,11 +178,12 @@ export default function AgendaEventos() {
           </button>
         </div>
       </div>
+    </div>
 
-      {/* Calendário Grid */}
-      <div style={{ background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-        
-        {/* Cabeçalho dos dias da semana */}
+      {modoVisao === 'grade' ? (
+        <div style={{ background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+          
+          {/* Cabeçalho dos dias da semana */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
           {daysOfWeek.map(day => (
             <div key={day} className="admin-calendar-day-label" style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>
@@ -258,6 +283,51 @@ export default function AgendaEventos() {
           })}
         </div>
       </div>
+      ) : (
+        /* Lista View */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {(() => {
+            const listEventos = [...eventos].sort((a, b) => new Date(a.dataEvento) - new Date(b.dataEvento));
+            if (listEventos.length === 0) return <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum evento encontrado.</div>;
+            return listEventos.map(evento => {
+              const dataParts = evento.dataEvento ? evento.dataEvento.split('-') : [];
+              const dataFormatada = dataParts.length === 3 ? `${dataParts[2]}/${dataParts[1]}/${dataParts[0]}` : '—';
+              const isPast = new Date(evento.dataEvento) < new Date(new Date().setHours(0,0,0,0));
+              return (
+                <div 
+                  key={evento.id}
+                  onClick={() => setSelectedEvento(evento)}
+                  style={{
+                    background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'pointer', transition: 'transform 0.15s, border-color 0.15s', opacity: isPast ? 0.7 : 1
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{evento.nome} {evento.sobrenome || ''}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FiCalendar /> {dataFormatada}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FiClock /> {evento.horarioEvento || '—'}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FiMapPin /> {evento.cidade || '—'}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                      <span style={{ background: isPast ? 'rgba(255,255,255,0.1)' : 'rgba(76,175,80,0.15)', color: isPast ? 'var(--text-muted)' : '#4CAF50', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', border: `1px solid ${isPast ? 'rgba(255,255,255,0.2)' : 'rgba(76,175,80,0.3)'}` }}>
+                        {isPast ? 'Realizado' : 'Confirmado'}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '12px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FiPackage /> {evento.pacote || '—'}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FiUsers /> {evento.convidados || '—'} convidados</span>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      )}
       
       {/* Modal de Detalhes do Evento */}
       {selectedEvento && (

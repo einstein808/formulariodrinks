@@ -45,23 +45,23 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
     <div
       onClick={() => onOpen(evento)}
       style={{
-        background: 'rgba(0,0,0,0.4)',
-        borderRadius: 16,
+        background: 'var(--bg-card)',
+        borderRadius: 12,
         overflow: 'hidden',
-        border: '1px solid rgba(203, 161, 83, 0.15)',
+        border: '1px solid var(--border-color)',
         cursor: 'pointer',
-        transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s, border-color 0.35s',
+        transition: 'transform 0.25s ease, border-color 0.25s, box-shadow 0.25s',
       }}
       onMouseEnter={(e) => { 
-        e.currentTarget.style.transform = 'translateY(-8px) scale(1.01)'; 
-        e.currentTarget.style.boxShadow = '0 20px 50px rgba(203, 161, 83, 0.25)'; 
-        e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.6)'; 
+        e.currentTarget.style.transform = 'translateY(-4px)'; 
+        e.currentTarget.style.boxShadow = 'var(--shadow-md)'; 
+        e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.35)'; 
         setPausado(true); 
       }}
       onMouseLeave={(e) => { 
-        e.currentTarget.style.transform = 'translateY(0) scale(1)'; 
+        e.currentTarget.style.transform = 'translateY(0)'; 
         e.currentTarget.style.boxShadow = 'none'; 
-        e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.15)'; 
+        e.currentTarget.style.borderColor = 'var(--border-color)'; 
         setPausado(false);
       }}
     >
@@ -283,13 +283,13 @@ export default function HomeClient() {
           height={140}
           priority
           sizes="140px"
-          style={{ width: 'clamp(90px, 25vw, 140px)', height: 'auto', marginBottom: 20, filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' }} 
+          style={{ width: 'clamp(90px, 25vw, 130px)', height: 'auto', marginBottom: 16 }} 
         />
-        <h1 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 6vw, 2.5rem)', color: 'var(--primary)', margin: '0 0 16px 0', textShadow: '0 4px 20px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
+        <h1 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.5rem, 5vw, 2.4rem)', color: 'var(--primary)', margin: '0 0 12px 0', letterSpacing: '0.04em', lineHeight: 1.2 }}>
           {general?.siteTitle || "Laboratório de Drinks - Barman Juiz de Fora"}
         </h1>
         {general?.siteSubtitle && (
-          <p style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)', color: 'var(--text-secondary)', maxWidth: '550px', margin: '0 auto 24px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: 'clamp(0.9rem, 2vw, 1.05rem)', color: 'var(--text-secondary)', maxWidth: '540px', margin: '0 auto 20px', lineHeight: 1.5 }}>
             {general.siteSubtitle}
           </p>
         )}
@@ -299,11 +299,9 @@ export default function HomeClient() {
 
       {/* 2. Galeria de Eventos Realizados */}
       {(galeria.length > 0 || loading) && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+        <section style={{ position: 'relative', zIndex: 10, padding: '36px 24px', maxWidth: 1200, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', marginBottom: 28, letterSpacing: '0.03em' }}>
             Eventos Realizados: Barman em Casamentos e Festas em JF
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
           </h2>
 
           <div className="galeria-grid">
@@ -344,28 +342,26 @@ export default function HomeClient() {
 
       {/* 1. Testimonials (NPS / Google Reviews) */}
       {(reviewsToDisplay.length > 0 || loading) && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '40px 16px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+        <section style={{ position: 'relative', zIndex: 10, padding: '36px 16px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
           <div style={{ maxWidth: 850, margin: '0 auto' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40 }}>
-              <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%' }}>
-                <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+              <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', margin: 0, letterSpacing: '0.03em' }}>
                 O Melhor Serviço de Bartender de {general?.companyCity || 'JF'}
-                <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
               </h2>
               
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255, 255, 255, 0.03)', padding: '10px 20px', borderRadius: 30, border: '1px solid rgba(203, 161, 83, 0.15)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                <img src="/google-logo.svg" alt="Google" style={{ width: 22, height: 22 }} />
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255, 255, 255, 0.02)', padding: '8px 16px', borderRadius: 24, border: '1px solid var(--border-color)' }}>
+                <img src="/google-logo.svg" alt="Google" style={{ width: 20, height: 20 }} />
                 <div style={{ display: 'flex', gap: 3 }}>
-                  {[1,2,3,4,5].map(s => <FiStar key={s} size={20} fill="#FFC107" color="#FFC107" />)}
+                  {[1,2,3,4,5].map(s => <FiStar key={s} size={18} fill="#FFC107" color="#FFC107" />)}
                 </div>
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>Avaliação totalizada Google 5.0 de 5</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>Avaliação Google 5.0 de 5</span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }} className="hide-scrollbar">
+            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 20, scrollbarWidth: 'none' }} className="hide-scrollbar">
               {reviewsToDisplay.map((ava, idx) => (
                 <div key={ava.id || idx} style={{ 
-                  minWidth: 280, flex: '0 0 clamp(280px, 80vw, 320px)', background: 'var(--bg-card)', padding: ava.isSkeleton ? 24 : (ava.printUrl ? 12 : 24), borderRadius: 16, 
-                  border: '1px solid var(--border-color, rgba(203, 161, 83, 0.12))', display: 'flex', flexDirection: 'column', gap: 16
+                  minWidth: 280, flex: '0 0 clamp(280px, 80vw, 320px)', background: 'var(--bg-card)', padding: ava.isSkeleton ? 24 : (ava.printUrl ? 12 : 24), borderRadius: 12, 
+                  border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 16
                 }}>
                   {ava.isSkeleton ? (
                     <div className="skeleton-pulse" style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
@@ -430,11 +426,9 @@ export default function HomeClient() {
       )}
 
       {/* 3. Tipos de Eventos que Atendemos */}
-      <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+      <section style={{ position: 'relative', zIndex: 10, padding: '36px 24px', maxWidth: 1200, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', marginBottom: 32, letterSpacing: '0.03em' }}>
           Bar para Diferentes Eventos
-          <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
         </h2>
 
         <div className="eventos-grid">
@@ -478,9 +472,6 @@ export default function HomeClient() {
                       <span style={{ fontSize: '3rem' }}>{item.icon}</span>
                     </div>
                   )}
-                  <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', border: '1px solid rgba(255,255,255,0.12)' }}>
-                    {item.icon}
-                  </div>
                 </div>
                 <h3 className="evento-tipo-title">{item.label}</h3>
                 <p className="evento-tipo-desc">
@@ -494,11 +485,9 @@ export default function HomeClient() {
 
       {/* 4. Packages Section */}
       {(pacotes.length > 0 || loading) && (
-        <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.8rem', color: '#FFF', textAlign: 'center', marginBottom: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+        <section style={{ position: 'relative', zIndex: 10, padding: '36px 24px', maxWidth: 1200, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', marginBottom: 36, letterSpacing: '0.03em' }}>
             Pacotes de Barman para Casamentos e Festas
-            <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
           </h2>
 
           <div style={{ 
@@ -508,31 +497,29 @@ export default function HomeClient() {
             alignItems: 'center' 
           }}>
             {packagesToDisplay.map((pacote, idx) => {
-              const isPopular = idx === 1; // Efeito Isca: pacote do meio destacado
+              const isPopular = idx === 1;
               
               return pacote.isSkeleton ? (
                 <div key={pacote.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.5)', borderRadius: 16, height: 460, border: '1px solid rgba(255,255,255,0.05)', padding: 32 }} />
               ) : (
                 <div key={pacote.id} style={{ 
-                  background: isPopular ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.5)',
+                  background: 'var(--bg-card)',
                   borderRadius: 16, 
-                  border: isPopular ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.1)',
+                  border: isPopular ? '2px solid var(--primary)' : '1px solid var(--border-color)',
                   padding: 32,
                   position: 'relative',
-                  transition: 'transform 0.3s, box-shadow 0.3s',
-                  transform: isPopular ? 'scale(1.05)' : 'scale(1)',
-                  boxShadow: isPopular ? '0 8px 32px rgba(203, 161, 83, 0.2)' : 'none',
+                  transition: 'transform 0.3s, border-color 0.3s',
                   display: 'flex',
                   flexDirection: 'column',
                   height: '100%'
                 }}>
                   {isPopular && (
-                    <div style={{ position: 'absolute', top: -15, left: '50%', transform: 'translateX(-50%)', background: 'var(--primary)', color: '#000', padding: '4px 16px', borderRadius: 20, fontWeight: 'bold', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      🔥 Mais Escolhido
+                    <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: 'var(--primary)', color: '#000', padding: '3px 14px', borderRadius: 20, fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      ★ Mais Escolhido
                     </div>
                   )}
 
-                  <h3 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.5rem', color: isPopular ? 'var(--primary)' : '#FFF', margin: '0 0 8px 0', textAlign: 'center' }}>
+                  <h3 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.4rem', color: isPopular ? 'var(--primary)' : '#FFF', margin: '0 0 8px 0', textAlign: 'center' }}>
                     {pacote.name}
                   </h3>
                   
@@ -545,10 +532,10 @@ export default function HomeClient() {
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px 0', flex: 1 }}>
                     {(pacote.features || []).map((feature, fIdx) => (
                       <li key={fIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(76, 175, 80, 0.1)', color: '#4CAF50', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(46, 139, 87, 0.15)', color: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
                           <FiCheck size={12} />
                         </div>
-                        <span style={{ color: '#DDD', fontSize: '0.95rem', lineHeight: 1.4 }}>{feature}</span>
+                        <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.4 }}>{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -556,7 +543,7 @@ export default function HomeClient() {
                   <button 
                     onClick={() => router.push(`/orcamento?pacote=${pacote.id}`)}
                     className="btn btn--primary"
-                    style={{ width: '100%', background: isPopular ? 'var(--primary)' : 'rgba(255,255,255,0.1)', color: isPopular ? '#000' : '#FFF', borderColor: 'transparent' }}
+                    style={{ width: '100%', background: isPopular ? 'var(--primary)' : 'rgba(255,255,255,0.06)', color: isPopular ? '#050a06' : '#FFF', borderColor: 'transparent' }}
                   >
                     Selecionar Pacote
                   </button>
@@ -568,11 +555,9 @@ export default function HomeClient() {
       )}
 
       {/* 5. Drinks Gallery */}
-      <section style={{ position: 'relative', zIndex: 10, padding: '32px 16px', maxWidth: 1000, margin: '0 auto' }}>
-        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', color: '#FFF', textAlign: 'center', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <span style={{ height: 1, flex: 1, background: 'linear-gradient(to left, var(--primary), transparent)' }} />
+      <section style={{ position: 'relative', zIndex: 10, padding: '36px 16px', maxWidth: 1000, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', marginBottom: 28, letterSpacing: '0.03em' }}>
           Cardápio de Drinks Exclusivos
-          <span style={{ height: 1, flex: 1, background: 'linear-gradient(to right, var(--primary), transparent)' }} />
         </h2>
 
         <div className="drinks-grid">

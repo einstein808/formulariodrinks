@@ -18,9 +18,7 @@ const AnalyticsDashboard = dynamic(() => import('./components/AnalyticsDashboard
   loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
   ssr: false
 });
-const RetargetAlert = dynamic(() => import('./components/RetargetAlert'), {
-  ssr: false
-});
+
 const CerimonialstasManager = dynamic(() => import('./components/CerimonialstasManager'), {
   loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
   ssr: false
@@ -43,18 +41,15 @@ const EstoqueManager = dynamic(() => import('./components/EstoqueManager'), {
 });
 
 const navItems = [
-  { id: 'leads',     label: 'Leads',     icon: FiUsers },
-  { id: 'agenda',    label: 'Agenda',    icon: FiCalendar },
-  { id: 'contratos', label: 'Contratos', icon: FiFileText },
-  { id: 'analytics', label: 'Métricas',  icon: FiPieChart },
-  { id: 'estoque',   label: 'Estoque',   icon: FiPackage },
-  { id: 'parceiros', label: 'Parceiros', icon: FiHeart },
-  { id: 'equipe',    label: 'Equipe',    icon: FiUserPlus },
-  { id: 'configs',   label: 'Configs',   icon: FiSettings },
+  { id: 'leads',    label: 'Leads',         icon: FiUsers },
+  { id: 'eventos',  label: 'Eventos',       icon: FiCalendar },
+  { id: 'metricas', label: 'Métricas',      icon: FiPieChart },
+  { id: 'config',   label: 'Configurações', icon: FiSettings },
 ];
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('leads');
+  const [subTab, setSubTab] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -90,6 +85,13 @@ export default function AdminDashboard() {
       window.history.pushState({ tab: activeTab }, '');
       lastTabRef.current = activeTab;
     }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'eventos') setSubTab('agenda');
+    else if (activeTab === 'metricas') setSubTab('analytics');
+    else if (activeTab === 'config') setSubTab('configs');
+    else setSubTab('');
   }, [activeTab]);
 
   useEffect(() => {
@@ -221,12 +223,7 @@ export default function AdminDashboard() {
                   }} />
                 )}
                 <Icon size={18} style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }} />
-                {item.label === 'Leads' ? 'Gestão de Leads' :
-                 item.label === 'Métricas' ? 'Métricas (Gráficos)' :
-                 item.label === 'Parceiros' ? 'Parceiros' :
-                 item.label === 'Equipe' ? 'Equipe / Staff' :
-                 item.label === 'Configs' ? 'Pacotes & Drinks' :
-                 item.label}
+                {item.label === 'Leads' ? 'Gestão de Leads' : item.label}
               </button>
             );
           })}
@@ -286,15 +283,77 @@ export default function AdminDashboard() {
 
       {/* ── MAIN CONTENT ────────────────────────────────────── */}
       <main className="admin-main" style={{ flex: 1, height: '100vh', overflowY: 'auto', padding: '24px', background: 'var(--bg-dark)' }}>
-        <RetargetAlert />
-        {activeTab === 'leads'     && <LeadsKanban />}
-        {activeTab === 'agenda'    && <AgendaEventos />}
-        {activeTab === 'contratos' && <GeradorContrato />}
-        {activeTab === 'analytics' && <AnalyticsDashboard />}
-        {activeTab === 'estoque'   && <EstoqueManager />}
-        {activeTab === 'parceiros' && <CerimonialstasManager />}
-        {activeTab === 'equipe'    && <AjudantesManager />}
-        {activeTab === 'configs'   && <ConfigsEditor />}
+        {activeTab === 'leads' && <LeadsKanban />}
+        
+        {activeTab === 'eventos' && (
+          <>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              <button 
+                onClick={() => setSubTab('agenda')} 
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'agenda' ? 'var(--primary)' : 'transparent', color: subTab === 'agenda' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+              >
+                Agenda
+              </button>
+              <button 
+                onClick={() => setSubTab('contratos')} 
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'contratos' ? 'var(--primary)' : 'transparent', color: subTab === 'contratos' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+              >
+                Contratos
+              </button>
+            </div>
+            {subTab === 'agenda' && <AgendaEventos />}
+            {subTab === 'contratos' && <GeradorContrato />}
+          </>
+        )}
+
+        {activeTab === 'metricas' && (
+          <>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              <button 
+                onClick={() => setSubTab('analytics')} 
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'analytics' ? 'var(--primary)' : 'transparent', color: subTab === 'analytics' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+              >
+                Gráficos
+              </button>
+              <button 
+                onClick={() => setSubTab('estoque')} 
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'estoque' ? 'var(--primary)' : 'transparent', color: subTab === 'estoque' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+              >
+                Estoque
+              </button>
+            </div>
+            {subTab === 'analytics' && <AnalyticsDashboard />}
+            {subTab === 'estoque' && <EstoqueManager />}
+          </>
+        )}
+
+        {activeTab === 'config' && (
+          <>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              <button 
+                onClick={() => setSubTab('configs')} 
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'configs' ? 'var(--primary)' : 'transparent', color: subTab === 'configs' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+              >
+                Pacotes & Drinks
+              </button>
+              <button 
+                onClick={() => setSubTab('parceiros')} 
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'parceiros' ? 'var(--primary)' : 'transparent', color: subTab === 'parceiros' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+              >
+                Parceiros
+              </button>
+              <button 
+                onClick={() => setSubTab('equipe')} 
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'equipe' ? 'var(--primary)' : 'transparent', color: subTab === 'equipe' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+              >
+                Equipe
+              </button>
+            </div>
+            {subTab === 'configs' && <ConfigsEditor />}
+            {subTab === 'parceiros' && <CerimonialstasManager />}
+            {subTab === 'equipe' && <AjudantesManager />}
+          </>
+        )}
       </main>
 
       {/* ── MOBILE BOTTOM NAV ───────────────────────────────── */}

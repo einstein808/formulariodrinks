@@ -28,10 +28,8 @@ function firebaseObjToArray(obj) {
 
 const STEPS = [
   { title: 'Escolha seu Pacote', desc: 'Selecione o pacote ideal para seu evento' },
-  { title: 'Detalhes do Evento', desc: 'Informações sobre seu evento' },
-  { title: 'Conheça nossos Drinks', desc: 'Dê uma olhada em nossas opções exclusivas' },
-  { title: 'Turbine seu Evento', desc: 'Adicione experiências exclusivas ao seu bar' },
-  { title: 'Dados Pessoais', desc: 'Para onde enviamos seu orçamento?' },
+  { title: 'Sobre seu Evento', desc: 'Detalhes e extras para seu evento' },
+  { title: 'Seus Dados', desc: 'Para onde enviamos seu orçamento?' },
 ]
 
 const DRAFT_KEY = 'orcamento_draft'
@@ -48,6 +46,7 @@ export default function OrcamentoClient() {
   const [drinksMenu, setDrinksMenu] = useState([])
   const [cidades, setCidades] = useState([])
   const [maxDrinks, setMaxDrinks] = useState(5)
+  const [showDrinksModal, setShowDrinksModal] = useState(false)
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -375,12 +374,7 @@ export default function OrcamentoClient() {
         if (!formData.tipoEvento) e.tipoEvento = 'Selecione o tipo de evento'
         if (!formData.horarioEvento) e.horarioEvento = 'Horário de início é obrigatório'
         break
-      case 2: // Conheça nossos Drinks
-        break;
-      case 3: // Upsell
-        // Opcional, sem validação
-        break
-      case 4: // Dados Pessoais
+      case 2: // Dados Pessoais
         if (!formData.nome.trim()) e.nome = 'Nome é obrigatório'
         if (!formData.sobrenome.trim()) e.sobrenome = 'Sobrenome é obrigatório'
         if (!formData.telefone || formData.telefone.replace(/\D/g, '').length < 10)
@@ -699,214 +693,124 @@ export default function OrcamentoClient() {
               {errors.tipoEvento && <span className="form-error">{errors.tipoEvento}</span>}
             </div>
 
-
-          </div>
-        )
-
-      /* ---- Step 2: Conheça nossos Drinks ---- */
-      case 2:
-        const getCategory = (d) => {
-          if (d.category) return d.category;
-          return d.isNonAlcoholic ? 'sem_alcool' : 'alcool';
-        };
-
-        const drinksAlcool = drinksMenu.filter(d => getCategory(d) === 'alcool');
-        const drinksPremium = drinksMenu.filter(d => getCategory(d) === 'sofisticado');
-        const drinksFrozen = drinksMenu.filter(d => getCategory(d) === 'frozen');
-        const drinksSemAlcool = drinksMenu.filter(d => getCategory(d) === 'sem_alcool');
-
-        const renderDrinkCard = (d) => (
-          <div
-            key={d.id}
-            className="drink-card"
-            style={{ cursor: 'default', userSelect: 'none' }}
-          >
-            {d.image ? (
-              <div className="drink-card__image-container" style={{
-                width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', 
-                marginBottom: 8, border: '1px solid rgba(203, 161, 83, 0.1)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 1, flexShrink: 0
-              }}>
-                <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            ) : (
-              <span className="drink-card__emoji">{d.emoji}</span>
-            )}
-            <span className="drink-card__name">{d.name}</span>
-          </div>
-        );
-
-        return (
-          <div className="step-enter" key="step-2">
-            <div className="form-group">
-              <label className="form-label" style={{ marginBottom: 24 }}>Opções de Drinks Disponíveis (Sua escolha oficial será na assinatura do contrato)</label>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                {/* 🍸 Alcoólicos */}
-                {drinksAlcool.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🍸 Alcoólicos
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksAlcool.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ✨ Premium */}
-                {drinksPremium.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      ✨ Premium
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksPremium.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ❄️ Frozen */}
-                {drinksFrozen.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      ❄️ Frozen
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksFrozen.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 🧃 Sem Álcool */}
-                {drinksSemAlcool.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🧃 Sem Álcool
-                    </h3>
-                    <div className="drinks-grid">
-                      {drinksSemAlcool.map(d => renderDrinkCard(d))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-
-      /* ---- Step 3: Upsell ---- */
-      case 3:
-        return (
-          <div className="step-enter" key="step-3">
-            <div className="upsell-container" style={{display:'flex', flexDirection:'column', gap:24}}>
-              
-              {/* Highlighted Frozen Upsell - Hidden only for standard-frozen */}
-              {formData.pacote !== 'standard-frozen' && (
-              <div style={{
-                background: 'linear-gradient(145deg, #1A237E, #311B92)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '24px',
-                border: formData.upsellFrozen ? '3px solid #00E5FF' : '3px solid transparent',
-                boxShadow: formData.upsellFrozen ? '0 0 24px rgba(0, 229, 255, 0.4)' : '0 8px 32px rgba(0,0,0,0.3)',
-                color: '#fff',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'all 0.3s ease'
-              }}>
-                <div style={{
-                  position: 'absolute', top: -40, right: -40, width: 150, height: 150, 
-                  background: 'rgba(0, 229, 255, 0.1)', borderRadius: '50%', filter: 'blur(30px)', pointerEvents: 'none'
-                }} />
+            <div style={{ marginTop: '32px', borderTop: '1px solid rgba(203, 161, 83, 0.15)', paddingTop: '24px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '1.2rem', color: 'var(--text-primary)' }}>Extras para seu evento</h3>
+              <div className="upsell-container" style={{display:'flex', flexDirection:'column', gap:24}}>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', zIndex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{
-                      width: 100, height: 100, borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                      border: '2px solid rgba(0, 229, 255, 0.5)', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
-                    }}>
-                      <img src="/frozen.jpg" alt="Frozen Experience" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                    <div>
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.4rem', fontFamily: 'Cinzel, serif', color: '#00E5FF' }}>
-                        Laboratório Frozen ❄️
-                      </h3>
-                      <p style={{ margin: 0, fontSize: '0.9rem', color: '#E0E0E0', lineHeight: 1.4 }}>
-                        A experiência visual definitiva para o seu evento. Máquina de drinks congelados tipo raspadinha com fumaça e cores vibrantes.
-                      </p>
-                      <div style={{ marginTop: 8, fontWeight: 'bold', color: '#00E5FF', fontSize: '1.1rem' }}>
-                        {formData.pacote === 'mao-de-obra' ? (
-                          <>+ R$ 250,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Adicional Fixo)</span></>
-                        ) : (
-                          <>+ R$ 10,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Por Convidado)</span></>
-                        )}
+                {/* Highlighted Frozen Upsell - Hidden only for standard-frozen */}
+                {formData.pacote !== 'standard-frozen' && (
+                <div style={{
+                  background: 'linear-gradient(145deg, #1A237E, #311B92)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '24px',
+                  border: formData.upsellFrozen ? '3px solid #00E5FF' : '3px solid transparent',
+                  boxShadow: formData.upsellFrozen ? '0 0 24px rgba(0, 229, 255, 0.4)' : '0 8px 32px rgba(0,0,0,0.3)',
+                  color: '#fff',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease'
+                }}>
+                  <div style={{
+                    position: 'absolute', top: -40, right: -40, width: 150, height: 150, 
+                    background: 'rgba(0, 229, 255, 0.1)', borderRadius: '50%', filter: 'blur(30px)', pointerEvents: 'none'
+                  }} />
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <div style={{
+                        width: 100, height: 100, borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                        border: '2px solid rgba(0, 229, 255, 0.5)', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
+                      }}>
+                        <img src="/frozen.jpg" alt="Frozen Experience" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.4rem', fontFamily: 'Cinzel, serif', color: '#00E5FF' }}>
+                          Laboratório Frozen ❄️
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#E0E0E0', lineHeight: 1.4 }}>
+                          A experiência visual definitiva para o seu evento. Máquina de drinks congelados tipo raspadinha com fumaça e cores vibrantes.
+                        </p>
+                        <div style={{ marginTop: 8, fontWeight: 'bold', color: '#00E5FF', fontSize: '1.1rem' }}>
+                          {formData.pacote === 'mao-de-obra' ? (
+                            <>+ R$ 250,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Adicional Fixo)</span></>
+                          ) : (
+                            <>+ R$ 10,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Por Convidado)</span></>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => updateField('upsellFrozen', !formData.upsellFrozen)}
+                      style={{
+                        width: '100%', padding: '14px', borderRadius: 'var(--radius-md)',
+                        background: formData.upsellFrozen ? 'rgba(0, 229, 255, 0.1)' : '#00E5FF',
+                        color: formData.upsellFrozen ? '#00E5FF' : '#000',
+                        border: formData.upsellFrozen ? '2px solid #00E5FF' : 'none',
+                        fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer',
+                        display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+                        transition: 'all 0.2s ease', fontFamily: 'Inter, sans-serif'
+                      }}
+                    >
+                      {formData.upsellFrozen ? (
+                        <><FiCheck size={20} /> Máquina Adicionada!</>
+                      ) : (
+                        <>Sim! Quero a Máquina de Frozen</>
+                      )}
+                    </button>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => updateField('upsellFrozen', !formData.upsellFrozen)}
-                    style={{
-                      width: '100%', padding: '14px', borderRadius: 'var(--radius-md)',
-                      background: formData.upsellFrozen ? 'rgba(0, 229, 255, 0.1)' : '#00E5FF',
-                      color: formData.upsellFrozen ? '#00E5FF' : '#000',
-                      border: formData.upsellFrozen ? '2px solid #00E5FF' : 'none',
-                      fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer',
-                      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-                      transition: 'all 0.2s ease', fontFamily: 'Inter, sans-serif'
-                    }}
-                  >
-                    {formData.upsellFrozen ? (
-                      <><FiCheck size={20} /> Máquina Adicionada!</>
-                    ) : (
-                      <>Sim! Quero a Máquina de Frozen</>
-                    )}
-                  </button>
                 </div>
+                )}
+
+                {/* Secondary Upsell - Chopp */}
+                <button
+                  type="button"
+                  className={`upsell-card ${formData.upsellChopp ? 'upsell-card--selected' : ''}`}
+                  onClick={() => updateField('upsellChopp', !formData.upsellChopp)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 16, padding: 16,
+                    background: 'var(--bg-input)', border: '1.5px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left',
+                    borderColor: formData.upsellChopp ? 'var(--primary)' : 'var(--border-color)',
+                    opacity: 0.85
+                  }}
+                >
+                  <div className="upsell-card__check" style={{
+                    width: 20, height: 20, borderRadius: '50%', border: '2px solid',
+                    borderColor: formData.upsellChopp ? 'var(--primary)' : 'var(--text-muted)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: formData.upsellChopp ? 'var(--primary)' : 'transparent',
+                    color: 'white', flexShrink: 0
+                  }}>
+                    {formData.upsellChopp && <FiCheck size={12} />}
+                  </div>
+                  <div className="upsell-card__content">
+                    <h4 style={{ margin: '0 0 4px 0', fontFamily: 'Cinzel, serif', color: 'var(--text-primary)', fontSize: '1rem' }}>
+                      🍺 Adicionar Máquina de Chopp a Gelo
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Chopp trincando sem desperdício de espuma.
+                    </p>
+                  </div>
+                </button>
               </div>
-              )}
-
-              {/* Secondary Upsell - Chopp */}
-              <button
-                type="button"
-                className={`upsell-card ${formData.upsellChopp ? 'upsell-card--selected' : ''}`}
-                onClick={() => updateField('upsellChopp', !formData.upsellChopp)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16, padding: 16,
-                  background: 'var(--bg-input)', border: '1.5px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left',
-                  borderColor: formData.upsellChopp ? 'var(--primary)' : 'var(--border-color)',
-                  opacity: 0.85
-                }}
-              >
-                <div className="upsell-card__check" style={{
-                  width: 20, height: 20, borderRadius: '50%', border: '2px solid',
-                  borderColor: formData.upsellChopp ? 'var(--primary)' : 'var(--text-muted)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: formData.upsellChopp ? 'var(--primary)' : 'transparent',
-                  color: 'white', flexShrink: 0
-                }}>
-                  {formData.upsellChopp && <FiCheck size={12} />}
-                </div>
-                <div className="upsell-card__content">
-                  <h4 style={{ margin: '0 0 4px 0', fontFamily: 'Cinzel, serif', color: 'var(--text-primary)', fontSize: '1rem' }}>
-                    🍺 Adicionar Máquina de Chopp a Gelo
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Chopp trincando sem desperdício de espuma.
-                  </p>
-                </div>
-              </button>
-
             </div>
+
+            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+              <button type="button" className="btn btn--outline" onClick={() => setShowDrinksModal(true)} style={{ width: '100%' }}>
+                👀 Ver drinks disponíveis
+              </button>
+            </div>
+
           </div>
         )
 
-      /* ---- Step 4: Personal Info ---- */
-      case 4:
+      /* ---- Step 2: Personal Info ---- */
+      case 2:
         const alreadyHasContactInfo = isPriceUnlocked && formData.nome && formData.telefone;
         return (
-          <div className="step-enter" key="step-4">
+          <div className="step-enter" key="step-2">
             {alreadyHasContactInfo && (
               <div style={{
                 background: 'rgba(203, 161, 83, 0.12)',
@@ -1015,9 +919,103 @@ export default function OrcamentoClient() {
   /* ============================
      Main Render
      ============================ */
+  const getCategory = (d) => {
+    if (d.category) return d.category;
+    return d.isNonAlcoholic ? 'sem_alcool' : 'alcool';
+  };
+
+  const drinksAlcool = drinksMenu.filter(d => getCategory(d) === 'alcool');
+  const drinksPremium = drinksMenu.filter(d => getCategory(d) === 'sofisticado');
+  const drinksFrozen = drinksMenu.filter(d => getCategory(d) === 'frozen');
+  const drinksSemAlcool = drinksMenu.filter(d => getCategory(d) === 'sem_alcool');
+
+  const renderDrinkCard = (d) => (
+    <div
+      key={d.id}
+      className="drink-card"
+      style={{ cursor: 'default', userSelect: 'none' }}
+    >
+      {d.image ? (
+        <div className="drink-card__image-container" style={{
+          width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', 
+          marginBottom: 8, border: '1px solid rgba(203, 161, 83, 0.1)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 1, flexShrink: 0
+        }}>
+          <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      ) : (
+        <span className="drink-card__emoji">{d.emoji}</span>
+      )}
+      <span className="drink-card__name">{d.name}</span>
+    </div>
+  );
+
   return (
     <>
       <BackgroundEffects />
+
+      {/* Modal Drinks */}
+      {showDrinksModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowDrinksModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-color)', maxWidth: 700, width: '100%', maxHeight: '85vh', overflow: 'auto', padding: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-primary)' }}>Drinks Disponíveis</h3>
+              <button type="button" onClick={() => setShowDrinksModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+              {/* 🍸 Alcoólicos */}
+              {drinksAlcool.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🍸 Alcoólicos
+                  </h3>
+                  <div className="drinks-grid">
+                    {drinksAlcool.map(d => renderDrinkCard(d))}
+                  </div>
+                </div>
+              )}
+
+              {/* ✨ Premium */}
+              {drinksPremium.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    ✨ Premium
+                  </h3>
+                  <div className="drinks-grid">
+                    {drinksPremium.map(d => renderDrinkCard(d))}
+                  </div>
+                </div>
+              )}
+
+              {/* ❄️ Frozen */}
+              {drinksFrozen.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    ❄️ Frozen
+                  </h3>
+                  <div className="drinks-grid">
+                    {drinksFrozen.map(d => renderDrinkCard(d))}
+                  </div>
+                </div>
+              )}
+
+              {/* 🧃 Sem Álcool */}
+              {drinksSemAlcool.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', color: 'var(--primary)', borderBottom: '1px solid rgba(203, 161, 83, 0.15)', paddingBottom: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🧃 Sem Álcool
+                  </h3>
+                  <div className="drinks-grid">
+                    {drinksSemAlcool.map(d => renderDrinkCard(d))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
 
       <div className="app">

@@ -21,6 +21,7 @@ function arrayToFirebaseObj(arr) {
 }
 
 export default function ConfigsEditor() {
+  const [activeGroup, setActiveGroup] = useState('cardapio');
   const [activeTab, setActiveTab] = useState('drinks');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -377,87 +378,89 @@ export default function ConfigsEditor() {
         </button>
       </div>
 
-      <div className="admin-config-tabs" style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-        <button
-          onClick={() => setActiveTab('drinks')}
-          style={{
-            background: activeTab === 'drinks' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'drinks' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          Menu de Drinks
-        </button>
-        <button
-          onClick={() => setActiveTab('pacotes')}
-          style={{
-            background: activeTab === 'pacotes' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'pacotes' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          Pacotes de Serviços
-        </button>
-        <button
-          onClick={() => setActiveTab('scripts')}
-          style={{
-            background: activeTab === 'scripts' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'scripts' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          Configurações & Scripts
-        </button>
-        <button
-          onClick={() => setActiveTab('galeria')}
-          style={{
-            background: activeTab === 'galeria' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'galeria' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          🎥 Galeria de Eventos
-        </button>
-        <button
-          onClick={() => setActiveTab('eventos')}
-          style={{
-            background: activeTab === 'eventos' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'eventos' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          ✨ Tipos de Eventos
-        </button>
-        <button
-          onClick={() => setActiveTab('shopping')}
-          style={{
-            background: activeTab === 'shopping' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'shopping' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          🛒 Lista de Compras
-        </button>
-        <button
-          onClick={() => setActiveTab('financeiro')}
-          style={{
-            background: activeTab === 'financeiro' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'financeiro' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          💸 Categorias de Custos
-        </button>
-        <button
-          onClick={() => setActiveTab('avaliacoes')}
-          style={{
-            background: activeTab === 'avaliacoes' ? 'var(--primary)' : 'transparent',
-            color: activeTab === 'avaliacoes' ? '#000' : '#FFF',
-            border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          ⭐ Avaliações
-        </button>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px', borderBottom: '2px solid var(--border-color)', paddingBottom: '16px' }}>
+        {[
+          { id: 'cardapio', label: '🍹 Cardápio & Preços' },
+          { id: 'integracoes', label: '💬 Integrações & Comunicação' },
+          { id: 'conteudo', label: '🌐 Conteúdo & Site' }
+        ].map(group => (
+          <button
+            key={group.id}
+            onClick={() => {
+              setActiveGroup(group.id);
+              if (group.id === 'cardapio') setActiveTab('drinks');
+              else if (group.id === 'integracoes') setActiveTab('scripts');
+              else if (group.id === 'conteudo') setActiveTab('galeria');
+            }}
+            style={{
+              background: activeGroup === group.id ? 'var(--primary)' : 'rgba(255, 255, 255, 0.05)',
+              color: activeGroup === group.id ? '#000' : '#FFF',
+              border: activeGroup === group.id ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+              padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem',
+              flex: '1 1 auto', textAlign: 'center', transition: 'all 0.2s'
+            }}
+          >
+            {group.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-config-tabs" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        {activeGroup === 'cardapio' && [
+          { id: 'drinks', label: 'Menu de Drinks' },
+          { id: 'pacotes', label: 'Pacotes de Serviços' },
+          { id: 'shopping', label: '🛒 Lista de Compras' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              background: activeTab === tab.id ? 'var(--primary)' : 'transparent',
+              color: activeTab === tab.id ? '#000' : 'var(--text-secondary)',
+              border: activeTab === tab.id ? 'none' : '1px solid var(--border-color)', 
+              padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+
+        {activeGroup === 'integracoes' && [
+          { id: 'scripts', label: 'Configurações & Scripts' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              background: activeTab === tab.id ? 'var(--primary)' : 'transparent',
+              color: activeTab === tab.id ? '#000' : 'var(--text-secondary)',
+              border: activeTab === tab.id ? 'none' : '1px solid var(--border-color)', 
+              padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+
+        {activeGroup === 'conteudo' && [
+          { id: 'galeria', label: '🎥 Galeria de Eventos' },
+          { id: 'eventos', label: '✨ Tipos de Eventos' },
+          { id: 'financeiro', label: '💸 Categorias de Custos' },
+          { id: 'avaliacoes', label: '⭐ Avaliações' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              background: activeTab === tab.id ? 'var(--primary)' : 'transparent',
+              color: activeTab === tab.id ? '#000' : 'var(--text-secondary)',
+              border: activeTab === tab.id ? 'none' : '1px solid var(--border-color)', 
+              padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'drinks' && (

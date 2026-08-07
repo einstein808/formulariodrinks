@@ -37,7 +37,7 @@ export default function AnalyticsDashboard() {
   const [leads, setLeads] = useState([]);
   const [cerimonialistas, setCerimonialistas] = useState({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('geral'); // 'geral' | 'financeiro'
+  const [mostrarAvancado, setMostrarAvancado] = useState(false);
   const [selectedCampaignFilter, setSelectedCampaignFilter] = useState('todas');
   const [custosCategorias, setCustosCategorias] = useState([]);
 
@@ -226,6 +226,21 @@ export default function AnalyticsDashboard() {
     return new Date(`${anoA}-${mesA}-01`) - new Date(`${anoB}-${mesB}-01`);
   });
 
+  // --- Pipeline de Leads (Distribuição de status) ---
+  const statusCount = {};
+  leads.forEach(lead => {
+    const s = lead.status || 'leads';
+    statusCount[s] = (statusCount[s] || 0) + 1;
+  });
+  const pipelineData = [
+    { name: 'Novos', value: statusCount['leads'] || statusCount['novo'] || 0, color: '#00E5FF' },
+    { name: 'Em Negociação', value: statusCount['negociacao'] || 0, color: '#FFD54F' },
+    { name: 'Fechados', value: statusCount['fechado'] || 0, color: '#4CAF50' },
+    { name: 'Realizados', value: statusCount['realizado'] || 0, color: '#9E9E9E' },
+    { name: 'Perdidos', value: statusCount['perdido'] || 0, color: '#F44336' }
+  ].filter(d => d.value > 0);
+
+
   // --- Ranking de Parceiros ---
   const rankingParceiros = Object.entries(cerimonialistas).map(([slug, cerim]) => {
     const leadsDoParc = leads.filter(l => l.cerimonialista === slug);
@@ -396,6 +411,12 @@ export default function AnalyticsDashboard() {
   const totalLucroGlobal = totalFaturamento - totalCustosGlobal;
   const totalValorRestante = totalFaturamento - totalValorPago;
   const margemGlobalMedia = totalFaturamento > 0 ? (totalLucroGlobal / totalFaturamento) * 100 : 0;
+  
+  // Executive KPIs
+  const totalLeads = leads.length;
+  const totalFechados = leads.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
+  const taxaConversao = totalLeads > 0 ? Math.round((totalFechados / totalLeads) * 100) : 0;
+  const ticketMedio = totalFechados > 0 ? totalFaturamento / totalFechados : 0;
 
   // Cost categories breakdown logic
   const sortedCategories = Object.entries(custosPorCategoria)
@@ -503,210 +524,157 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* TABS SELECTOR */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '8px', 
-        marginBottom: '28px',
-        borderBottom: '1px solid var(--border-color)',
-        paddingBottom: '12px'
+      {/* FILTERS BAR */}
+      <div style={{
+        background: 'var(--bg-input)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        marginBottom: '24px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '16px',
+        alignItems: 'center'
       }}>
-        <button
-          onClick={() => setActiveTab('geral')}
-          style={{
-            background: activeTab === 'geral' ? 'rgba(203, 161, 83, 0.08)' : 'transparent',
-            color: activeTab === 'geral' ? 'var(--primary)' : 'var(--text-secondary)',
-            border: 'none',
-            borderBottom: activeTab === 'geral' ? '2px solid var(--primary)' : '2px solid transparent',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: activeTab === 'geral' ? 'bold' : 'normal',
-            fontSize: '0.9rem',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          📈 Geral
-        </button>
-        <button
-          onClick={() => setActiveTab('financeiro')}
-          style={{
-            background: activeTab === 'financeiro' ? 'rgba(203, 161, 83, 0.08)' : 'transparent',
-            color: activeTab === 'financeiro' ? 'var(--primary)' : 'var(--text-secondary)',
-            border: 'none',
-            borderBottom: activeTab === 'financeiro' ? '2px solid var(--primary)' : '2px solid transparent',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: activeTab === 'financeiro' ? 'bold' : 'normal',
-            fontSize: '0.9rem',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          💰 Financeiro
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>🗓️ Filtrar por Ano</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            style={{
+              background: 'var(--bg-input)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="todos">📅 Todos os Anos</option>
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>📅 Filtrar por Mês</label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            style={{
+              background: 'var(--bg-input)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="todos">📆 Todos os Meses</option>
+            <option value="01">01 - Janeiro</option>
+            <option value="02">02 - Fevereiro</option>
+            <option value="03">03 - Março</option>
+            <option value="04">04 - Abril</option>
+            <option value="05">05 - Maio</option>
+            <option value="06">06 - Junho</option>
+            <option value="07">07 - Julho</option>
+            <option value="08">08 - Agosto</option>
+            <option value="09">09 - Setembro</option>
+            <option value="10">10 - Outubro</option>
+            <option value="11">11 - Novembro</option>
+            <option value="12">12 - Dezembro</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>⚡ Status do Lead</label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            style={{
+              background: 'var(--bg-input)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="todos">✨ Todos os Status</option>
+            <option value="leads">Novo (Leads)</option>
+            <option value="negociacao">Em Negociação</option>
+            <option value="fechado">Fechado</option>
+            <option value="realizado">Realizado</option>
+            <option value="perdido">Perdido/Cancelado</option>
+          </select>
+        </div>
+
+        {(selectedYear !== 'todos' || selectedMonth !== 'todos' || selectedStatus !== 'todos') && (
+          <button
+            onClick={() => {
+              setSelectedYear('todos');
+              setSelectedMonth('todos');
+              setSelectedStatus('todos');
+            }}
+            style={{
+              marginTop: '18px',
+              background: 'rgba(244, 67, 54, 0.1)',
+              color: '#FF7043',
+              border: '1px solid rgba(244, 67, 54, 0.3)',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              fontWeight: '500',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            🧹 Limpar Filtros
+          </button>
+        )}
       </div>
 
-      {activeTab === 'financeiro' ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* FILTERS BAR */}
-          <div style={{
-            background: 'var(--bg-input)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '12px',
-            padding: '16px 20px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '16px',
-            alignItems: 'center'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>🗓️ Filtrar por Ano</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                style={{
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="todos">📅 Todos os Anos</option>
-                {availableYears.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>📅 Filtrar por Mês</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="todos">📆 Todos os Meses</option>
-                <option value="01">01 - Janeiro</option>
-                <option value="02">02 - Fevereiro</option>
-                <option value="03">03 - Março</option>
-                <option value="04">04 - Abril</option>
-                <option value="05">05 - Maio</option>
-                <option value="06">06 - Junho</option>
-                <option value="07">07 - Julho</option>
-                <option value="08">08 - Agosto</option>
-                <option value="09">09 - Setembro</option>
-                <option value="10">10 - Outubro</option>
-                <option value="11">11 - Novembro</option>
-                <option value="12">12 - Dezembro</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>⚡ Status do Lead</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                style={{
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="todos">✨ Todos os Status</option>
-                <option value="leads">Novo (Leads)</option>
-                <option value="negociacao">Em Negociação</option>
-                <option value="fechado">Fechado</option>
-                <option value="realizado">Realizado</option>
-                <option value="perdido">Perdido/Cancelado</option>
-              </select>
-            </div>
-
-            {(selectedYear !== 'todos' || selectedMonth !== 'todos' || selectedStatus !== 'todos') && (
-              <button
-                onClick={() => {
-                  setSelectedYear('todos');
-                  setSelectedMonth('todos');
-                  setSelectedStatus('todos');
-                }}
-                style={{
-                  marginTop: '18px',
-                  background: 'rgba(244, 67, 54, 0.1)',
-                  color: '#FF7043',
-                  border: '1px solid rgba(244, 67, 54, 0.3)',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  fontWeight: '500',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                🧹 Limpar Filtros
-              </button>
-            )}
+      {/* KPI CARDS (Executive KPIs) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        {/* Total Leads */}
+        <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #00E5FF' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Leads</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+            {totalLeads}
           </div>
+        </div>
 
-          {/* KPI CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-            {/* FATURAMENTO ACUMULADO */}
-            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #FFF' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Faturamento Acumulado</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFaturamento)}
-              </div>
-            </div>
-
-            {/* TOTAL RECEBIDO */}
-            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #4CAF50' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Recebido</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#4CAF50' }}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValorPago)}
-              </div>
-            </div>
-
-            {/* SALDO A RECEBER */}
-            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: `4px solid ${totalValorRestante > 0 ? '#FFD54F' : '#4CAF50'}` }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Saldo a Receber</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: totalValorRestante > 0 ? '#FFD54F' : '#4CAF50' }}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValorRestante)}
-              </div>
-            </div>
-
-            {/* CUSTOS ACUMULADOS */}
-            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #F44336' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Custos Acumulados</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#F44336' }}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCustosGlobal)}
-              </div>
-            </div>
-
-            {/* LUCRO LÍQUIDO */}
-            <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--primary)' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Lucro Líquido Global</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalLucroGlobal)}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Margem de Lucro Média: <span style={{ color: totalLucroGlobal >= 0 ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>{margemGlobalMedia.toFixed(1)}%</span>
-              </div>
-            </div>
+        {/* Receita Total */}
+        <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #4CAF50' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Receita Total</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#4CAF50' }}>
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFaturamento)}
           </div>
+        </div>
+
+        {/* Taxa de Conversão */}
+        <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid #FFD54F' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Taxa de Conversão</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#FFD54F' }}>
+            {taxaConversao}%
+          </div>
+        </div>
+
+        {/* Ticket Médio */}
+        <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--primary)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Ticket Médio</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ticketMedio)}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
 
           {/* GRÁFICO MENSAL COMPOSITE */}
           <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
@@ -734,6 +702,85 @@ export default function AnalyticsDashboard() {
               </div>
             )}
           </div>
+
+          {/* Gráfico 2: Pipeline de Leads (Distribuição de status) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '24px' }}>
+            <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
+              <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>Pipeline de Leads (Status)</h3>
+              {pipelineData.length > 0 ? (
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer width="99%" height={300}>
+                    <BarChart data={pipelineData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                      <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888' }} />
+                      <YAxis stroke="#888" tick={{ fill: '#888' }} allowDecimals={false} />
+                      <RechartsTooltip 
+                        contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
+                        cursor={{ fill: 'rgba(255,255,255,0.1)' }}
+                      />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {pipelineData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                  Nenhum lead encontrado.
+                </div>
+              )}
+            </div>
+
+            {/* Gráfico 3: Pacotes mais vendidos */}
+            <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
+              <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>Pacotes Mais Vendidos</h3>
+              {pieData.length > 0 ? (
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer width="99%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip 
+                        contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
+                        itemStyle={{ color: 'var(--text-primary)' }} 
+                      />
+                      <Legend verticalAlign="bottom" height={36}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum dado disponível.</div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', marginBottom: '16px' }}>
+            <button
+              onClick={() => setMostrarAvancado(!mostrarAvancado)}
+              className="btn btn--outline"
+              style={{ padding: '12px 24px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              {mostrarAvancado ? '▲ Ocultar análises avançadas' : '📊 Ver mais gráficos e análises (7)'}
+            </button>
+          </div>
+
+          {mostrarAvancado && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
           {/* DISTRIBUIÇÃO DE CUSTOS E INSIGHTS DE OTIMIZAÇÃO */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
@@ -992,9 +1039,6 @@ export default function AnalyticsDashboard() {
               </div>
             )}
           </div>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '24px' }}>
         
         {/* Gráfico 1: Captação de Leads (Linha) */}
         <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1', minWidth: 0 }}>
@@ -1017,41 +1061,6 @@ export default function AnalyticsDashboard() {
             <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               Nenhum orçamento captado ainda.
             </div>
-          )}
-        </div>
-
-        {/* Gráfico 2: Pacotes mais vendidos */}
-        <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 24px 0', color: 'var(--text-primary)' }}>Distribuição de Pacotes (Todos os Leads)</h3>
-          {pieData.length > 0 ? (
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer width="99%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: 'var(--text-primary)' }} 
-                    itemStyle={{ color: 'var(--text-primary)' }} 
-                  />
-                  <Legend verticalAlign="bottom" height={36}/>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum dado disponível.</div>
           )}
         </div>
 
@@ -1802,8 +1811,9 @@ export default function AnalyticsDashboard() {
           )}
         </div>
 
-      </div>
+        </div>
       )}
+      </div>
     </div>
   );
 }

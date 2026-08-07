@@ -1186,12 +1186,22 @@ export default function LeadsKanban() {
     try {
       const isMaoDeObra = (lead.pacote || '').toLowerCase().includes('mão de obra');
       const isGroupB = lead.abGroup === 'B';
+      const isPerPerson = !isGroupB && !isMaoDeObra;
       
       const convidadosInformados = parseInt(lead.convidados || 40, 10);
-      const convidadosCobrados = Math.max(convidadosInformados, 40);
-      const faturamento = parseFloat(lead.financeiro?.faturamento || 0);
+      const convidadosCobrados = isPerPerson ? Math.max(convidadosInformados, 40) : convidadosInformados;
+      
+      const isPremium = (lead.pacote || '').toLowerCase().includes('premium');
+      const isFrozen = (lead.pacote || '').toLowerCase().includes('frozen');
+      
+      const valorPorConvidado = isPerPerson ? (isPremium ? 42 : (isFrozen ? 40 : 30)) : 0;
+      const valorOriginal = isPerPerson ? (convidadosCobrados * valorPorConvidado) : parseFloat(lead.financeiro?.faturamento || 0);
       const desconto = parseFloat(lead.financeiro?.desconto || 0);
-      const valorTotal = Math.max(0, faturamento - desconto);
+      
+      const precoCopo = parseFloat(generalConfigs?.precoCopoVidro !== undefined ? generalConfigs.precoCopoVidro : 5);
+      const valorCoposVidro = lead.coposDeVidro ? (precoCopo * convidadosInformados) : 0;
+      
+      const valorTotal = Math.max(0, valorOriginal - desconto + valorCoposVidro);
       
       const parcela1 = +(valorTotal / 2).toFixed(2);
       const parcela2 = +(valorTotal - parcela1).toFixed(2);
@@ -1199,8 +1209,6 @@ export default function LeadsKanban() {
       const hoje = new Date();
       const hojeFormatado = `${String(hoje.getDate()).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
 
-      const isPremium = (lead.pacote || '').toLowerCase().includes('premium');
-      const isFrozen = (lead.pacote || '').toLowerCase().includes('frozen');
       const ratePerGuest = isPremium ? 7 : (isFrozen ? 8 : 6);
       const valorHoraExtraVal = isGroupB ? 200 : (isMaoDeObra ? 70 : ratePerGuest * convidadosCobrados);
       const valorHoraExtraStr = valorHoraExtraVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1224,11 +1232,12 @@ export default function LeadsKanban() {
         convidados_cobrados: convidadosCobrados,
         Servico: lead.pacote || 'Standard',
         is_tier: isGroupB,
-        is_per_person: !isGroupB && !isMaoDeObra,
+        is_per_person: isPerPerson,
         tier_label: isGroupB ? `Até ${convidadosCobrados} convidados` : '',
-        valor_por_convidado_formatado: (valorTotal / (convidadosCobrados || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        valor_por_convidado_formatado: valorPorConvidado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         valor_total_formatado: valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-        valor_original_formatado: faturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        valor_original_formatado: valorOriginal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        desconto: desconto,
         desconto_formatado: desconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         valor_hora_extra: valorHoraExtraVal,
         valor_hora_extra_formatado: valorHoraExtraStr,
