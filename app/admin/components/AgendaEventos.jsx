@@ -21,6 +21,12 @@ export default function AgendaEventos() {
   const [ajudantes, setAjudantes] = useState({});
   const [modoVisao, setModoVisao] = useState('grade');
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setModoVisao('lista');
+    }
+  }, []);
+
   const modalOpenRef = useRef(false);
 
   // Sync selectedEvento with history

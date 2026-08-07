@@ -1004,7 +1004,39 @@ body {
   }
 
   .form-actions {
-    flex-direction: column-reverse;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: rgba(10, 15, 11, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+    margin-top: 24px;
+    border-top: 1px solid rgba(203, 161, 83, 0.15);
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  /* Prevent auto-zoom on iOS Safari when focusing inputs */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Touch-friendly interactive targets */
+  button, 
+  .btn, 
+  input, 
+  select {
+    min-height: 48px;
   }
 }
 

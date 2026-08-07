@@ -1452,6 +1452,139 @@ export default function LeadsKanban() {
       </div>
       </div>
 
+      {/* ── PRÓXIMOS EVENTOS DA SEMANA WIDGET ──────────────────────────────── */}
+      {(() => {
+        const proximosEventos = leads.filter(l => {
+          if (!l.dataEvento || (l.status !== 'fechado' && l.status !== 'realizado')) return false;
+          const evDate = new Date(l.dataEvento + 'T00:00:00');
+          const now = new Date();
+          now.setHours(0, 0, 0, 0);
+          const diffDays = Math.ceil((evDate - now) / (1000 * 60 * 60 * 24));
+          return diffDays >= 0 && diffDays <= 7;
+        }).sort((a, b) => new Date(a.dataEvento) - new Date(b.dataEvento));
+
+        if (proximosEventos.length === 0) return null;
+
+        return (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(203, 161, 83, 0.12), rgba(10, 15, 11, 0.95))',
+            border: '1px solid rgba(203, 161, 83, 0.35)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '20px',
+            animation: 'fadeIn 0.3s ease'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.2rem' }}>🎉</span>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--primary)', fontWeight: 'bold' }}>
+                  Próximos Eventos da Semana ({proximosEventos.length})
+                </h3>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Próximos 7 dias</span>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              overflowX: 'auto',
+              paddingBottom: '6px',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}>
+              {proximosEventos.map(ev => {
+                const evDate = new Date(ev.dataEvento + 'T00:00:00');
+                const formattedDate = evDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                
+                return (
+                  <div key={ev.id} style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid rgba(203, 161, 83, 0.25)',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    minWidth: '260px',
+                    flexShrink: 0
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem' }}>{ev.nome} {ev.sobrenome || ''}</span>
+                      <span style={{ background: 'var(--primary)', color: '#000', padding: '2px 8px', borderRadius: '10px', fontSize: '0.72rem', fontWeight: 'bold' }}>
+                        {formattedDate}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                      📍 {ev.cidade} · {ev.pacote} · {ev.convidados} conv.
+                    </div>
+
+                    {/* Direct Action Links */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <a
+                        href={`/lista-compras/${ev.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.72rem',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        🛒 Compras
+                      </a>
+                      <a
+                        href={`/contrato/${ev.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.72rem',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        📄 Contrato
+                      </a>
+                      {ev.telefone && (
+                        <a
+                          href={`https://wa.me/55${ev.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${ev.nome}, ajustando os detalhes para o evento do dia ${formattedDate}!`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            background: '#25D366',
+                            color: '#FFF',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 'bold',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          💬 Zap
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── ADVANCED FILTERS & TEST SHORTCUTS ──────────────────────────────── */}
       <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
         <button
@@ -1616,14 +1749,57 @@ export default function LeadsKanban() {
 
 
       {viewMode === 'kanban' ? (
-        <div className="admin-kanban-container" style={{ 
-          display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', minHeight: 'calc(100vh - 150px)' 
-        }}>
-          {COLUMNS.map(col => {
-            const colLeads = getLeadsByStatus(col.id);
-            return (
-              <div 
-                key={col.id} 
+        <>
+          {/* Mobile Column Jump Pills */}
+          {isMobile && (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              padding: '4px 0 12px 0',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}>
+              {COLUMNS.map(col => {
+                const count = getLeadsByStatus(col.id).length;
+                return (
+                  <button
+                    key={col.id}
+                    onClick={() => {
+                      const el = document.getElementById(`kanban-col-${col.id}`);
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '6px 12px',
+                      borderRadius: '16px',
+                      fontSize: '0.8rem',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>{col.title}</span>
+                    <span style={{ background: col.color || 'var(--primary)', color: '#000', borderRadius: '10px', padding: '1px 7px', fontSize: '0.72rem', fontWeight: 'bold' }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="admin-kanban-container" style={{ 
+            display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', minHeight: 'calc(100vh - 150px)' 
+          }}>
+            {COLUMNS.map(col => {
+              const colLeads = getLeadsByStatus(col.id);
+              return (
+                <div 
+                  key={col.id} 
+                  id={`kanban-col-${col.id}`}
                 onDragOver={(e) => {
                   e.preventDefault(); // Necessário para permitir o onDrop
                   e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; // Efeito visual ao arrastar por cima
@@ -1745,6 +1921,60 @@ export default function LeadsKanban() {
                           </div>
                         )}
 
+                        {/* Fast 1-Tap WhatsApp & Phone Buttons */}
+                        {lead.telefone && (
+                          <div 
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              display: 'flex',
+                              gap: '6px',
+                              marginTop: '10px',
+                              paddingTop: '8px',
+                              borderTop: '1px solid rgba(255,255,255,0.06)'
+                            }}
+                          >
+                            <a
+                              href={`https://wa.me/55${lead.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${lead.nome}, sobre seu orçamento no Laboratório de Drinks...`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                flex: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                background: '#25D366',
+                                color: '#FFF',
+                                borderRadius: '6px',
+                                padding: '6px 8px',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                textDecoration: 'none'
+                              }}
+                            >
+                              <FiPhone size={12} /> WhatsApp
+                            </a>
+                            <a
+                              href={`tel:${lead.telefone.replace(/\D/g, '')}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'rgba(255,255,255,0.08)',
+                                color: 'var(--text-primary)',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                                fontSize: '0.75rem',
+                                textDecoration: 'none',
+                                border: '1px solid var(--border-color)'
+                              }}
+                              title="Ligar para o cliente"
+                            >
+                              📞
+                            </a>
+                          </div>
+                        )}
+
                         {/* Seletor rápido de status para celular */}
                         {isMobile && (
                           <div 
@@ -1789,6 +2019,7 @@ export default function LeadsKanban() {
             );
           })}
         </div>
+        </>
       ) : (
         <div className="admin-table-container" style={{ background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '20px', minHeight: 'calc(100vh - 150px)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>

@@ -391,7 +391,10 @@ export default function OrcamentoClient() {
 
   const nextStep = useCallback(() => {
     if (validateStep(currentStep)) {
-      setCurrentStep(s => Math.min(s + 1, STEPS.length - 1))
+      setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   }, [currentStep, validateStep])
 
@@ -400,6 +403,9 @@ export default function OrcamentoClient() {
       window.history.back();
     } else {
       setCurrentStep(s => Math.max(s - 1, 0));
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, []);
 
