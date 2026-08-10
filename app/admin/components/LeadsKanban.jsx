@@ -155,6 +155,7 @@ export default function LeadsKanban() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewMode, setPreviewMode] = useState('desktop'); // 'desktop' | 'mobile'
   const [financeiroPresets, setFinanceiroPresets] = useState({});
+  const [showAllPresets, setShowAllPresets] = useState(false);
   const [newCost, setNewCost] = useState({ descricao: '', valor: '', quantidade: '', valorUnitario: '', categoria: 'insumos', itemIdEstoque: '' });
   const [estoque, setEstoque] = useState([]);
   const [newPaymentVal, setNewPaymentVal] = useState('');
@@ -3987,25 +3988,35 @@ export default function LeadsKanban() {
                   <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '14px' }}>
                     <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '10px' }}>💸 Lançar Custo</div>
 
-                    {/* Presets — toque único para adicionar */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                      {Object.entries(financeiroPresets).map(([slug, item]) => (
-                        <button
-                          key={slug}
-                          type="button"
-                          onClick={() => {
-                            const cat = detectCategoryByDescription(item.descricao);
-                            handleAddCost(item.descricao, item.valor.toString(), cat);
-                          }}
-                          style={{ background: 'rgba(203,161,83,0.06)', border: '1px solid rgba(203,161,83,0.2)', borderRadius: '20px', color: '#f0f2ec', padding: '6px 12px', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s ease' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(203,161,83,0.15)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(203,161,83,0.06)'; e.currentTarget.style.borderColor = 'rgba(203,161,83,0.2)'; }}
-                        >
-                          <span>{item.descricao}</span>
-                          <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>R${item.valor}</span>
-                        </button>
-                      ))}
-                    </div>
+                    {/* Presets — toque único, max 5 por padrão */}
+                    {(() => {
+                      const allP = Object.entries(financeiroPresets);
+                      const shown = showAllPresets ? allP : allP.slice(0, 5);
+                      return (
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: allP.length > 5 ? '6px' : '0' }}>
+                            {shown.map(([slug, item]) => (
+                              <button
+                                key={slug}
+                                type="button"
+                                onClick={() => { const cat = detectCategoryByDescription(item.descricao); handleAddCost(item.descricao, item.valor.toString(), cat); }}
+                                style={{ background: 'rgba(203,161,83,0.06)', border: '1px solid rgba(203,161,83,0.2)', borderRadius: '20px', color: '#f0f2ec', padding: '6px 12px', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(203,161,83,0.15)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(203,161,83,0.06)'; e.currentTarget.style.borderColor = 'rgba(203,161,83,0.2)'; }}
+                              >
+                                <span>{item.descricao}</span>
+                                <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>R${item.valor}</span>
+                              </button>
+                            ))}
+                          </div>
+                          {allP.length > 5 && (
+                            <button type="button" onClick={() => setShowAllPresets(v => !v)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', padding: '2px 0', textDecoration: 'underline' }}>
+                              {showAllPresets ? '▲ Menos' : '▼ Ver todos (' + allP.length + ')'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Manual — só descrição + valor */}
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
