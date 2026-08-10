@@ -4018,8 +4018,26 @@ export default function LeadsKanban() {
                       );
                     })()}
 
-                    {/* Manual — só descrição + valor */}
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    {/* Manual — quantidade, descrição + valor */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <input
+                        type="number"
+                        placeholder="Qtd"
+                        title="Quantidade (opcional)"
+                        value={newCost.quantidade}
+                        onChange={(e) => {
+                          const q = e.target.value;
+                          setNewCost(prev => {
+                            const numQ = parseFloat(q) || 0;
+                            const numV = parseFloat(prev.valor) || 0;
+                            const numU = parseFloat(prev.valorUnitario) || 0;
+                            let v = prev.valor;
+                            if (numQ > 0 && numU > 0) v = (numQ * numU).toFixed(2);
+                            return { ...prev, quantidade: q, valor: v };
+                          });
+                        }}
+                        style={{ width: '56px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 6px', fontSize: '0.88rem', outline: 'none', textAlign: 'center' }}
+                      />
                       <input
                         type="text"
                         placeholder="Ex: Barman, Gelo, Copos..."
@@ -4029,24 +4047,32 @@ export default function LeadsKanban() {
                           const desc = e.target.value;
                           const matchedPreset = Object.values(financeiroPresets).find(p => p.descricao.toLowerCase().trim() === desc.toLowerCase().trim());
                           if (matchedPreset) {
-                            setNewCost({ descricao: matchedPreset.descricao, valor: matchedPreset.valor.toString(), categoria: detectCategoryByDescription(matchedPreset.descricao) });
+                            setNewCost(prev => ({ ...prev, descricao: matchedPreset.descricao, valor: matchedPreset.valor.toString(), categoria: detectCategoryByDescription(matchedPreset.descricao) }));
                           } else {
                             setNewCost(prev => ({ ...prev, descricao: desc, categoria: detectCategoryByDescription(desc) }));
                           }
                         }}
-                        style={{ flex: '2', minWidth: '140px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none' }}
+                        style={{ flex: '2', minWidth: '110px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none' }}
                       />
                       <input
                         type="number"
                         placeholder="R$ valor"
                         value={newCost.valor}
-                        onChange={(e) => setNewCost(prev => ({ ...prev, valor: e.target.value }))}
-                        style={{ flex: '1', minWidth: '90px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none' }}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setNewCost(prev => {
+                            const numQ = parseFloat(prev.quantidade) || 1;
+                            const numV = parseFloat(v) || 0;
+                            const numU = numQ > 0 ? (numV / numQ).toFixed(2) : v;
+                            return { ...prev, valor: v, valorUnitario: numU };
+                          });
+                        }}
+                        style={{ flex: '1', minWidth: '80px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none' }}
                       />
                       <button
                         type="button"
-                        onClick={() => { handleAddCost(newCost.descricao, newCost.valor, newCost.categoria); setNewCost({ descricao: '', valor: '', categoria: 'outros', quantidade: '', valorUnitario: '', itemIdEstoque: '' }); }}
-                        style={{ background: 'var(--primary)', border: 'none', color: '#000', fontWeight: 'bold', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.88rem', height: '42px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                        onClick={() => { handleAddCost(newCost.descricao, newCost.valor, newCost.categoria); setNewCost({ descricao: '', valor: '', categoria: 'insumos', quantidade: '', valorUnitario: '', itemIdEstoque: '' }); }}
+                        style={{ background: 'var(--primary)', border: 'none', color: '#000', fontWeight: 'bold', padding: '10px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.88rem', height: '42px', display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
                         <FiPlus size={15} /> Adicionar
                       </button>
@@ -4066,16 +4092,25 @@ export default function LeadsKanban() {
                         {custosLista.map((custo) => {
                           const catId = custo.categoria || detectCategoryByDescription(custo.descricao);
                           const matched = custosCategorias.find(c => c.id === catId) || { label: 'Outros', emoji: '✨', color: '#a8b8aa' };
+                          const numQ = parseFloat(custo.quantidade) || 0;
+                          const numU = parseFloat(custo.valorUnitario) || 0;
                           return (
                             <div key={custo.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.82rem' }}>
                               <span style={{ color: 'var(--text-secondary)', marginRight: '6px' }}>{matched.emoji}</span>
-                              <span style={{ flex: 1, color: 'var(--text-primary)' }}>{custo.descricao}</span>
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{custo.descricao}</span>
+                                {numQ > 0 && (
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                    {numQ}x {numU > 0 ? `(${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numU)} cada)` : ''}
+                                  </span>
+                                )}
+                              </div>
                               <span style={{ color: '#F44336', fontWeight: '600', marginRight: '10px' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custo.valor)}</span>
                               <button type="button" onClick={() => handleRemoveCost(custo.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '2px 4px' }}><FiTrash2 size={13} /></button>
                             </div>
                           );
                         })}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', fontWeight: 'bold', fontSize: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '4px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', fontWeight: 'bold', fontSize: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '4px' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>Total de Custos</span>
                           <span style={{ color: '#F44336' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCustos)}</span>
                         </div>
