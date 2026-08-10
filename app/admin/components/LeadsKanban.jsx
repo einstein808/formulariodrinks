@@ -1518,6 +1518,58 @@ export default function LeadsKanban() {
 
                     {/* Direct Action Links */}
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {(() => {
+                        const loc = [ev.rua, ev.numero, ev.bairro, ev.cidade].filter(Boolean).join(', ') || ev.cidade || ev.local || '';
+                        if (!loc) return null;
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+                        const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(loc)}&navigate=yes`;
+                        return (
+                          <>
+                            <a
+                              href={mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: 'rgba(66, 133, 244, 0.15)',
+                                border: '1px solid rgba(66, 133, 244, 0.4)',
+                                color: '#4285F4',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 'bold',
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Navegar com Google Maps"
+                            >
+                              🗺️ Maps
+                            </a>
+                            <a
+                              href={wazeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: 'rgba(51, 204, 255, 0.15)',
+                                border: '1px solid rgba(51, 204, 255, 0.4)',
+                                color: '#33CCFF',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 'bold',
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Navegar com Waze"
+                            >
+                              🚙 Waze
+                            </a>
+                          </>
+                        );
+                      })()}
                       <a
                         href={`/lista-compras/${ev.id}`}
                         target="_blank"
@@ -2552,7 +2604,21 @@ export default function LeadsKanban() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '0.88rem' }}>
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Cliente:</strong> {selectedLead.nome} {selectedLead.sobrenome || ''}</div>
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Telefone:</strong> {formatPhone(selectedLead.telefone)}</div>
-                        <div><strong style={{ color: 'var(--text-secondary)' }}>Cidade:</strong> {selectedLead.cidade || '—'}</div>
+                        <div>
+                          <strong style={{ color: 'var(--text-secondary)' }}>Cidade:</strong> {selectedLead.cidade || '—'}
+                          {(() => {
+                            const loc = [selectedLead.rua, selectedLead.numero, selectedLead.bairro, selectedLead.cidade].filter(Boolean).join(', ') || selectedLead.cidade || selectedLead.local || '';
+                            if (!loc) return null;
+                            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+                            const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(loc)}&navigate=yes`;
+                            return (
+                              <span style={{ display: 'inline-flex', gap: '6px', marginLeft: '8px' }}>
+                                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#4285F4', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 'bold', background: 'rgba(66, 133, 244, 0.12)', padding: '2px 6px', borderRadius: '4px' }}>🗺️ Maps</a>
+                                <a href={wazeUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#33CCFF', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 'bold', background: 'rgba(51, 204, 255, 0.12)', padding: '2px 6px', borderRadius: '4px' }}>🚙 Waze</a>
+                              </span>
+                            );
+                          })()}
+                        </div>
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Tipo:</strong> {selectedLead.tipoEvento || '—'}</div>
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Data:</strong> {selectedLead.dataEvento ? selectedLead.dataEvento.split('-').reverse().join('/') : '—'}</div>
                         <div><strong style={{ color: 'var(--text-secondary)' }}>Horário:</strong> {selectedLead.horarioEvento || '—'}</div>

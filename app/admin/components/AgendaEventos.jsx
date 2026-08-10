@@ -414,7 +414,21 @@ export default function AgendaEventos() {
 
                 <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', gridColumn: 'span 2' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 4 }}><FiMapPin size={12} /> Cidade / Local</div>
-                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{selectedEvento.cidade || '—'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{selectedEvento.cidade || '—'}</div>
+                    {(() => {
+                      const loc = [selectedEvento.rua, selectedEvento.numero, selectedEvento.bairro, selectedEvento.cidade].filter(Boolean).join(', ') || selectedEvento.cidade || selectedEvento.local || '';
+                      if (!loc) return null;
+                      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+                      const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(loc)}&navigate=yes`;
+                      return (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(66, 133, 244, 0.15)', border: '1px solid rgba(66, 133, 244, 0.4)', color: '#4285F4', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 'bold', textDecoration: 'none' }}>🗺️ Maps</a>
+                          <a href={wazeUrl} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(51, 204, 255, 0.15)', border: '1px solid rgba(51, 204, 255, 0.4)', color: '#33CCFF', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 'bold', textDecoration: 'none' }}>🚙 Waze</a>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
 
                 <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
