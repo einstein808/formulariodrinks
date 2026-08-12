@@ -307,6 +307,40 @@ export default function ConfigsEditor() {
     setPacotes(pacotes.map(p => p.id === pacoteId ? { ...p, pricingMode: 'tier', priceTiers: recommended } : p));
   };
 
+  const addPacoteCusto = (pacoteId) => {
+    setPacotes(pacotes.map(p => {
+      if (p.id !== pacoteId) return p;
+      const current = p.custosPadrao || [];
+      const newCost = { item: 'Novo Item', valor: 100, quantidade: 1, categoria: 'insumos' };
+      return { ...p, custosPadrao: [...current, newCost] };
+    }));
+  };
+  const updatePacoteCusto = (pacoteId, index, field, value) => {
+    setPacotes(pacotes.map(p => {
+      if (p.id !== pacoteId) return p;
+      const newCosts = [...(p.custosPadrao || [])];
+      newCosts[index] = { ...newCosts[index], [field]: value };
+      return { ...p, custosPadrao: newCosts };
+    }));
+  };
+  const removePacoteCusto = (pacoteId, index) => {
+    setPacotes(pacotes.map(p => {
+      if (p.id !== pacoteId) return p;
+      const newCosts = [...(p.custosPadrao || [])];
+      newCosts.splice(index, 1);
+      return { ...p, custosPadrao: newCosts };
+    }));
+  };
+  const applyRecommendedCustos = (pacoteId) => {
+    const recommended = [
+      { item: 'Insumos & Bebidas Base', valor: 180, quantidade: 1, categoria: 'insumos' },
+      { item: 'Gelo, Frutas & Insumos Perecíveis', valor: 80, quantidade: 1, categoria: 'insumos' },
+      { item: 'Ajudante / Bartender', valor: 200, quantidade: 1, categoria: 'equipe' },
+      { item: 'Frete & Logística', valor: 60, quantidade: 1, categoria: 'logistica' }
+    ];
+    setPacotes(pacotes.map(p => p.id === pacoteId ? { ...p, custosPadrao: recommended } : p));
+  };
+
   /* Galeria Handlers */
   const addEvento = () => {
     const newId = `evento-${Date.now()}`;
@@ -829,6 +863,93 @@ export default function ConfigsEditor() {
                     </button>
                   </div>
                 )}
+
+                {/* Custos Padrão Estimados por Evento */}
+                <div style={{
+                  background: 'rgba(255, 152, 0, 0.05)',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 152, 0, 0.25)',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                    <h4 style={{ margin: 0, color: '#FF9800', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      📋 Custos Padrão Estimados por Evento
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => applyRecommendedCustos(pacote.id)}
+                      style={{
+                        background: '#FF9800',
+                        color: '#000',
+                        border: 'none',
+                        padding: '4px 10px',
+                        borderRadius: '4px',
+                        fontSize: '0.78rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ⚡ Carregar Modelo Sugerido
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 40px', gap: '8px', fontWeight: 'bold', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      <span>Descrição do Custo</span>
+                      <span>Valor Estimado (R$)</span>
+                      <span>Qtd</span>
+                      <span></span>
+                    </div>
+                    {(pacote.custosPadrao || []).map((cItem, cIdx) => (
+                      <div key={cIdx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 40px', gap: '8px' }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={cItem.item || ''}
+                          onChange={(e) => updatePacoteCusto(pacote.id, cIdx, 'item', e.target.value)}
+                          placeholder="Ex: Insumos, Gelo, Garçom"
+                        />
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={cItem.valor || ''}
+                          onChange={(e) => updatePacoteCusto(pacote.id, cIdx, 'valor', parseFloat(e.target.value) || 0)}
+                          placeholder="Ex: 150"
+                        />
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={cItem.quantidade || 1}
+                          onChange={(e) => updatePacoteCusto(pacote.id, cIdx, 'quantidade', parseInt(e.target.value, 10) || 1)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePacoteCusto(pacote.id, cIdx)}
+                          style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: '#F44336' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => addPacoteCusto(pacote.id)}
+                    style={{
+                      background: 'none',
+                      border: '1px dashed #FF9800',
+                      color: '#FF9800',
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    + Adicionar Item de Custo Padrão
+                  </button>
+                </div>
 
                 <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>

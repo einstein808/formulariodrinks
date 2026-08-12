@@ -52,6 +52,12 @@ const getFinanceStatusHelper = (lead) => {
   return { label: 'Parcial', color: '#FFD54F', bg: 'rgba(255, 213, 79, 0.1)' };
 };
 
+const hasCustosLancados = (lead) => {
+  const custosObj = lead?.financeiro?.custos || {};
+  const total = Object.values(custosObj).reduce((acc, cost) => acc + (parseFloat(cost.valor) || 0), 0);
+  return total > 0;
+};
+
 const getLeadStatusHelper = (lead) => {
   let isStale = false;
   let followUpCount = 0;
@@ -180,6 +186,7 @@ export default function LeadsKanban() {
   const [filterCidade, setFilterCidade] = useState('');
   const [filterMinVal, setFilterMinVal] = useState('');
   const [filterMaxVal, setFilterMaxVal] = useState('');
+  const [filterSemCustos, setFilterSemCustos] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   const lastModalRef = useRef(null);
@@ -799,7 +806,15 @@ export default function LeadsKanban() {
     }
   };
 
-  const detectCategoryByDescription = (desc) => {
+  const DEFAULT_CATEGORIAS_CUSTOS = [
+  { id: 'insumos', label: 'Insumos & Bebidas', emoji: '🍹', color: '#4CAF50' },
+  { id: 'equipe', label: 'Equipe & Staff', emoji: '👨‍🍳', color: '#2196F3' },
+  { id: 'logistica', label: 'Logística & Frete', emoji: '🚚', color: '#FF9800' },
+  { id: 'descartaveis', label: 'Descartáveis', emoji: '🥤', color: '#9C27B0' },
+  { id: 'outros', label: 'Outros Custos', emoji: '✨', color: '#a8b8aa' }
+];
+
+const detectCategoryByDescription = (desc) => {
     const normalized = (desc || '').toLowerCase().trim();
     if (normalized.includes('barman') || normalized.includes('ajudante') || normalized.includes('equipe') || normalized.includes('garçom') || normalized.includes('staff')) {
       return 'equipe';
@@ -888,6 +903,37 @@ export default function LeadsKanban() {
     }
   };
 
+  const handleUpdateCostCategory = async (costId, newCat) => {
+    if (!selectedLead || !costId) return;
+    try {
+      const path = `leads/${selectedLead.id}/financeiro/custos/${costId}/categoria`;
+      await set(ref(db, path), newCat);
+      setSelectedLead(prev => {
+        const currentFinanceiro = prev.financeiro || {};
+        const currentCustos = { ...(currentFinanceiro.custos || {}) };
+        if (currentCustos[costId]) {
+          currentCustos[costId] = { ...currentCustos[costId], categoria: newCat };
+        }
+        return {
+          ...prev,
+          financeiro: { ...currentFinanceiro, custos: currentCustos }
+        };
+      });
+      setLeads(prev => prev.map(l => {
+        if (l.id !== selectedLead.id) return l;
+        const cCustos = { ...(l.financeiro?.custos || {}) };
+        if (cCustos[costId]) {
+          cCustos[costId] = { ...cCustos[costId], categoria: newCat };
+        }
+        return { ...l, financeiro: { ...(l.financeiro || {}), custos: cCustos } };
+      }));
+      showToast("Categoria do custo atualizada!", "success");
+    } catch (err) {
+      console.error("Erro ao atualizar categoria:", err);
+      showToast("Erro ao atualizar categoria.", "error");
+    }
+  };
+
   const handleRemoveCost = async (costId) => {
     if (!selectedLead || !costId) return;
     showConfirm("Remover este custo do evento?", async () => {
@@ -912,6 +958,74 @@ export default function LeadsKanban() {
         showToast("Erro ao remover custo.", "error");
       }
     }, "Remover Custo");
+  };
+
+  const handleApplyPackageCostsTemplate = async (leadToUpdate) => {
+    const targetLead = leadToUpdate || selectedLead;
+    if (!targetLead) return;
+
+    const leadPackageName = targetLead.pacote || targetLead.pacoteNome || targetLead.pacoteId || '';
+    const foundPacote = pacotes.find(p =>
+      p.id === targetLead.pacoteId ||
+      (p.name && leadPackageName && p.name.toLowerCase().trim() === leadPackageName.toLowerCase().trim()) ||
+      (p.name && leadPackageName && leadPackageName.toLowerCase().includes(p.name.toLowerCase()))
+    );
+
+    let templateItems = [];
+    if (foundPacote && Array.isArray(foundPacote.custosPadrao) && foundPacote.custosPadrao.length > 0) {
+      templateItems = foundPacote.custosPadrao;
+    } else {
+      const convidados = parseInt(targetLead.convidados || targetLead.numConvidados || 50, 10);
+      const factor = Math.max(1, Math.round(convidados / 50));
+      templateItems = [
+        { item: 'Insumos & Bebidas Base', valor: 150 * factor, quantidade: 1, categoria: 'insumos' },
+        { item: 'Gelo, Frutas & Perecíveis', valor: 70 * factor, quantidade: 1, categoria: 'insumos' },
+        { item: 'Ajudante / Bartender', valor: 200, quantidade: 1, categoria: 'equipe' },
+        { item: 'Logística & Frete', valor: 60, quantidade: 1, categoria: 'logistica' }
+      ];
+    }
+
+    try {
+      const currentCustos = targetLead?.financeiro?.custos || {};
+      const newCustosObject = { ...currentCustos };
+
+      templateItems.forEach((item, index) => {
+        const costId = `cost_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 4)}`;
+        const val = parseFloat(item.valor || item.valorUnitario) || 0;
+        const qtd = parseInt(item.quantidade, 10) || 1;
+        const totalVal = val * qtd;
+
+        newCustosObject[costId] = {
+          id: costId,
+          descricao: item.item || item.descricao || 'Custo Estimado',
+          valor: totalVal,
+          quantidade: qtd,
+          valorUnitario: val,
+          categoria: item.categoria || detectCategoryByDescription(item.item || item.descricao || ''),
+          data: new Date().toISOString()
+        };
+      });
+
+      const pathCustos = `leads/${targetLead.id}/financeiro/custos`;
+      await set(ref(db, pathCustos), newCustosObject);
+
+      setLeads(prev => prev.map(l => l.id === targetLead.id ? {
+        ...l,
+        financeiro: { ...(l.financeiro || {}), custos: newCustosObject }
+      } : l));
+
+      if (selectedLead && selectedLead.id === targetLead.id) {
+        setSelectedLead(prev => ({
+          ...prev,
+          financeiro: { ...(prev?.financeiro || {}), custos: newCustosObject }
+        }));
+      }
+
+      showToast("⚡ Custos estimados do pacote inseridos com sucesso!", "success");
+    } catch (err) {
+      console.error("Erro ao aplicar template de custos:", err);
+      showToast("Erro ao aplicar template de custos.", "error");
+    }
   };
 
   const handleSendHelperAvailabilityCheck = async (helperSlug, helperInfo) => {
@@ -1339,7 +1453,8 @@ export default function LeadsKanban() {
   const uniquePacotes = [...new Set(leads.map(l => l.pacote).filter(Boolean))].sort();
   const uniqueCidades = [...new Set(leads.map(l => l.cidade).filter(Boolean))].sort();
 
-  const activeFilterCount = [filterSearch, filterMonth, filterPacote, filterCidade, filterMinVal, filterMaxVal].filter(Boolean).length;
+  const activeFilterCount = [filterSearch, filterMonth, filterPacote, filterCidade, filterMinVal, filterMaxVal, filterSemCustos].filter(Boolean).length;
+  const semCustosTotalCount = leads.filter(l => (l.status === 'fechado' || l.status === 'realizado') && !hasCustosLancados(l)).length;
 
   const applyAdvancedFilters = (list) => {
     return list.filter(l => {
@@ -1360,6 +1475,9 @@ export default function LeadsKanban() {
       if (filterMaxVal !== '') {
         const fat = parseFloat(l.financeiro?.faturamento) || 0;
         if (fat > parseFloat(filterMaxVal)) return false;
+      }
+      if (filterSemCustos) {
+        if (hasCustosLancados(l)) return false;
       }
       return true;
     });
@@ -1508,9 +1626,16 @@ export default function LeadsKanban() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem' }}>{ev.nome} {ev.sobrenome || ''}</span>
-                      <span style={{ background: 'var(--primary)', color: '#000', padding: '2px 8px', borderRadius: '10px', fontSize: '0.72rem', fontWeight: 'bold' }}>
-                        {formattedDate}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {!hasCustosLancados(ev) && (
+                          <span title="Nenhum custo foi lançado para este evento ainda!" style={{ background: 'rgba(255, 152, 0, 0.15)', color: '#FF9800', border: '1px solid rgba(255, 152, 0, 0.4)', padding: '2px 6px', borderRadius: '8px', fontSize: '0.68rem', fontWeight: 'bold' }}>
+                            ⚠️ Sem Custos
+                          </span>
+                        )}
+                        <span style={{ background: 'var(--primary)', color: '#000', padding: '2px 8px', borderRadius: '10px', fontSize: '0.72rem', fontWeight: 'bold' }}>
+                          {formattedDate}
+                        </span>
+                      </div>
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
                       📍 {ev.cidade} · {ev.pacote} · {ev.convidados} conv.
@@ -1658,6 +1783,23 @@ export default function LeadsKanban() {
               fontSize: '0.72rem', fontWeight: 'bold', padding: '1px 7px'
             }}>{activeFilterCount}</span>
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterSemCustos(f => !f)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: filterSemCustos ? 'rgba(255, 152, 0, 0.2)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${filterSemCustos ? '#FF9800' : 'var(--border-color)'}`,
+            color: filterSemCustos ? '#FF9800' : 'var(--text-secondary)',
+            borderRadius: '10px', padding: '8px 14px', cursor: 'pointer', fontSize: '0.85rem',
+            fontWeight: filterSemCustos ? 'bold' : 'normal',
+            transition: 'all 0.2s'
+          }}
+          title="Filtrar eventos fechados/realizados que ainda não têm custos lançados"
+        >
+          ⚠️ Falta Custos {semCustosTotalCount > 0 ? `(${semCustosTotalCount})` : ''}
         </button>
 
         <a
@@ -1947,13 +2089,21 @@ export default function LeadsKanban() {
                           <span style={{ fontSize: '0.75rem', background: 'rgba(203, 161, 83, 0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: '6px', fontWeight: '600', letterSpacing: '0.2px' }}>
                             {lead.pacote}
                           </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {(() => {
                               const fin = getFinanceStatusHelper(lead);
+                              const semCustos = (lead.status === 'fechado' || lead.status === 'realizado') && !hasCustosLancados(lead);
                               return (
-                                <span style={{ fontSize: '0.68rem', color: fin.color, background: fin.bg, padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                                  {fin.label}
-                                </span>
+                                <>
+                                  <span style={{ fontSize: '0.68rem', color: fin.color, background: fin.bg, padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                    {fin.label}
+                                  </span>
+                                  {semCustos && (
+                                    <span title="Falta lançar os custos deste evento!" style={{ fontSize: '0.68rem', color: '#FF9800', background: 'rgba(255, 152, 0, 0.15)', border: '1px solid rgba(255, 152, 0, 0.35)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                      ⚠️ Sem Custos
+                                    </span>
+                                  )}
+                                </>
                               );
                             })()}
                             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
@@ -2176,10 +2326,18 @@ export default function LeadsKanban() {
                       <td style={{ padding: '12px 16px' }}>
                         {(() => {
                           const fin = getFinanceStatusHelper(lead);
+                          const semCustos = (lead.status === 'fechado' || lead.status === 'realizado') && !hasCustosLancados(lead);
                           return (
-                            <span style={{ fontSize: '0.72rem', color: fin.color, background: fin.bg, padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
-                              {fin.label}
-                            </span>
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.72rem', color: fin.color, background: fin.bg, padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                                {fin.label}
+                              </span>
+                              {semCustos && (
+                                <span title="Falta lançar custos!" style={{ fontSize: '0.72rem', color: '#FF9800', background: 'rgba(255, 152, 0, 0.15)', border: '1px solid rgba(255, 152, 0, 0.35)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  ⚠️ Sem Custos
+                                </span>
+                              )}
+                            </div>
                           );
                         })()}
                       </td>
@@ -4084,6 +4242,52 @@ export default function LeadsKanban() {
                       );
                     })()}
 
+                    {/* Banner para Aplicação Rápida de Custos Padrão */}
+                    <div style={{
+                      background: 'rgba(255, 152, 0, 0.08)',
+                      border: '1px dashed rgba(255, 152, 0, 0.35)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>⚡</span>
+                        <div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 'bold', color: '#FF9800' }}>
+                            Lançamento Rápido por Template
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                            Preencha os custos deste evento com base nos valores padrão do pacote com 1 clique.
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPackageCostsTemplate(selectedLead)}
+                        style={{
+                          background: '#FF9800',
+                          color: '#000',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontWeight: 'bold',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          boxShadow: '0 2px 8px rgba(255, 152, 0, 0.25)'
+                        }}
+                      >
+                        ⚡ Preencher Custos Padrão
+                      </button>
+                    </div>
+
                     {/* Manual — quantidade, descrição + valor */}
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                       <input
@@ -4135,6 +4339,18 @@ export default function LeadsKanban() {
                         }}
                         style={{ flex: '1', minWidth: '80px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none' }}
                       />
+                      <select
+                        value={newCost.categoria || 'insumos'}
+                        onChange={(e) => setNewCost(prev => ({ ...prev, categoria: e.target.value }))}
+                        title="Categoria do custo"
+                        style={{ background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#FFD54F', padding: '10px 6px', fontSize: '0.82rem', outline: 'none', cursor: 'pointer' }}
+                      >
+                        {(custosCategorias.length > 0 ? custosCategorias : DEFAULT_CATEGORIAS_CUSTOS).map(cat => (
+                          <option key={cat.id} value={cat.id} style={{ background: '#111', color: '#fff' }}>
+                            {cat.emoji} {cat.label}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         onClick={() => { handleAddCost(newCost.descricao, newCost.valor, newCost.categoria); setNewCost({ descricao: '', valor: '', categoria: 'insumos', quantidade: '', valorUnitario: '', itemIdEstoque: '' }); }}
@@ -4157,12 +4373,24 @@ export default function LeadsKanban() {
                       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {custosLista.map((custo) => {
                           const catId = custo.categoria || detectCategoryByDescription(custo.descricao);
-                          const matched = custosCategorias.find(c => c.id === catId) || { label: 'Outros', emoji: '✨', color: '#a8b8aa' };
+                          const allCats = custosCategorias.length > 0 ? custosCategorias : DEFAULT_CATEGORIAS_CUSTOS;
+                          const matched = allCats.find(c => c.id === catId) || DEFAULT_CATEGORIAS_CUSTOS.find(c => c.id === catId) || { label: 'Outros', emoji: '✨', color: '#a8b8aa' };
                           const numQ = parseFloat(custo.quantidade) || 0;
                           const numU = parseFloat(custo.valorUnitario) || 0;
                           return (
-                            <div key={custo.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.82rem' }}>
-                              <span style={{ color: 'var(--text-secondary)', marginRight: '6px' }}>{matched.emoji}</span>
+                            <div key={custo.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.82rem', gap: '6px' }}>
+                              <select
+                                value={catId}
+                                onChange={(e) => handleUpdateCostCategory(custo.id, e.target.value)}
+                                title="Clique para alterar a categoria deste custo"
+                                style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '4px', color: matched.color || 'var(--text-secondary)', padding: '2px 4px', fontSize: '0.78rem', cursor: 'pointer', outline: 'none' }}
+                              >
+                                {allCats.map(c => (
+                                  <option key={c.id} value={c.id} style={{ background: '#111', color: '#fff' }}>
+                                    {c.emoji} {c.label}
+                                  </option>
+                                ))}
+                              </select>
                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                 <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{custo.descricao}</span>
                                 {numQ > 0 && (
@@ -4171,7 +4399,7 @@ export default function LeadsKanban() {
                                   </span>
                                 )}
                               </div>
-                              <span style={{ color: '#F44336', fontWeight: '600', marginRight: '10px' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custo.valor)}</span>
+                              <span style={{ color: '#F44336', fontWeight: '600', marginRight: '6px' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custo.valor)}</span>
                               <button type="button" onClick={() => handleRemoveCost(custo.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '2px 4px' }}><FiTrash2 size={13} /></button>
                             </div>
                           );
