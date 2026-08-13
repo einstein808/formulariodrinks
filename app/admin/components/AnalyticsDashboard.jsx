@@ -8,6 +8,7 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 import { FiHeart, FiTrendingUp, FiDollarSign } from 'react-icons/fi';
+import EventsMapHeatmap from './EventsMapHeatmap';
 
 const COLORS = ['#00E5FF', '#FFD54F', '#4CAF50', '#F44336', '#9C27B0', '#FF9800'];
 
@@ -255,6 +256,25 @@ export default function AnalyticsDashboard() {
   const fechadosDiretos = leadsDiretos.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
 
   // Get all unique years from leads
+  const displayLeads = leads.filter(lead => {
+    let date = null;
+    if (lead.dataEvento) {
+      date = new Date(lead.dataEvento + 'T00:00:00');
+    } else if (lead.criadoEm) {
+      date = parseCriadoEm(lead.criadoEm);
+    }
+    let leadYear = 'Sem Data';
+    let leadMonth = 'Sem Data';
+    if (date && !isNaN(date.getTime())) {
+      leadYear = date.getFullYear().toString();
+      leadMonth = String(date.getMonth() + 1).padStart(2, '0');
+    }
+    if (selectedYear !== 'todos' && leadYear !== selectedYear) return false;
+    if (selectedMonth !== 'todos' && leadMonth !== selectedMonth) return false;
+    if (selectedStatus !== 'todos' && lead.status !== selectedStatus) return false;
+    return true;
+  });
+
   const availableYears = Array.from(new Set(leads.map(lead => {
     let date = null;
     if (lead.dataEvento) {
@@ -672,6 +692,9 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
       </div>
+
+      {/* MAPA INTERATIVO DE CALOR DOS EVENTOS */}
+      <EventsMapHeatmap leads={displayLeads} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
