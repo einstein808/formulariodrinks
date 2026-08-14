@@ -12,6 +12,7 @@ import { sendWhatsAppQuote } from '../../lib/whatsappService'
 import { calculatePackagePrice, getMinTierPrice } from '../../lib/pricingUtils'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
+
 /* ============================
 
 /* ============================
@@ -27,9 +28,9 @@ function firebaseObjToArray(obj) {
 // Reviews reais via TrustIndex widget (veja componente TrustIndexWidget)
 
 const STEPS = [
-  { title: 'Escolha seu Pacote', desc: 'Selecione o pacote ideal para seu evento' },
-  { title: 'Sobre seu Evento', desc: 'Detalhes e extras para seu evento' },
   { title: 'Seus Dados', desc: 'Para onde enviamos seu orçamento?' },
+  { title: 'Sobre seu Evento', desc: 'Detalhes e extras para seu evento' },
+  { title: 'Escolha seu Pacote', desc: 'Selecione o pacote ideal para seu evento' },
 ]
 
 const DRAFT_KEY = 'orcamento_draft'
@@ -53,8 +54,7 @@ export default function OrcamentoClient() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [pendingDraft, setPendingDraft] = useState(null) // { formData, step }
   
-  const [isPriceUnlocked, setIsPriceUnlocked] = useState(false)
-  const [showUnlockModal, setShowUnlockModal] = useState(false)
+
   const [currentLeadId, setCurrentLeadId] = useState(null)
   const [general, setGeneral] = useState(null)
 
@@ -156,12 +156,6 @@ export default function OrcamentoClient() {
   useEffect(() => {
     const handlePopState = (e) => {
       if (e.state) {
-        // If the unlock modal was open and popped, close it
-        if (showUnlockModal && e.state.modal !== 'unlock') {
-          setShowUnlockModal(false);
-        }
-        
-        // Sync the step
         if (typeof e.state.step === 'number') {
           lastStepRef.current = e.state.step;
           setCurrentStep(e.state.step);
@@ -170,7 +164,7 @@ export default function OrcamentoClient() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [showUnlockModal]);
+  }, []);
 
   // Sync state when currentStep changes
   useEffect(() => {
@@ -190,17 +184,7 @@ export default function OrcamentoClient() {
     return cleanNum.startsWith('55') ? cleanNum : `55${cleanNum}`;
   };
 
-  const handleOpenUnlockModal = () => {
-    setShowUnlockModal(true);
-    window.history.pushState({ step: currentStep, modal: 'unlock' }, '');
-  };
 
-  const handleCloseUnlockModal = () => {
-    setShowUnlockModal(false);
-    if (window.history.state?.modal === 'unlock') {
-      window.history.back();
-    }
-  };
 
   const [formData, setFormData] = useState({
     pacote: '',
@@ -225,9 +209,7 @@ export default function OrcamentoClient() {
 
   useEffect(() => {
     try {
-      const unlocked = localStorage.getItem('DRINKS_UNLOCKED');
-      if (unlocked === 'true') setIsPriceUnlocked(true);
-      
+
       const savedLeadId = localStorage.getItem('CURRENT_LEAD_ID');
       if (savedLeadId) setCurrentLeadId(savedLeadId);
     } catch (e) {}
@@ -366,15 +348,7 @@ export default function OrcamentoClient() {
   const validateStep = useCallback((step) => {
     const e = {}
     switch (step) {
-      case 0: // Pacote
-        if (!formData.pacote) e.pacote = 'Selecione um pacote'
-        break
-      case 1: // Evento
-        if (!formData.dataEvento) e.dataEvento = 'Data é obrigatória'
-        if (!formData.tipoEvento) e.tipoEvento = 'Selecione o tipo de evento'
-        if (!formData.horarioEvento) e.horarioEvento = 'Horário de início é obrigatório'
-        break
-      case 2: // Dados Pessoais
+      case 0: // Dados Pessoais (primeiro passo)
         if (!formData.nome.trim()) e.nome = 'Nome é obrigatório'
         if (!formData.sobrenome.trim()) e.sobrenome = 'Sobrenome é obrigatório'
         if (!formData.telefone || formData.telefone.replace(/\D/g, '').length < 10)
@@ -384,19 +358,48 @@ export default function OrcamentoClient() {
           e.novaCidade = 'Digite o nome da cidade'
         }
         break
+      case 1: // Sobre seu Evento
+        if (!formData.dataEvento) e.dataEvento = 'Data é obrigatória'
+        if (!formData.tipoEvento) e.tipoEvento = 'Selecione o tipo de evento'
+        if (!formData.horarioEvento) e.horarioEvento = 'Horário de início é obrigatório'
+        break
+      case 2: // Escolha seu Pacote (último passo)
+        if (!formData.pacote) e.pacote = 'Selecione um pacote'
+        break
     }
     setErrors(e)
     return Object.keys(e).length === 0
   }, [formData])
 
-  const nextStep = useCallback(() => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+  const nextStep = useCallback(async () => {
+    if (!validateStep(currentStep)) return;
+
+    // Save lead to Firebase after step 0 (personal data collected)
+    if (currentStep === 0 && !currentLeadId) {
+      try {
+        let finalCity = formData.cidade;
+        if (formData.cidade === 'Outra cidade...') finalCity = formData.novaCidade.trim();
+        const leadSnap = {
+          ...formData,
+          cidade: finalCity,
+          status: 'novo',
+          criadoEm: Date.now(),
+          abGroup: abGroup || 'A',
+        };
+        delete leadSnap.novaCidade;
+        const newRef = await push(ref(db, 'leads'), leadSnap);
+        setCurrentLeadId(newRef.key);
+        try { localStorage.setItem('CURRENT_LEAD_ID', newRef.key); } catch (_) {}
+      } catch (err) {
+        console.warn('Aviso ao pré-salvar lead:', err);
       }
     }
-  }, [currentStep, validateStep])
+
+    setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentStep, validateStep, formData, currentLeadId, abGroup])
 
   const prevStep = useCallback(() => {
     if (window.history.state?.step !== undefined && window.history.state.step > 0) {
@@ -455,8 +458,12 @@ export default function OrcamentoClient() {
         finalLeadId = newRef.key;
       }
       
-      // Enviar mensagem via WhatsApp com resumo dos pacotes (usando pacotes visíveis segundo Grupo A/B)
-      await sendWhatsAppQuote(leadDataToSave, visiblePacotes, finalLeadId)
+      // Enviar mensagem via WhatsApp sem travar a conclusão do orçamento se o número não existir ou houver falha de API
+      try {
+        await sendWhatsAppQuote(leadDataToSave, visiblePacotes, finalLeadId);
+      } catch (waErr) {
+        console.warn('Aviso no disparo de WhatsApp:', waErr);
+      }
 
       setIsSuccess(true)
       try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
@@ -511,10 +518,10 @@ export default function OrcamentoClient() {
   /* ---- Render Steps ---- */
   const renderStep = () => {
     switch (currentStep) {
-      /* ---- Step 0: Package Selection ---- */
-      case 0:
+      /* ---- Step 2: Package Selection ---- */
+      case 2:
         return (
-          <div className="step-enter" key="step-0">
+          <div className="step-enter" key="step-2">
             <div className="packages-grid">
               {visiblePacotes.map(p => (
                 <button
@@ -523,11 +530,7 @@ export default function OrcamentoClient() {
                   id={`pacote-${p.id}`}
                   className={`package-card ${formData.pacote === p.id ? 'package-card--selected' : ''} ${p.popular && p.id !== 'standard-frozen' ? 'package-card--popular' : ''} ${p.id === 'standard-frozen' ? 'package-card--frozen' : ''}`}
                   onClick={() => {
-                    if (!isPriceUnlocked) {
-                      handleOpenUnlockModal();
-                    } else {
-                      updateField('pacote', p.id);
-                    }
+                    updateField('pacote', p.id);
                   }}
                 >
                   {p.popular && p.id !== 'standard-frozen' && <span className="package-card__badge">🔥 Mais contratado</span>}
@@ -535,45 +538,31 @@ export default function OrcamentoClient() {
                   <span className="package-card__emoji">{p.emoji}</span>
                   <h3 className="package-card__name">{p.name}</h3>
                   <div className="package-card__price">
-                    {isPriceUnlocked ? (
-                      (() => {
-                        const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup });
-                        if (isGroupB) {
-                          return (
-                            <>
-                              <span className="package-card__price-value">
-                                R$ {calc.finalPrice.toLocaleString('pt-BR')}
-                              </span>
-                              {calc.tierLabel && (
-                                <span className="package-card__price-label">
-                                  ({calc.tierLabel})
-                                </span>
-                              )}
-                            </>
-                          );
-                        }
+                    {(() => {
+                      const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup });
+                      if (isGroupB) {
                         return (
                           <>
-                            <span className="package-card__price-value">{p.price}</span>
-                            <span className="package-card__price-label">/{p.priceLabel || 'por pessoa'}</span>
+                            <span className="package-card__price-value">
+                              R$ {calc.finalPrice.toLocaleString('pt-BR')}
+                            </span>
+                            {calc.tierLabel && (
+                              <span className="package-card__price-label">
+                                ({calc.tierLabel})
+                              </span>
+                            )}
                           </>
                         );
-                      })()
-                    ) : (
-                      <div style={{ filter: 'blur(5px)', userSelect: 'none', transition: 'filter 0.3s' }}>
-                        <span className="package-card__price-value">R$ 0000</span>
-                        {!isGroupB && <span className="package-card__price-label">/por pessoa</span>}
-                      </div>
-                    )}
+                      }
+                      return (
+                        <>
+                          <span className="package-card__price-value">{p.price}</span>
+                          <span className="package-card__price-label">/{p.priceLabel || 'por pessoa'}</span>
+                        </>
+                      );
+                    })()}
                   </div>
-                  {!isPriceUnlocked && (
-                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
-                      <span className="btn btn--outline" style={{ display: 'inline-flex', padding: '6px 12px', fontSize: '0.85rem', borderColor: 'var(--primary)', color: 'var(--primary)', background: 'transparent' }}>
-                        🔒 Desbloquear Valores
-                      </span>
-                    </div>
-                  )}
-                  {isPriceUnlocked && isGroupB && p.priceTiers?.length > 0 && (
+                  {isGroupB && p.priceTiers?.length > 0 && (
                     <div style={{
                       marginTop: '12px',
                       padding: '10px 12px',
@@ -616,7 +605,7 @@ export default function OrcamentoClient() {
                       </div>
                     </div>
                   )}
-                  <ul className="package-card__features" style={{ marginTop: !isPriceUnlocked ? '16px' : '12px' }}>
+                  <ul className="package-card__features" style={{ marginTop: '12px' }}>
                     {p.features.map((f, i) => (
                       <li key={i}><FiCheck size={14} /> {f}</li>
                     ))}
@@ -812,33 +801,10 @@ export default function OrcamentoClient() {
           </div>
         )
 
-      /* ---- Step 2: Personal Info ---- */
-      case 2:
-        const alreadyHasContactInfo = isPriceUnlocked && formData.nome && formData.telefone;
+      /* ---- Step 0: Personal Info ---- */
+      case 0:
         return (
-          <div className="step-enter" key="step-2">
-            {alreadyHasContactInfo && (
-              <div style={{
-                background: 'rgba(203, 161, 83, 0.12)',
-                border: '1px solid var(--primary)',
-                borderRadius: '12px',
-                padding: '14px 16px',
-                marginBottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <span style={{ fontSize: '1.4rem' }}>✅</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '600', color: '#FFF', fontSize: '0.9rem' }}>
-                    Dados de contato preenchidos!
-                  </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '2px' }}>
-                    Seus dados foram preenchidos no desbloqueio. Confira abaixo e selecione a cidade para finalizar.
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="step-enter" key="step-0">
 
             <div className="form-row">
               <div className="form-group">
@@ -913,6 +879,8 @@ export default function OrcamentoClient() {
                 {errors.novaCidade && <span className="form-error">{errors.novaCidade}</span>}
               </div>
             )}
+
+
 
 
           </div>
@@ -1049,109 +1017,7 @@ export default function OrcamentoClient() {
 
         {!isSuccess ? (
           <>
-            {/* Modal: Desbloqueio de Valores */}
-            {showUnlockModal && (
-              <div style={{
-                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-                zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '16px', animation: 'fadeIn 0.25s ease',
-                overflowY: 'auto'
-              }}>
-                <div style={{
-                  background: 'var(--bg-main, #0F172A)', borderRadius: '20px', padding: '24px 20px',
-                  maxWidth: 420, width: '100%', border: '1px solid rgba(203, 161, 83, 0.4)',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(203, 161, 83, 0.15)',
-                  position: 'relative', maxHeight: '90vh', overflowY: 'auto', margin: 'auto'
-                }}>
-                  <button
-                    type="button"
-                    onClick={handleCloseUnlockModal}
-                    style={{
-                      position: 'absolute', top: '14px', right: '14px',
-                      background: 'rgba(255,255,255,0.08)', border: 'none',
-                      color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer',
-                      borderRadius: '50%', width: '32px', height: '32px', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-                    }}
-                    title="Fechar"
-                  >
-                    ✕
-                  </button>
 
-                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🔓</div>
-                    <h3 style={{ margin: '0 0 6px', fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.4rem' }}>
-                      Desbloquear Preços
-                    </h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, lineHeight: 1.4 }}>
-                      Informe seu nome e WhatsApp para visualizar os valores e pacotes exclusivos.
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleUnlockSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Nome *</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Seu primeiro nome"
-                        value={formData.nome}
-                        onChange={e => updateField('nome', e.target.value)}
-                        required
-                        style={{ padding: '12px 14px', fontSize: '0.95rem' }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>Sobrenome *</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Seu sobrenome"
-                        value={formData.sobrenome}
-                        onChange={e => updateField('sobrenome', e.target.value)}
-                        required
-                        style={{ padding: '12px 14px', fontSize: '0.95rem' }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>WhatsApp *</label>
-                      <input
-                        type="tel"
-                        className="form-input"
-                        placeholder="(00) 00000-0000"
-                        value={formData.telefone}
-                        onChange={handlePhoneChange}
-                        required
-                        style={{ padding: '12px 14px', fontSize: '0.95rem' }}
-                      />
-                    </div>
-                    
-                    <button 
-                      type="submit" 
-                      className="btn btn--primary" 
-                      disabled={isSubmitting} 
-                      style={{ 
-                        width: '100%', marginTop: '8px', padding: '14px', 
-                        fontSize: '1rem', fontWeight: 'bold', display: 'flex', 
-                        alignItems: 'center', justifyContent: 'center', gap: '8px'
-                      }}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="btn__spinner" />
-                          <span>Liberando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>🔓 Liberar Tabela de Preços</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
 
             {/* Modal: Rascunho encontrado */}
             {pendingDraft && (

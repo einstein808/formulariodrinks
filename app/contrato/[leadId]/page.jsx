@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ref, get, onValue, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+import AddressMapPicker from '../../../components/AddressMapPicker';
 import { calculatePackagePrice } from '../../../lib/pricingUtils';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
 import Image from 'next/image';
@@ -993,7 +994,30 @@ export default function ClienteContratoPage() {
               </div>
 
               <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h3 style={{ fontSize: '0.9rem', color: '#FFF', margin: 0 }}>Endereço de Montagem do Bar</h3>
+                <h3 style={{ fontSize: '0.9rem', color: '#FFF', margin: 0 }}>📍 Endereço de Montagem do Bar & Pino no Mapa</h3>
+
+                <AddressMapPicker
+                  value={{
+                    rua: formData.rua,
+                    bairro: formData.bairro,
+                    cidade: formData.cidade,
+                    lat: formData.lat,
+                    lng: formData.lng,
+                    fullAddress: [formData.rua, formData.bairro, formData.cidade].filter(Boolean).join(', ')
+                  }}
+                  onChange={(loc) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      rua: loc.rua || prev.rua,
+                      bairro: loc.bairro || prev.bairro,
+                      cidade: loc.cidade || prev.cidade,
+                      lat: loc.lat,
+                      lng: loc.lng,
+                      cep: loc.cep || prev.cep
+                    }));
+                  }}
+                  placeholder="Pesquise o endereço, buffet, sítio ou rua do evento..."
+                />
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '16px' }}>
                   <div>

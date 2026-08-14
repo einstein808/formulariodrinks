@@ -36,6 +36,7 @@ const EVENT_TYPE_EMOJIS = {
 
 export default function AnalyticsDashboard() {
   const [leads, setLeads] = useState([]);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [cerimonialistas, setCerimonialistas] = useState({});
   const [loading, setLoading] = useState(true);
   const [mostrarAvancado, setMostrarAvancado] = useState(false);
@@ -693,8 +694,52 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* MAPA INTERATIVO DE CALOR DOS EVENTOS */}
-      <EventsMapHeatmap leads={displayLeads} />
+      {/* MAPA INTERATIVO DE CALOR DOS EVENTOS - lazy loaded */}
+      <div style={{ marginBottom: '24px' }}>
+        {!showHeatmap ? (
+          <button
+            onClick={() => setShowHeatmap(true)}
+            style={{
+              width: '100%',
+              background: 'var(--bg-input)',
+              border: '1px dashed rgba(255,152,0,0.4)',
+              borderRadius: '16px',
+              padding: '20px',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+          >
+            🔥 Ver Mapa de Calor por Bairros & Regiões
+          </button>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+              <button
+                onClick={() => setShowHeatmap(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '4px 12px',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem'
+                }}
+              >
+                ✕ Ocultar mapa
+              </button>
+            </div>
+            <EventsMapHeatmap leads={displayLeads} />
+          </div>
+        )}
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 

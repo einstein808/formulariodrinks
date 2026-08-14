@@ -5,6 +5,7 @@ import { FiPhone, FiCalendar, FiMapPin, FiClock, FiX, FiTrash2, FiHeart, FiPlus,
 import { FiPackage as FiPackageIcon } from 'react-icons/fi';
 import { sendWhatsAppQuote, logMessageToLead } from '../../../lib/whatsappService';
 import MinioImageUpload from './MinioImageUpload';
+import AddressMapPicker from '../../../components/AddressMapPicker';
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos Leads', color: '#00E5FF' },
@@ -2756,6 +2757,29 @@ const detectCategoryByDescription = (desc) => {
                             <option value="">Selecione</option>
                             {pacotes.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                           </select>
+                        </div>
+                        <div style={{ gridColumn: 'span 2', marginTop: '10px' }}>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>📍 Endereço & Pino no Mapa do Evento</label>
+                          <AddressMapPicker
+                            value={{
+                              rua: editLeadData.rua,
+                              bairro: editLeadData.bairro,
+                              cidade: editLeadData.cidade,
+                              lat: editLeadData.lat,
+                              lng: editLeadData.lng,
+                              fullAddress: [editLeadData.rua, editLeadData.bairro, editLeadData.cidade].filter(Boolean).join(', ')
+                            }}
+                            onChange={(loc) => {
+                              setEditLeadData(prev => ({
+                                ...prev,
+                                rua: loc.rua || prev.rua,
+                                bairro: loc.bairro || prev.bairro,
+                                cidade: loc.cidade || prev.cidade,
+                                lat: loc.lat,
+                                lng: loc.lng
+                              }));
+                            }}
+                          />
                         </div>
                       </div>
                     ) : (
