@@ -210,6 +210,9 @@ export default function ClienteContratoPage() {
             bairro: lead.bairro || '',
             cidade: lead.cidade || '',
             referencia: lead.referencia || '',
+            lat: lead.lat || null,
+            lng: lead.lng || null,
+            cep: lead.cep || '',
             data: lead.dataEvento || '',
             hora: lead.horarioEvento || '',
             duracao: lead.duracao || '5',
@@ -852,6 +855,9 @@ export default function ClienteContratoPage() {
         bairro: formData.bairro,
         cidade: formData.cidade,
         referencia: formData.referencia,
+        lat: formData.lat || null,
+        lng: formData.lng || null,
+        cep: formData.cep || '',
         dataEvento: formData.data,
         horarioEvento: formData.hora,
         duracao: formData.duracao,
@@ -1008,13 +1014,21 @@ export default function ClienteContratoPage() {
                   onChange={(loc) => {
                     setFormData(prev => ({
                       ...prev,
-                      rua: loc.rua || prev.rua,
-                      bairro: loc.bairro || prev.bairro,
+                      rua: loc.rua !== undefined ? loc.rua : prev.rua,
+                      numero: loc.numero ? loc.numero : prev.numero,
+                      bairro: loc.bairro !== undefined ? loc.bairro : prev.bairro,
                       cidade: loc.cidade || prev.cidade,
-                      lat: loc.lat,
-                      lng: loc.lng,
+                      lat: loc.lat !== undefined ? loc.lat : prev.lat,
+                      lng: loc.lng !== undefined ? loc.lng : prev.lng,
                       cep: loc.cep || prev.cep
                     }));
+                    setErrors(prev => {
+                      const next = { ...prev };
+                      if (loc.rua) delete next.rua;
+                      if (loc.bairro) delete next.bairro;
+                      if (loc.cidade) delete next.cidade;
+                      return next;
+                    });
                   }}
                   placeholder="Pesquise o endereço, buffet, sítio ou rua do evento..."
                 />

@@ -2772,11 +2772,13 @@ const detectCategoryByDescription = (desc) => {
                             onChange={(loc) => {
                               setEditLeadData(prev => ({
                                 ...prev,
-                                rua: loc.rua || prev.rua,
-                                bairro: loc.bairro || prev.bairro,
+                                rua: loc.rua !== undefined ? loc.rua : prev.rua,
+                                numero: loc.numero ? loc.numero : prev.numero,
+                                bairro: loc.bairro !== undefined ? loc.bairro : prev.bairro,
                                 cidade: loc.cidade || prev.cidade,
-                                lat: loc.lat,
-                                lng: loc.lng
+                                lat: loc.lat !== undefined ? loc.lat : prev.lat,
+                                lng: loc.lng !== undefined ? loc.lng : prev.lng,
+                                cep: loc.cep || prev.cep
                               }));
                             }}
                           />
