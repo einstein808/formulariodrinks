@@ -607,10 +607,12 @@ export default function OrcamentoClient() {
                         )}
                       </div>
 
-                      {/* Estimativa do Total do Evento */}
-                      <div className="package-card__price-total">
-                        ✨ Total: R$ {calc.finalPrice.toLocaleString('pt-BR')} para {formData.convidados || 40} convidados
-                      </div>
+                      {/* Estimativa do Total do Evento apenas no Grupo A (Preço por pessoa) */}
+                      {(!isGroupB || !calc.isTier) && (
+                        <div className="package-card__price-total">
+                          ✨ Total: R$ {calc.finalPrice.toLocaleString('pt-BR')} para {formData.convidados || 40} convidados
+                        </div>
+                      )}
                     </div>
 
                     {isGroupB && p.priceTiers?.length > 0 && (
