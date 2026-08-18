@@ -233,6 +233,133 @@ export default function ConfigsEditor() {
   };
 
   /* Pacotes Handlers */
+  const loadOfficialPacotesTemplate = () => {
+    if (window.confirm('Carregar o modelo oficial dos 3 pacotes (Experimento R$35, Laboratório R$45, Reatividade R$55)? Isso substituirá a lista atual na tela (lembre-se de clicar em Salvar Alterações depois).')) {
+      setPacotes([
+        {
+          id: 'experimento',
+          name: 'Experimento',
+          emoji: '🧪',
+          desc: 'A experiência essencial do Laboratório: drinks preparados na hora, com qualidade, praticidade e estrutura completa.',
+          badge: 'Essencial',
+          maxDrinks: 4,
+          drinksCount: 4,
+          hoursLimit: 5,
+          order: 0,
+          popular: false,
+          price: 'R$ 35',
+          priceB: 'R$ 35',
+          priceLabel: 'por pessoa',
+          extraHourPrice: 'R$ 5,00',
+          minGuests: 40,
+          features: [
+            '4 opções de drinks preparados na hora',
+            'Bartender profissional + Ajudante',
+            'Bancada / Bar do Laboratório',
+            'Copos de vidro & Gelo inclusos',
+            'Frutas, insumos e xaropes para drinks',
+            'Montagem, desmontagem e frete inclusos',
+            'Identidade visual do Laboratório'
+          ],
+          custosPadrao: [
+            { item: 'Insumos & Bebidas Base', valor: 120, quantidade: 1, categoria: 'insumos' },
+            { item: 'Gelo, Frutas & Perecíveis', valor: 60, quantidade: 1, categoria: 'insumos' },
+            { item: 'Bartender + Ajudante', valor: 350, quantidade: 1, categoria: 'equipe' },
+            { item: 'Logística & Frete', valor: 60, quantidade: 1, categoria: 'logistica' }
+          ],
+          pricingMode: 'person',
+          priceTiers: [
+            { minGuests: 30, maxGuests: 50, fixedPrice: 1750, extraHourPrice: 150 },
+            { minGuests: 51, maxGuests: 80, fixedPrice: 2600, extraHourPrice: 200 },
+            { minGuests: 81, maxGuests: 120, fixedPrice: 3800, extraHourPrice: 260 },
+            { minGuests: 121, maxGuests: 200, fixedPrice: 5800, extraHourPrice: 350 }
+          ]
+        },
+        {
+          id: 'laboratorio',
+          name: 'Laboratório',
+          emoji: '⚗️',
+          desc: 'Onde os drinks se transformam em experiência. Cardápio autoral, cordiais artesanais e apresentação surpreendente.',
+          badge: '⭐ Mais Escolhido',
+          maxDrinks: 5,
+          drinksCount: 5,
+          hoursLimit: 5,
+          order: 1,
+          popular: true,
+          price: 'R$ 45',
+          priceB: 'R$ 45',
+          priceLabel: 'por pessoa',
+          extraHourPrice: 'R$ 6,00',
+          minGuests: 40,
+          features: [
+            '5 opções de drinks (inclui autorais)',
+            'Cordiais e xaropes artesanais',
+            'Bancada temática com vidrarias científicas',
+            'Backdrop temático do Laboratório',
+            'Elementos de decoração científica',
+            'Bartender profissional + Ajudante',
+            'Copos de vidro, gelo, frutas e frete inclusos'
+          ],
+          custosPadrao: [
+            { item: 'Insumos, Bebidas & Cordiais', valor: 160, quantidade: 1, categoria: 'insumos' },
+            { item: 'Gelo, Frutas Frescas & Decoração', valor: 80, quantidade: 1, categoria: 'insumos' },
+            { item: 'Bartender + Ajudante', valor: 350, quantidade: 1, categoria: 'equipe' },
+            { item: 'Logística & Frete', valor: 60, quantidade: 1, categoria: 'logistica' }
+          ],
+          pricingMode: 'person',
+          priceTiers: [
+            { minGuests: 30, maxGuests: 50, fixedPrice: 2250, extraHourPrice: 180 },
+            { minGuests: 51, maxGuests: 80, fixedPrice: 3400, extraHourPrice: 240 },
+            { minGuests: 81, maxGuests: 120, fixedPrice: 4800, extraHourPrice: 320 },
+            { minGuests: 121, maxGuests: 200, fixedPrice: 7200, extraHourPrice: 420 }
+          ]
+        },
+        {
+          id: 'reatividade',
+          name: 'Reatividade',
+          emoji: '🧬',
+          desc: 'O bar que vira atração da festa: destilados premium (Absolut & Tanqueray), efeitos com gelo seco e carta autoral.',
+          badge: '👑 Premium & Cênico',
+          maxDrinks: 6,
+          drinksCount: 6,
+          hoursLimit: 5,
+          order: 2,
+          popular: false,
+          price: 'R$ 55',
+          priceB: 'R$ 55',
+          priceLabel: 'por pessoa',
+          extraHourPrice: 'R$ 7,00',
+          minGuests: 40,
+          features: [
+            '6 opções de drinks premium',
+            'Vodka Absolut & Gin Tanqueray inclusos',
+            'Efeitos especiais com gelo seco 💨',
+            'Carta de drinks personalizada',
+            'Drinks autorais exclusivos',
+            'Cordiais, shrubs e xaropes artesanais',
+            'Bancada temática + Decoração científica + Backdrop',
+            'Apresentação cênica e interativa dos drinks',
+            'Bartender profissional + Ajudante',
+            'Copos de vidro, gelo, frutas e frete inclusos'
+          ],
+          custosPadrao: [
+            { item: 'Destilados Premium (Absolut, Tanqueray)', valor: 260, quantidade: 1, categoria: 'insumos' },
+            { item: 'Insumos, Cordiais, Shrubs & Gelo Seco', valor: 140, quantidade: 1, categoria: 'insumos' },
+            { item: 'Bartender Especialista + Ajudante', valor: 450, quantidade: 1, categoria: 'equipe' },
+            { item: 'Logística & Frete', valor: 60, quantidade: 1, categoria: 'logistica' }
+          ],
+          pricingMode: 'person',
+          priceTiers: [
+            { minGuests: 30, maxGuests: 50, fixedPrice: 2750, extraHourPrice: 220 },
+            { minGuests: 51, maxGuests: 80, fixedPrice: 4100, extraHourPrice: 300 },
+            { minGuests: 81, maxGuests: 120, fixedPrice: 5800, extraHourPrice: 380 },
+            { minGuests: 121, maxGuests: 200, fixedPrice: 8800, extraHourPrice: 500 }
+          ]
+        }
+      ]);
+    }
+  };
+
   const addPacote = () => {
     const newId = `pacote-${Date.now()}`;
     setPacotes([...pacotes, { id: newId, name: 'Novo Pacote', emoji: '📦', price: 'R$ 0,00', priceB: 'R$ 0,00', priceLabel: 'convidado', hoursLimit: 5, extraHourPrice: 'R$ 5,00', features: ['Feature 1'] }]);
@@ -693,9 +820,31 @@ export default function ConfigsEditor() {
             )}
           </div>
 
-          <button className="btn btn--outline" onClick={addPacote} style={{ marginBottom: '16px', width: 'auto' }}>
-            <FiPlus /> Adicionar Novo Pacote
-          </button>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <button className="btn btn--outline" onClick={addPacote} style={{ width: 'auto' }}>
+              <FiPlus /> Adicionar Novo Pacote
+            </button>
+            <button
+              type="button"
+              onClick={loadOfficialPacotesTemplate}
+              style={{
+                background: 'rgba(203, 161, 83, 0.15)',
+                border: '1px solid var(--primary)',
+                color: 'var(--primary)',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              ⚡ Carregar Modelo Oficial: 🧪 Experimento (R$35), ⚗️ Laboratório (R$45), 🧬 Reatividade (R$55)
+            </button>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {pacotes.map((pacote) => (

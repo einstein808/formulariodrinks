@@ -255,18 +255,23 @@ export default function ClienteContratoPage() {
     }
   }, [formData.tipodrink]);
 
-  const isPremium = (formData.Servico || '').toLowerCase().includes('premium');
-  const isFrozen = (formData.Servico || '').toLowerCase().includes('frozen') || isPremium;
-  const isMaoDeObra = (formData.Servico || '').toLowerCase().includes('mão de obra');
+  const servicoNorm = (formData.Servico || '').toLowerCase();
+  const isExperimento = servicoNorm.includes('experimento');
+  const isLaboratorio = servicoNorm.includes('laborat') || servicoNorm.includes('standard');
+  const isReatividade = servicoNorm.includes('reatividade') || servicoNorm.includes('premium');
+  const isPremium = isReatividade;
+  const isFrozen = servicoNorm.includes('frozen') || isPremium;
+  const isMaoDeObra = servicoNorm.includes('mão de obra') || servicoNorm.includes('mao de obra');
 
   const DRINKS_ALCOOL = allDrinks.filter(d => d.category === 'alcool');
   const DRINKS_NA = allDrinks.filter(d => d.category === 'sem_alcool');
   const DRINKS_SOFISTICADOS = allDrinks.filter(d => d.category === 'sofisticado');
   const DRINKS_FROZEN = allDrinks.filter(d => d.category === 'frozen');
 
-  const limitAlcoolTotal = isPremium ? 6 : 5;
+  // Limite de drinks por pacote: Experimento = 4, Laboratório = 5, Reatividade = 6
+  const limitAlcoolTotal = isReatividade ? 6 : (isExperimento ? 4 : 5);
   const limitNA = 2;
-  const limitSofisticado = isPremium ? 1 : 0;
+  const limitSofisticado = isReatividade ? 1 : 0;
   const limitFrozen = isFrozen ? 2 : 0;
 
   const countAlcool = formData.drinks_alcool.length + 

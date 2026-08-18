@@ -486,18 +486,59 @@ export default function HomeClient() {
       {/* 4. Packages Section */}
       {(pacotes.length > 0 || loading) && (
         <section style={{ position: 'relative', zIndex: 10, padding: '36px 24px', maxWidth: 1200, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', marginBottom: 36, letterSpacing: '0.03em' }}>
-            Pacotes de Barman para Casamentos e Festas
-          </h2>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <span style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: 6, 
+              padding: '4px 14px', 
+              background: 'rgba(203, 161, 83, 0.12)', 
+              border: '1px solid rgba(203, 161, 83, 0.25)', 
+              borderRadius: 20, 
+              fontSize: '0.78rem', 
+              fontWeight: 700, 
+              color: 'var(--primary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: 12
+            }}>
+              ✨ Experiências de Bar
+            </span>
+            <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', color: '#FFF', margin: '0 0 10px 0', letterSpacing: '0.03em' }}>
+              Pacotes de Barman para Casamentos e Festas
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', maxWidth: 650, margin: '0 auto', lineHeight: 1.5 }}>
+              Estrutura completa com bar, vidrarias, insumos e bartenders especialistas para transformar seu evento em uma atração inesquecível.
+            </p>
+          </div>
 
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
             gap: 24, 
-            alignItems: 'center' 
+            alignItems: 'stretch' 
           }}>
             {packagesToDisplay.map((pacote, idx) => {
-              const isPopular = idx === 1;
+              const nameLower = (pacote.name || '').toLowerCase();
+              const idLower = (pacote.id || '').toLowerCase();
+              const isReatividade = nameLower.includes('reatividade') || idLower.includes('reatividade') || (nameLower.includes('premium') && !nameLower.includes('mão'));
+              const isLaboratorio = (nameLower.includes('laborat') || pacote.popular) && !isReatividade;
+              const isExperimento = nameLower.includes('experimento') || idLower.includes('experimento');
+
+              let drinkPillText = '🍸 Opções de Drinks';
+              if (pacote.drinksCount || pacote.maxDrinks) {
+                const count = pacote.drinksCount || pacote.maxDrinks;
+                if (count === 4 || isExperimento) drinkPillText = '🍸 4 Opções de Drinks';
+                else if (count === 5 || isLaboratorio) drinkPillText = '🍹 5 Opções • Inclui Autorais';
+                else if (count === 6 || isReatividade) drinkPillText = '💎 6 Opções • Destilados Premium';
+                else drinkPillText = `🍸 ${count} Opções de Drinks`;
+              } else if (isExperimento) {
+                drinkPillText = '🍸 4 Opções de Drinks';
+              } else if (isLaboratorio) {
+                drinkPillText = '🍹 5 Opções • Inclui Autorais';
+              } else if (isReatividade) {
+                drinkPillText = '💎 6 Opções • Destilados Premium';
+              }
               
               return pacote.isSkeleton ? (
                 <div key={pacote.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.5)', borderRadius: 16, height: 460, border: '1px solid rgba(255,255,255,0.05)', padding: 32 }} />
@@ -505,37 +546,77 @@ export default function HomeClient() {
                 <div key={pacote.id} style={{ 
                   background: 'var(--bg-card)',
                   borderRadius: 16, 
-                  border: isPopular ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                  padding: 32,
+                  border: isLaboratorio ? '2px solid var(--primary)' : isReatividade ? '1.5px solid rgba(255, 215, 0, 0.4)' : '1px solid var(--border-color)',
+                  padding: '36px 24px 28px',
                   position: 'relative',
-                  transition: 'transform 0.3s, border-color 0.3s',
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                   display: 'flex',
                   flexDirection: 'column',
-                  height: '100%'
+                  height: '100%',
+                  boxShadow: isLaboratorio ? '0 4px 25px rgba(203, 161, 83, 0.18)' : 'none'
                 }}>
-                  {isPopular && (
-                    <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: 'var(--primary)', color: '#000', padding: '3px 14px', borderRadius: 20, fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {isLaboratorio && (
+                    <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: 'var(--primary)', color: '#000', padding: '4px 16px', borderRadius: 20, fontWeight: '800', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                       ★ Mais Escolhido
                     </div>
                   )}
+                  {isReatividade && (
+                    <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #ffd700, #b8860b)', color: '#000', padding: '4px 16px', borderRadius: 20, fontWeight: '800', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                      👑 Premium & Cênico
+                    </div>
+                  )}
 
-                  <h3 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.4rem', color: isPopular ? 'var(--primary)' : '#FFF', margin: '0 0 8px 0', textAlign: 'center' }}>
-                    {pacote.name}
-                  </h3>
+                  <div style={{ textAlign: 'center', marginBottom: 14 }}>
+                    <span style={{ fontSize: '2.4rem', display: 'block', marginBottom: 6 }}>
+                      {pacote.emoji || (isExperimento ? '🧪' : isLaboratorio ? '⚗️' : '🧬')}
+                    </span>
+                    <h3 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.45rem', color: isLaboratorio ? 'var(--primary)' : '#FFF', margin: '0 0 8px 0' }}>
+                      {pacote.name}
+                    </h3>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '3px 12px',
+                      background: 'rgba(203, 161, 83, 0.1)',
+                      border: '1px solid rgba(203, 161, 83, 0.2)',
+                      borderRadius: 16,
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      color: 'var(--primary)'
+                    }}>
+                      {drinkPillText}
+                    </div>
+                  </div>
                   
                   {pacote.desc && (
-                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: '0 0 24px 0', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: '0 0 18px 0', fontSize: '0.85rem', lineHeight: 1.45 }}>
                       {pacote.desc}
                     </p>
                   )}
 
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px 0', flex: 1 }}>
+                  {/* Preço de Referência */}
+                  <div style={{ textAlign: 'center', margin: '0 0 20px 0', padding: '10px 0', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
+                      <span style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: '1.7rem', fontWeight: 800, color: 'var(--primary)' }}>
+                        {pacote.price || (isExperimento ? 'R$ 35' : isLaboratorio ? 'R$ 45' : 'R$ 55')}
+                      </span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                        /{pacote.priceLabel || 'por convidado'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>
+                      Mínimo de 40 convidados
+                    </span>
+                  </div>
+
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', flex: 1 }}>
                     {(pacote.features || []).map((feature, fIdx) => (
-                      <li key={fIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(46, 139, 87, 0.15)', color: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                          <FiCheck size={12} />
+                      <li key={fIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(46, 139, 87, 0.15)', color: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                          <FiCheck size={11} />
                         </div>
-                        <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.4 }}>{feature}</span>
+                        <span style={{ color: 'var(--text-primary)', fontSize: '0.84rem', lineHeight: 1.35 }}>{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -543,9 +624,16 @@ export default function HomeClient() {
                   <button 
                     onClick={() => router.push(`/orcamento?pacote=${pacote.id}`)}
                     className="btn btn--primary"
-                    style={{ width: '100%', background: isPopular ? 'var(--primary)' : 'rgba(255,255,255,0.06)', color: isPopular ? '#050a06' : '#FFF', borderColor: 'transparent' }}
+                    style={{ 
+                      width: '100%', 
+                      background: isLaboratorio ? 'var(--primary)' : isReatividade ? 'linear-gradient(135deg, #ffd700, #b8860b)' : 'rgba(255,255,255,0.06)', 
+                      color: (isLaboratorio || isReatividade) ? '#050a06' : '#FFF', 
+                      borderColor: 'transparent',
+                      fontWeight: 700,
+                      padding: '12px 16px'
+                    }}
                   >
-                    Selecionar Pacote
+                    Simular Orçamento Online
                   </button>
                 </div>
               );

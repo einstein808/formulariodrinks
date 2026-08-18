@@ -523,25 +523,72 @@ export default function OrcamentoClient() {
         return (
           <div className="step-enter" key="step-2">
             <div className="packages-grid">
-              {visiblePacotes.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  id={`pacote-${p.id}`}
-                  className={`package-card ${formData.pacote === p.id ? 'package-card--selected' : ''} ${p.popular && p.id !== 'standard-frozen' ? 'package-card--popular' : ''} ${p.id === 'standard-frozen' ? 'package-card--frozen' : ''}`}
-                  onClick={() => {
-                    updateField('pacote', p.id);
-                  }}
-                >
-                  {p.popular && p.id !== 'standard-frozen' && <span className="package-card__badge">🔥 Mais contratado</span>}
-                  {p.id === 'standard-frozen' && <span className="package-card__badge package-card__badge--frozen">❄️ Mais Pedido</span>}
-                  <span className="package-card__emoji">{p.emoji}</span>
-                  <h3 className="package-card__name">{p.name}</h3>
-                  <div className="package-card__price">
-                    {(() => {
-                      const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { abGroup });
-                      if (isGroupB) {
-                        return (
+              {visiblePacotes.map(p => {
+                const isSelected = formData.pacote === p.id;
+                const nameLower = (p.name || '').toLowerCase();
+                const idLower = (p.id || '').toLowerCase();
+                const isReatividade = nameLower.includes('reatividade') || idLower.includes('reatividade') || (nameLower.includes('premium') && !nameLower.includes('mão'));
+                const isLaboratorio = (nameLower.includes('laborat') || p.popular) && !isReatividade;
+                const isExperimento = nameLower.includes('experimento') || idLower.includes('experimento');
+
+                // Drinks tag
+                let drinkPillText = '🍸 Opções de Drinks';
+                if (p.drinksCount || p.maxDrinks) {
+                  const count = p.drinksCount || p.maxDrinks;
+                  if (count === 4 || isExperimento) drinkPillText = '🍸 4 Opções de Drinks';
+                  else if (count === 5 || isLaboratorio) drinkPillText = '🍹 5 Opções • Inclui Autorais';
+                  else if (count === 6 || isReatividade) drinkPillText = '💎 6 Opções • Destilados Premium';
+                  else drinkPillText = `🍸 ${count} Opções de Drinks`;
+                } else if (isExperimento) {
+                  drinkPillText = '🍸 4 Opções de Drinks';
+                } else if (isLaboratorio) {
+                  drinkPillText = '🍹 5 Opções • Inclui Autorais';
+                } else if (isReatividade) {
+                  drinkPillText = '💎 6 Opções • Destilados Premium';
+                }
+
+                const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { 
+                  upsellFrozen: formData.upsellFrozen,
+                  abGroup 
+                });
+
+                return (
+                  <div
+                    key={p.id}
+                    id={`pacote-${p.id}`}
+                    className={`package-card ${isSelected ? 'package-card--selected' : ''} ${isLaboratorio ? 'package-card--popular' : ''} ${isReatividade ? 'package-card--premium' : ''}`}
+                    onClick={() => {
+                      updateField('pacote', p.id);
+                    }}
+                  >
+                    {isLaboratorio && (
+                      <span className="package-card__badge">
+                        ⭐ Experiência Mais Escolhida
+                      </span>
+                    )}
+                    {isReatividade && (
+                      <span className="package-card__badge package-card__badge--premium">
+                        👑 Experiência Premium & Cênica
+                      </span>
+                    )}
+
+                    <span className="package-card__emoji">{p.emoji || (isExperimento ? '🧪' : isLaboratorio ? '⚗️' : '🧬')}</span>
+                    
+                    <h3 className="package-card__name">{p.name}</h3>
+
+                    <div className="package-card__pill">
+                      {drinkPillText}
+                    </div>
+
+                    {p.desc && (
+                      <p className="package-card__desc">
+                        {p.desc}
+                      </p>
+                    )}
+
+                    <div className="package-card__price">
+                      <div className="package-card__price-row">
+                        {isGroupB && calc.isTier ? (
                           <>
                             <span className="package-card__price-value">
                               R$ {calc.finalPrice.toLocaleString('pt-BR')}
@@ -552,66 +599,82 @@ export default function OrcamentoClient() {
                               </span>
                             )}
                           </>
-                        );
-                      }
-                      return (
-                        <>
-                          <span className="package-card__price-value">{p.price}</span>
-                          <span className="package-card__price-label">/{p.priceLabel || 'por pessoa'}</span>
-                        </>
-                      );
-                    })()}
-                  </div>
-                  {isGroupB && p.priceTiers?.length > 0 && (
-                    <div style={{
-                      marginTop: '12px',
-                      padding: '10px 12px',
-                      background: 'rgba(203, 161, 83, 0.05)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(203, 161, 83, 0.18)',
-                      textAlign: 'left',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}>
-                      <div style={{ fontWeight: 'bold', color: 'var(--primary)', marginBottom: '6px', textAlign: 'center', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        📋 Tabela de Preços por Convidados
+                        ) : (
+                          <>
+                            <span className="package-card__price-value">{p.price}</span>
+                            <span className="package-card__price-label">/{p.priceLabel || 'por pessoa'}</span>
+                          </>
+                        )}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {p.priceTiers.map((t, tIdx) => {
-                          const isCurrent = (formData.convidados >= t.minGuests && formData.convidados <= t.maxGuests);
-                          return (
-                            <div
-                              key={tIdx}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                background: isCurrent ? 'rgba(203, 161, 83, 0.25)' : 'transparent',
-                                border: isCurrent ? '1px solid var(--primary)' : '1px solid transparent',
-                                fontSize: '0.78rem'
-                              }}
-                            >
-                              <span style={{ color: isCurrent ? '#FFF' : 'var(--text-secondary)', fontWeight: isCurrent ? 'bold' : 'normal' }}>
-                                {(t.minGuests <= 30 && t.maxGuests === 50) ? 'Até 50 pessoas:' : `${t.minGuests}–${t.maxGuests} pessoas:`}
-                              </span>
-                              <span style={{ color: isCurrent ? 'var(--primary)' : '#DDD', fontWeight: isCurrent ? 'bold' : 'normal' }}>
-                                R$ {Number(t.fixedPrice).toLocaleString('pt-BR')}
-                              </span>
-                            </div>
-                          );
-                        })}
+
+                      {/* Estimativa do Total do Evento */}
+                      <div className="package-card__price-total">
+                        ✨ Total: R$ {calc.finalPrice.toLocaleString('pt-BR')} para {formData.convidados || 40} convidados
                       </div>
                     </div>
-                  )}
-                  <ul className="package-card__features" style={{ marginTop: '12px' }}>
-                    {p.features.map((f, i) => (
-                      <li key={i}><FiCheck size={14} /> {f}</li>
-                    ))}
-                  </ul>
-                </button>
-              ))}
+
+                    {isGroupB && p.priceTiers?.length > 0 && (
+                      <div style={{
+                        marginTop: '10px',
+                        padding: '10px 12px',
+                        background: 'rgba(203, 161, 83, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(203, 161, 83, 0.18)',
+                        textAlign: 'left',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}>
+                        <div style={{ fontWeight: 'bold', color: 'var(--primary)', marginBottom: '6px', textAlign: 'center', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          📋 Tabela de Preços por Convidados
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {p.priceTiers.map((t, tIdx) => {
+                            const isCurrent = (formData.convidados >= t.minGuests && formData.convidados <= t.maxGuests);
+                            return (
+                              <div
+                                key={tIdx}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  background: isCurrent ? 'rgba(203, 161, 83, 0.25)' : 'transparent',
+                                  border: isCurrent ? '1px solid var(--primary)' : '1px solid transparent',
+                                  fontSize: '0.78rem'
+                                }}
+                              >
+                                <span style={{ color: isCurrent ? '#FFF' : 'var(--text-secondary)', fontWeight: isCurrent ? 'bold' : 'normal' }}>
+                                  {(t.minGuests <= 30 && t.maxGuests === 50) ? 'Até 50 pessoas:' : `${t.minGuests}–${t.maxGuests} pessoas:`}
+                                </span>
+                                <span style={{ color: isCurrent ? 'var(--primary)' : '#DDD', fontWeight: isCurrent ? 'bold' : 'normal' }}>
+                                  R$ {Number(t.fixedPrice).toLocaleString('pt-BR')}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <ul className="package-card__features">
+                      {(p.features || []).map((f, i) => (
+                        <li key={i}>
+                          <FiCheck size={14} /> 
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <button
+                      type="button"
+                      className="package-card__select-btn"
+                    >
+                      {isSelected ? '✓ Pacote Selecionado' : 'Selecionar este Pacote'}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             {errors.pacote && <span className="form-error" style={{textAlign:'center',display:'block',marginTop:12}}>{errors.pacote}</span>}
           </div>
