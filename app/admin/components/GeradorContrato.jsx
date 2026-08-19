@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
 import { calculatePackagePrice, DEFAULT_MAO_DE_OBRA_TIERS } from '../../../lib/pricingUtils';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
+import AddressMapPicker from '../../../components/AddressMapPicker';
 import Image from 'next/image';
 
 // Drinks will be loaded dynamically from Firebase Database config/drinksMenu.
@@ -929,35 +930,74 @@ export default function GeradorContrato() {
               </div>
             </div>
 
+            {/* Seletor de Endereço e Mapa em Popup */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Rua/Avenida *</label>
-              <input type="text" name="rua" className={`form-input ${errors.rua ? 'form-input--error' : ''}`} placeholder="Rua do cliente" value={formData.rua} onChange={handleInput} />
-              {errors.rua && <span style={{ color: '#F44336', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>{errors.rua}</span>}
+              <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                📍 Endereço de Montagem do Bar & Pino no Mapa
+              </label>
+              <AddressMapPicker
+                value={{
+                  rua: formData.rua,
+                  numero: formData.numero,
+                  bairro: formData.bairro,
+                  cidade: formData.cidade,
+                  lat: formData.lat,
+                  lng: formData.lng,
+                  fullAddress: [formData.rua, formData.numero, formData.bairro, formData.cidade].filter(Boolean).join(', ')
+                }}
+                onChange={(loc) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    rua: loc.rua !== undefined ? loc.rua : prev.rua,
+                    numero: loc.numero ? loc.numero : prev.numero,
+                    bairro: loc.bairro !== undefined ? loc.bairro : prev.bairro,
+                    cidade: loc.cidade || prev.cidade,
+                    lat: loc.lat !== undefined ? loc.lat : prev.lat,
+                    lng: loc.lng !== undefined ? loc.lng : prev.lng,
+                    cep: loc.cep || prev.cep
+                  }));
+                  setErrors(prev => {
+                    const next = { ...prev };
+                    if (loc.rua) delete next.rua;
+                    if (loc.numero) delete next.numero;
+                    if (loc.bairro) delete next.bairro;
+                    if (loc.cidade) delete next.cidade;
+                    return next;
+                  });
+                }}
+                placeholder="Pesquise o endereço, buffet, sítio ou rua..."
+              />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Rua/Avenida *</label>
+                <input type="text" name="rua" className={`form-input ${errors.rua ? 'form-input--error' : ''}`} placeholder="Rua do cliente" value={formData.rua} onChange={handleInput} />
+                {errors.rua && <span style={{ color: '#F44336', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>{errors.rua}</span>}
+              </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Número *</label>
                 <input type="text" name="numero" className={`form-input ${errors.numero ? 'form-input--error' : ''}`} placeholder="Nº" value={formData.numero} onChange={handleInput} />
                 {errors.numero && <span style={{ color: '#F44336', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>{errors.numero}</span>}
               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Bairro *</label>
                 <input type="text" name="bairro" className={`form-input ${errors.bairro ? 'form-input--error' : ''}`} placeholder="Bairro" value={formData.bairro} onChange={handleInput} />
                 {errors.bairro && <span style={{ color: '#F44336', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>{errors.bairro}</span>}
               </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Cidade *</label>
                 <input type="text" name="cidade" className={`form-input ${errors.cidade ? 'form-input--error' : ''}`} placeholder="Cidade" value={formData.cidade} onChange={handleInput} />
                 {errors.cidade && <span style={{ color: '#F44336', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>{errors.cidade}</span>}
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Referência (Opcional)</label>
-                <input type="text" name="referencia" className="form-input" placeholder="Referência" value={formData.referencia} onChange={handleInput} />
-              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Referência (Opcional)</label>
+              <input type="text" name="referencia" className="form-input" placeholder="Referência" value={formData.referencia} onChange={handleInput} />
             </div>
 
             <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px', marginTop: '10px' }}>
