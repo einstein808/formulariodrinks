@@ -355,6 +355,41 @@ export default function ConfigsEditor() {
             { minGuests: 81, maxGuests: 120, fixedPrice: 5800, extraHourPrice: 380 },
             { minGuests: 121, maxGuests: 200, fixedPrice: 8800, extraHourPrice: 500 }
           ]
+        },
+        {
+          id: 'mao-de-obra',
+          name: 'Mão de Obra',
+          emoji: '🤵',
+          desc: 'Contratação exclusiva de equipe de bar profissional (barmans e ajudantes). O cliente fornece os insumos e bebidas.',
+          badge: 'Serviço',
+          maxDrinks: 0,
+          drinksCount: 0,
+          hoursLimit: 5,
+          order: 3,
+          popular: false,
+          price: 'R$ 520',
+          priceB: 'R$ 520',
+          priceLabel: 'valor base',
+          extraHourPrice: 'R$ 110,00',
+          minGuests: 30,
+          features: [
+            'Equipe de barman e ajudante dimensionada',
+            'Utensílios e acessórios de bar profissionais',
+            'Espuma artesanal de gengibre inclusa',
+            'Consultoria de lista de compras para o cliente',
+            'Até 5 horas de atendimento no evento'
+          ],
+          custosPadrao: [
+            { item: 'Diária Barman + Ajudante', valor: 350, quantidade: 1, categoria: 'equipe' },
+            { item: 'Logística & Frete', valor: 50, quantidade: 1, categoria: 'logistica' }
+          ],
+          pricingMode: 'tier',
+          priceTiers: [
+            { minGuests: 30, maxGuests: 50, fixedPrice: 520, extraHourPrice: 110 },
+            { minGuests: 51, maxGuests: 80, fixedPrice: 700, extraHourPrice: 140 },
+            { minGuests: 81, maxGuests: 120, fixedPrice: 1050, extraHourPrice: 180 },
+            { minGuests: 121, maxGuests: 200, fixedPrice: 1500, extraHourPrice: 250 }
+          ]
         }
       ]);
     }
@@ -842,7 +877,7 @@ export default function ConfigsEditor() {
                 transition: 'all 0.2s ease'
               }}
             >
-              ⚡ Carregar Modelo Oficial: 🧪 Experimento (R$35), ⚗️ Laboratório (R$45), 🧬 Reatividade (R$55)
+              ⚡ Carregar Modelo Oficial: 🧪 Experimento (R$35), ⚗️ Laboratório (R$45), 🧬 Reatividade (R$55) + 🤵 Mão de Obra (Faixas)
             </button>
           </div>
 

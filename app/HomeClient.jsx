@@ -521,12 +521,15 @@ export default function HomeClient() {
             {packagesToDisplay.map((pacote, idx) => {
               const nameLower = (pacote.name || '').toLowerCase();
               const idLower = (pacote.id || '').toLowerCase();
-              const isReatividade = nameLower.includes('reatividade') || idLower.includes('reatividade') || (nameLower.includes('premium') && !nameLower.includes('mão'));
-              const isLaboratorio = (nameLower.includes('laborat') || pacote.popular) && !isReatividade;
-              const isExperimento = nameLower.includes('experimento') || idLower.includes('experimento');
+              const isMaoDeObra = nameLower.includes('obra') || idLower.includes('obra');
+              const isReatividade = (nameLower.includes('reatividade') || idLower.includes('reatividade') || nameLower.includes('premium')) && !isMaoDeObra;
+              const isLaboratorio = (nameLower.includes('laborat') || pacote.popular) && !isReatividade && !isMaoDeObra;
+              const isExperimento = (nameLower.includes('experimento') || idLower.includes('experimento')) && !isMaoDeObra;
 
               let drinkPillText = '🍸 Opções de Drinks';
-              if (pacote.drinksCount || pacote.maxDrinks) {
+              if (isMaoDeObra) {
+                drinkPillText = '🤵 Equipe de Bar';
+              } else if (pacote.drinksCount || pacote.maxDrinks) {
                 const count = pacote.drinksCount || pacote.maxDrinks;
                 if (count === 4 || isExperimento) drinkPillText = '🍸 4 Opções de Drinks';
                 else if (count === 5 || isLaboratorio) drinkPillText = '🍹 5 Opções • Inclui Autorais';
@@ -568,7 +571,7 @@ export default function HomeClient() {
 
                   <div style={{ textAlign: 'center', marginBottom: 14 }}>
                     <span style={{ fontSize: '2.4rem', display: 'block', marginBottom: 6 }}>
-                      {pacote.emoji || (isExperimento ? '🧪' : isLaboratorio ? '⚗️' : '🧬')}
+                      {pacote.emoji || (isExperimento ? '🧪' : isLaboratorio ? '⚗️' : isMaoDeObra ? '🍹' : '🧬')}
                     </span>
                     <h3 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: '1.45rem', color: isLaboratorio ? 'var(--primary)' : '#FFF', margin: '0 0 8px 0' }}>
                       {pacote.name}
@@ -599,14 +602,14 @@ export default function HomeClient() {
                   <div style={{ textAlign: 'center', margin: '0 0 20px 0', padding: '10px 0', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
                       <span style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: '1.7rem', fontWeight: 800, color: 'var(--primary)' }}>
-                        {pacote.price || (isExperimento ? 'R$ 35' : isLaboratorio ? 'R$ 45' : 'R$ 55')}
+                        {pacote.price || (isExperimento ? 'R$ 35' : isLaboratorio ? 'R$ 45' : isReatividade ? 'R$ 55' : 'R$ 520')}
                       </span>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                        /{pacote.priceLabel || 'por convidado'}
+                        /{pacote.priceLabel || (isMaoDeObra ? 'valor base' : 'por convidado')}
                       </span>
                     </div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>
-                      Mínimo de 40 convidados
+                      {isMaoDeObra ? 'Até 5 horas de evento' : 'Mínimo de 40 convidados'}
                     </span>
                   </div>
 

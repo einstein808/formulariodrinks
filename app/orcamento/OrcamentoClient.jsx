@@ -8,8 +8,7 @@ import {
 } from 'react-icons/fi'
 import { BiDrink, BiParty } from 'react-icons/bi'
 import { MdCelebration } from 'react-icons/md'
-import { sendWhatsAppQuote } from '../../lib/whatsappService'
-import { calculatePackagePrice, getMinTierPrice } from '../../lib/pricingUtils'
+import { calculatePackagePrice, getMinTierPrice, DEFAULT_MAO_DE_OBRA_TIERS } from '../../lib/pricingUtils'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
 
@@ -588,7 +587,7 @@ export default function OrcamentoClient() {
 
                     <div className="package-card__price">
                       <div className="package-card__price-row">
-                        {isGroupB && calc.isTier ? (
+                        {calc.isTier ? (
                           <>
                             <span className="package-card__price-value">
                               R$ {calc.finalPrice.toLocaleString('pt-BR')}
@@ -599,6 +598,15 @@ export default function OrcamentoClient() {
                               </span>
                             )}
                           </>
+                        ) : !calc.isPerPerson ? (
+                          <>
+                            <span className="package-card__price-value">
+                              R$ {calc.finalPrice.toLocaleString('pt-BR')}
+                            </span>
+                            <span className="package-card__price-label">
+                              (valor fixo)
+                            </span>
+                          </>
                         ) : (
                           <>
                             <span className="package-card__price-value">{p.price}</span>
@@ -607,15 +615,13 @@ export default function OrcamentoClient() {
                         )}
                       </div>
 
-                      {/* Estimativa do Total do Evento apenas no Grupo A (Preço por pessoa) */}
-                      {(!isGroupB || !calc.isTier) && (
-                        <div className="package-card__price-total">
-                          ✨ Total: R$ {calc.finalPrice.toLocaleString('pt-BR')} para {formData.convidados || 40} convidados
-                        </div>
-                      )}
+                      {/* Total do Evento para os convidados selecionados */}
+                      <div className="package-card__price-total">
+                        Total: R$ {calc.finalPrice.toLocaleString('pt-BR')} para {formData.convidados || 40} convidados
+                      </div>
                     </div>
 
-                    {isGroupB && p.priceTiers?.length > 0 && (
+                    {(isGroupB || isMaoDeObra || calc.isTier) && ((p.priceTiers && p.priceTiers.length > 0) || isMaoDeObra) && (
                       <div style={{
                         marginTop: '10px',
                         padding: '10px 12px',
@@ -630,7 +636,7 @@ export default function OrcamentoClient() {
                           📋 Tabela de Preços por Convidados
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {p.priceTiers.map((t, tIdx) => {
+                          {(p.priceTiers && p.priceTiers.length > 0 ? p.priceTiers : (isMaoDeObra ? DEFAULT_MAO_DE_OBRA_TIERS : [])).map((t, tIdx) => {
                             const isCurrent = (formData.convidados >= t.minGuests && formData.convidados <= t.maxGuests);
                             return (
                               <div

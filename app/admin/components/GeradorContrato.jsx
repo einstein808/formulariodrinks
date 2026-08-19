@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
-import { db } from '../../../lib/firebase';
-import { calculatePackagePrice } from '../../../lib/pricingUtils';
+import { calculatePackagePrice, DEFAULT_MAO_DE_OBRA_TIERS } from '../../../lib/pricingUtils';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
 import Image from 'next/image';
 
@@ -257,10 +256,10 @@ export default function GeradorContrato() {
     );
 
     const isGroupB = formData.abGroup === 'B';
-    const isTier = isGroupB && pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0;
+    const isTier = (isGroupB && pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0) || (pacote && pacote.pricingMode === 'tier' && pacote.priceTiers && pacote.priceTiers.length > 0) || isMaoDeObra;
     
     if (isTier) {
-      const calc = calculatePackagePrice(pacote, convidadosInformados, formData.duracao || 5, {
+      const calc = calculatePackagePrice(pacote || { name: 'Mão de Obra', id: 'mao-de-obra', pricingMode: 'tier' }, convidadosInformados, formData.duracao || 5, {
         upsellFrozen: formData.upsellFrozen,
         abGroup: formData.abGroup || 'A'
       });
@@ -301,17 +300,17 @@ export default function GeradorContrato() {
         valor_entrada_formatado: formatBRLCurrency(parcela1),
         valor_final: parcela2,
         valor_final_formatado: formatBRLCurrency(parcela2),
-        valor_mao_de_obra: 0,
-        valor_mao_de_obra_formatado: '',
+        valor_mao_de_obra: valorTotal,
+        valor_mao_de_obra_formatado: formatBRLCurrency(valorTotal),
         valor_ajudante: 0,
         valor_ajudante_formatado: '',
         
-        valor_hora_extra: calc.tier?.extraHourPrice || 0,
-        valor_hora_extra_formatado: formatBRL(calc.tier?.extraHourPrice || 0),
-        valor_hora_extra_barman: 0,
-        valor_hora_extra_barman_formatado: '0,00',
-        valor_hora_extra_ajudante: 0,
-        valor_hora_extra_ajudante_formatado: '0,00',
+        valor_hora_extra: calc.tier?.extraHourPrice || (isMaoDeObra ? (barmansCount * 70 + ajudantesCount * 40) : 0),
+        valor_hora_extra_formatado: formatBRL(calc.tier?.extraHourPrice || (isMaoDeObra ? (barmansCount * 70 + ajudantesCount * 40) : 0)),
+        valor_hora_extra_barman: 70,
+        valor_hora_extra_barman_formatado: '70,00',
+        valor_hora_extra_ajudante: 40,
+        valor_hora_extra_ajudante_formatado: '40,00',
 
         data_formatada: formatDateBR(formData.data),
         hora_inicio: formData.hora || '',
