@@ -1314,8 +1314,8 @@ const detectCategoryByDescription = (desc) => {
       const valorOriginal = isPerPerson ? (convidadosCobrados * valorPorConvidado) : parseFloat(lead.financeiro?.faturamento || 0);
       const desconto = parseFloat(lead.financeiro?.desconto || 0);
       
-      const precoCopo = parseFloat(generalConfigs?.precoCopoVidro !== undefined ? generalConfigs.precoCopoVidro : 5);
-      const valorCoposVidro = lead.coposDeVidro ? (precoCopo * convidadosInformados) : 0;
+      const precoCopo = parseFloat(generalConfigs?.precoCopoVidro !== undefined && generalConfigs?.precoCopoVidro !== '' ? generalConfigs.precoCopoVidro : 3.5);
+      const valorCoposVidro = (isMaoDeObra && lead.coposDeVidro) ? (precoCopo * convidadosInformados) : 0;
       
       const valorTotal = Math.max(0, valorOriginal - desconto + valorCoposVidro);
       

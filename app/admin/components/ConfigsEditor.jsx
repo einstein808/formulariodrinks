@@ -1344,9 +1344,9 @@ export default function ConfigsEditor() {
                 className="form-input" 
                 value={general.precoCopoVidro !== undefined ? general.precoCopoVidro : ''} 
                 onChange={(e) => setGeneral({ ...general, precoCopoVidro: e.target.value === '' ? '' : parseFloat(e.target.value) })} 
-                placeholder="Padrão: R$ 5,00" 
+                placeholder="Padrão: R$ 3,50" 
               />
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor cobrado por convidado caso o opcional de Copos de Vidro seja selecionado no contrato (ex: 5.00).</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor cobrado por convidado caso o opcional de Copos de Vidro seja selecionado na Mão de Obra (ex: 3.50).</p>
             </div>
           </div>
 

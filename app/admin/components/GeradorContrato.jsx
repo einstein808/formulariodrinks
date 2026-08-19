@@ -264,7 +264,10 @@ export default function GeradorContrato() {
         abGroup: formData.abGroup || 'A'
       });
 
-      let valorTotal = calc.finalPrice;
+      const precoCopo = parseFloat(generalConfig?.precoCopoVidro !== undefined && generalConfig?.precoCopoVidro !== '' ? generalConfig.precoCopoVidro : 3.5);
+      const valorCopos = (isMaoDeObra && formData.coposDeVidro) ? (convidadosInformados * precoCopo) : 0;
+
+      let valorTotal = calc.finalPrice + valorCopos;
       const descontoValue = (isMaoDeObra && !formData.aplicarDescontoMaoDeObra) ? 0 : (parseFloat(formData.desconto) || 0);
       const valorOriginal = valorTotal;
       valorTotal = Math.max(0, valorTotal - descontoValue);
@@ -387,9 +390,9 @@ export default function GeradorContrato() {
     const convidadosCobrados = isPerPerson ? Math.max(convidadosInformados, minimoConvidados) : 0;
     let valorTotal = isPerPerson ? (convidadosCobrados * valorPorConvidado) : valorBase;
 
-    // Adicional de copos de vidro: preço dinâmico por convidado
-    const precoCopo = parseFloat(generalConfig.precoCopoVidro !== undefined ? generalConfig.precoCopoVidro : 5);
-    if (formData.coposDeVidro) {
+    // Adicional de copos de vidro: apenas para Mão de Obra
+    const precoCopo = parseFloat(generalConfig?.precoCopoVidro !== undefined && generalConfig?.precoCopoVidro !== '' ? generalConfig.precoCopoVidro : 3.5);
+    if (isMaoDeObra && formData.coposDeVidro) {
       valorTotal += precoCopo * convidadosInformados;
     }
 
@@ -1268,35 +1271,37 @@ export default function GeradorContrato() {
               </div>
             </div>
 
-            {/* ADICIONAIS / OPCIONAIS */}
-            <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '12px' }}>Opcionais Adicionais</label>
-              <div
-                onClick={() => setFormData(prev => ({ ...prev, coposDeVidro: !prev.coposDeVidro }))}
-                style={{
-                  padding: '14px 16px', borderRadius: '8px', cursor: 'pointer',
-                  border: formData.coposDeVidro ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
-                  background: formData.coposDeVidro ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.02)',
-                  color: formData.coposDeVidro ? 'var(--primary)' : 'var(--text-secondary)',
-                  transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: '12px'
-                }}
-              >
-                <div style={{
-                  width: '20px', height: '20px', borderRadius: '4px', border: '1px solid var(--primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', background: formData.coposDeVidro ? 'var(--primary)' : 'transparent', flexShrink: 0
-                }}>
-                  {formData.coposDeVidro && <span style={{ color: '#000', fontSize: '0.8rem', fontWeight: 'bold' }}>✓</span>}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                  <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: formData.coposDeVidro ? 'var(--primary)' : '#FFF' }}>
-                    Adicional de Copos de Vidro 🍷
-                  </span>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Fornecimento de copos de vidro para o evento (5 copos por convidado) • + R$ {parseFloat(generalConfig.precoCopoVidro !== undefined ? generalConfig.precoCopoVidro : 5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por convidado
-                  </span>
+            {/* ADICIONAIS / OPCIONAIS - EXIBIR APENAS PARA MÃO DE OBRA */}
+            {isMaoDeObra && (
+              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '12px' }}>Opcionais Adicionais</label>
+                <div
+                  onClick={() => setFormData(prev => ({ ...prev, coposDeVidro: !prev.coposDeVidro }))}
+                  style={{
+                    padding: '14px 16px', borderRadius: '8px', cursor: 'pointer',
+                    border: formData.coposDeVidro ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
+                    background: formData.coposDeVidro ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.02)',
+                    color: formData.coposDeVidro ? 'var(--primary)' : 'var(--text-secondary)',
+                    transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: '12px'
+                  }}
+                >
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '4px', border: '1px solid var(--primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', background: formData.coposDeVidro ? 'var(--primary)' : 'transparent', flexShrink: 0
+                  }}>
+                    {formData.coposDeVidro && <span style={{ color: '#000', fontSize: '0.8rem', fontWeight: 'bold' }}>✓</span>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: formData.coposDeVidro ? 'var(--primary)' : '#FFF' }}>
+                      Adicional de Copos de Vidro 🍷
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Fornecimento de copos de vidro para o evento (5 copos por convidado) • + R$ {parseFloat(generalConfig.precoCopoVidro !== undefined && generalConfig.precoCopoVidro !== '' ? generalConfig.precoCopoVidro : 3.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por convidado
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* DESCONTO ESPECIAL */}
             <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
