@@ -292,10 +292,11 @@ body {
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 16px; /* 16px prevents iOS Safari auto-zoom */
   font-family: inherit;
   transition: var(--transition);
   outline: none;
+  min-height: 48px;
 }
 
 .form-input::placeholder {
@@ -303,13 +304,13 @@ body {
 }
 
 .form-input:hover {
-  border-color: rgba(124, 58, 237, 0.4);
+  border-color: rgba(203, 161, 83, 0.4);
 }
 
 .form-input:focus {
-  border-color: var(--border-focus);
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-glow);
-  background: rgba(21, 14, 34, 0.9);
+  background: rgba(12, 22, 16, 0.95);
 }
 
 .form-input--error {
@@ -1420,4 +1421,137 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* =========================================================
+   Google Places Autocomplete Dropdown (Fix z-index in modals)
+   ========================================================= */
+.pac-container {
+  z-index: 1000000 !important;
+  background-color: #16221b !important;
+  border: 1.5px solid #cba153 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95) !important;
+  font-family: inherit !important;
+  margin-top: 6px !important;
+}
+.pac-item {
+  padding: 10px 14px !important;
+  color: #ffffff !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  cursor: pointer !important;
+  font-size: 0.88rem !important;
+}
+.pac-item:hover, .pac-item-selected {
+  background-color: rgba(203, 161, 83, 0.25) !important;
+}
+.pac-item-query {
+  color: #cba153 !important;
+  font-size: 0.92rem !important;
+}
+.pac-matched {
+  font-weight: bold !important;
+  color: #ffffff !important;
+}
+.pac-icon {
+  filter: invert(1) brightness(1.5);
+}
+
+/* =========================================================
+   Contrato Client Mobile-Optimized System
+   ========================================================= */
+.contrato-container {
+  width: 100%;
+  max-width: 850px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contrato-card {
+  background: #0a140d;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(203, 161, 83, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contrato-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.contrato-grid-street {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 16px;
+}
+
+.contrato-drinks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.contrato-drink-item {
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  transition: all 0.2s ease;
+  user-select: none;
+  min-height: 60px;
+}
+
+.contrato-drink-item:active {
+  transform: scale(0.98);
+}
+
+.contrato-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .contrato-card {
+    padding: 18px 14px;
+    border-radius: 14px;
+    gap: 16px;
+  }
+
+  .contrato-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .contrato-grid-street {
+    grid-template-columns: 2.2fr 1fr;
+    gap: 10px;
+  }
+
+  .contrato-drinks-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .contrato-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .contrato-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 14px 20px !important;
+    font-size: 1rem !important;
+  }
 }

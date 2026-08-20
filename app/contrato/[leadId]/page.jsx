@@ -960,41 +960,93 @@ export default function ClienteContratoPage() {
   const selectedPackage = pacotes.find(p => p.name === formData.Servico);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', padding: '24px 16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{ maxWidth: '850px', width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', padding: '16px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div className="contrato-container">
         
         {/* LOGO HEADER */}
-        <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-          <img src="/logo.webp" alt="Logo Formulário Drinks" style={{ width: '120px', height: 'auto' }} />
+        <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+          <img src="/logo.webp" alt="Logo Formulário Drinks" style={{ width: '105px', height: 'auto' }} />
         </div>
 
-        {/* STEP STATUS INDICATOR */}
+        {/* STEP STATUS INDICATOR (MOBILE-FIRST) */}
         {step < 4 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            <span style={{ color: step === 1 ? 'var(--primary)' : 'inherit', fontWeight: step === 1 ? 'bold' : 'normal' }}>1. Contratante</span>
-            <span style={{ color: step === 2 ? 'var(--primary)' : 'inherit', fontWeight: step === 2 ? 'bold' : 'normal' }}>2. Evento & Pacote</span>
-            <span style={{ color: step === 3 ? 'var(--primary)' : 'inherit', fontWeight: step === 3 ? 'bold' : 'normal' }}>3. Bebidas</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', marginBottom: '2px' }}>
+            {[
+              { num: 1, label: 'Contratante', icon: FiUser },
+              { num: 2, label: 'Evento', icon: FiCalendar },
+              { num: 3, label: 'Drinks', icon: FiBookOpen },
+            ].map((s, idx) => {
+              const isActive = step === s.num;
+              const isPast = step > s.num;
+              return (
+                <React.Fragment key={s.num}>
+                  <div
+                    onClick={() => isPast && setStep(s.num)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: isPast ? 'pointer' : 'default',
+                      opacity: isActive || isPast ? 1 : 0.4
+                    }}
+                  >
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: isActive ? 'var(--primary)' : (isPast ? '#2e8b57' : 'rgba(255,255,255,0.08)'),
+                      color: isActive ? '#000' : '#FFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '0.78rem',
+                      flexShrink: 0
+                    }}>
+                      {isPast ? '✓' : s.num}
+                    </div>
+                    <span style={{
+                      fontSize: '0.8rem',
+                      fontWeight: isActive ? 'bold' : '500',
+                      color: isActive ? 'var(--primary)' : (isPast ? '#FFF' : 'var(--text-muted)'),
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {s.label}
+                    </span>
+                  </div>
+                  {idx < 2 && (
+                    <div style={{
+                      flex: 1,
+                      height: '2px',
+                      background: step > idx + 1 ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                      margin: '0 8px',
+                      transition: 'background 0.3s'
+                    }} />
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
         )}
 
         {/* ── STEP 1: CONTRATANTE & ENDEREÇO ────────────────────── */}
         {step === 1 && (
-          <div style={{ background: '#0a140d', padding: '28px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.3rem', margin: '0 0 10px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="contrato-card">
+            <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.25rem', margin: '0 0 4px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <FiUser /> 1. Informações do Contratante & Endereço
             </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 8px 0', lineHeight: '1.4' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0', lineHeight: '1.4' }}>
               Olá! Para gerarmos o seu contrato, preencha os seus dados de faturamento e o endereço onde o bar será montado.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Nome Completo *</label>
                 <input type="text" name="nome" className={`form-input ${errors.nome ? 'form-input--error' : ''}`} placeholder="Nome do titular do contrato" value={formData.nome} onChange={handleInput} />
                 {errors.nome && <span style={{ color: '#F44336', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>{errors.nome}</span>}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="contrato-grid-2">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>CPF *</label>
                   <input type="text" name="cpf" className={`form-input ${errors.cpf ? 'form-input--error' : ''}`} placeholder="000.000.000-00" value={formData.cpf} onChange={handleInput} />
@@ -1007,17 +1059,18 @@ export default function ClienteContratoPage() {
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h3 style={{ fontSize: '0.9rem', color: '#FFF', margin: 0 }}>📍 Endereço de Montagem do Bar & Pino no Mapa</h3>
+              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <h3 style={{ fontSize: '0.9rem', color: '#FFF', margin: 0 }}>📍 Endereço de Montagem do Bar</h3>
 
                 <AddressMapPicker
                   value={{
                     rua: formData.rua,
+                    numero: formData.numero,
                     bairro: formData.bairro,
                     cidade: formData.cidade,
                     lat: formData.lat,
                     lng: formData.lng,
-                    fullAddress: [formData.rua, formData.bairro, formData.cidade].filter(Boolean).join(', ')
+                    fullAddress: [formData.rua, formData.numero, formData.bairro, formData.cidade].filter(Boolean).join(', ')
                   }}
                   onChange={(loc) => {
                     setFormData(prev => ({
@@ -1033,15 +1086,16 @@ export default function ClienteContratoPage() {
                     setErrors(prev => {
                       const next = { ...prev };
                       if (loc.rua) delete next.rua;
+                      if (loc.numero) delete next.numero;
                       if (loc.bairro) delete next.bairro;
                       if (loc.cidade) delete next.cidade;
                       return next;
                     });
                   }}
-                  placeholder="Pesquise o endereço, buffet, sítio ou rua do evento..."
+                  placeholder="Pesquise o buffet, sítio ou rua do evento..."
                 />
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '16px' }}>
+                <div className="contrato-grid-street">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Rua *</label>
                     <input type="text" name="rua" className={`form-input ${errors.rua ? 'form-input--error' : ''}`} placeholder="Rua / Avenida" value={formData.rua} onChange={handleInput} />
@@ -1054,7 +1108,7 @@ export default function ClienteContratoPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="contrato-grid-2">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Bairro *</label>
                     <input type="text" name="bairro" className={`form-input ${errors.bairro ? 'form-input--error' : ''}`} placeholder="Bairro" value={formData.bairro} onChange={handleInput} />
@@ -1074,24 +1128,23 @@ export default function ClienteContratoPage() {
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px', marginTop: '10px' }}>
+            <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px', marginTop: '4px' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                 Autoriza o uso de fotos/vídeos para divulgação? (LGPD) *
               </label>
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, autorizarimagem: true }))}
                   style={{
                     flex: 1,
-                    padding: '10px 16px',
+                    padding: '12px 14px',
                     borderRadius: '8px',
                     border: '1px solid ' + (formData.autorizarimagem ? 'var(--primary)' : 'rgba(203, 161, 83, 0.15)'),
                     background: formData.autorizarimagem ? 'rgba(203, 161, 83, 0.15)' : 'transparent',
                     color: formData.autorizarimagem ? 'var(--primary)' : 'var(--text-secondary)',
                     fontWeight: 'bold',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
                     textAlign: 'center'
                   }}
                 >
@@ -1102,14 +1155,13 @@ export default function ClienteContratoPage() {
                   onClick={() => setFormData(prev => ({ ...prev, autorizarimagem: false }))}
                   style={{
                     flex: 1,
-                    padding: '10px 16px',
+                    padding: '12px 14px',
                     borderRadius: '8px',
                     border: '1px solid ' + (!formData.autorizarimagem ? 'var(--primary)' : 'rgba(203, 161, 83, 0.15)'),
                     background: !formData.autorizarimagem ? 'rgba(203, 161, 83, 0.15)' : 'transparent',
                     color: !formData.autorizarimagem ? 'var(--primary)' : 'var(--text-secondary)',
                     fontWeight: 'bold',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
                     textAlign: 'center'
                   }}
                 >
@@ -1118,7 +1170,8 @@ export default function ClienteContratoPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+            <div className="contrato-actions">
+              <div></div>
               <button className="btn btn--primary" onClick={nextStep} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Avançar <FiArrowRight />
               </button>
@@ -1128,16 +1181,16 @@ export default function ClienteContratoPage() {
 
         {/* ── STEP 2: EVENTO & BAR CONFIG ──────────────────────── */}
         {step === 2 && (
-          <div style={{ background: '#0a140d', padding: '28px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.3rem', margin: '0 0 10px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="contrato-card">
+            <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.25rem', margin: '0 0 4px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <FiCalendar /> 2. Detalhes do Evento & Pacote
             </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 8px 0', lineHeight: '1.4' }}>
-              Os dados abaixo foram importados do seu orçamento inicial. Sinta-se livre para corrigir qualquer informação (como convidados, data ou alterar o pacote contratado) se necessário.
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0', lineHeight: '1.4' }}>
+              Os dados abaixo foram importados do seu orçamento inicial. Você pode ajustar qualquer informação se necessário.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="contrato-grid-2">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Data do Evento *</label>
                   <input type="date" name="data" className={`form-input ${errors.data ? 'form-input--error' : ''}`} value={formData.data} onChange={handleInput} />
@@ -1150,7 +1203,7 @@ export default function ClienteContratoPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="contrato-grid-2">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Duração do Evento *</label>
                   <select name="duracao" className="form-input" value={formData.duracao} onChange={handleInput}>
@@ -1164,19 +1217,19 @@ export default function ClienteContratoPage() {
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Tipo de Serviço (Pacote) *</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '10px' }}>Tipo de Serviço (Pacote) *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
                   {pacotes.filter(p => !p.hidden).map(p => (
                     <div
                       key={p.name}
                       onClick={() => handleInput({ target: { name: 'Servico', value: p.name } })}
                       style={{
-                        padding: '12px', borderRadius: '8px', cursor: 'pointer', flex: '1 1 calc(50% - 10px)',
-                        border: formData.Servico === p.name ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
-                        background: formData.Servico === p.name ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.02)',
+                        padding: '12px', borderRadius: '8px', cursor: 'pointer',
+                        border: formData.Servico === p.name ? '1.5px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
+                        background: formData.Servico === p.name ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.02)',
                         color: formData.Servico === p.name ? 'var(--primary)' : 'var(--text-secondary)',
-                        transition: 'all 0.25s', minWidth: '130px', textAlign: 'center', fontSize: '0.88rem'
+                        transition: 'all 0.2s', textAlign: 'center', fontSize: '0.88rem', fontWeight: formData.Servico === p.name ? 'bold' : 'normal'
                       }}
                     >
                       {p.emoji || '📦'} {p.name}
@@ -1184,7 +1237,7 @@ export default function ClienteContratoPage() {
                   ))}
                 </div>
                 {selectedPackage && (
-                  <div style={{ marginTop: '14px', background: 'rgba(203, 161, 83, 0.05)', padding: '12px', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--primary)', lineHeight: '1.5' }}>
+                  <div style={{ marginTop: '12px', background: 'rgba(203, 161, 83, 0.05)', padding: '12px', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--primary)', lineHeight: '1.5' }}>
                     <strong>{selectedPackage.name}:</strong> {selectedPackage.features ? selectedPackage.features.join(' • ') : (isPremium ? 'Até 6 drinks alcoólicos no total (máximo 2 sofisticados) e 3 sem álcool.' : 'Até 5 drinks alcoólicos e 2 sem álcool.')}
                   </div>
                 )}
@@ -1195,16 +1248,16 @@ export default function ClienteContratoPage() {
                   background: 'rgba(203, 161, 83, 0.03)',
                   border: '1px solid rgba(203, 161, 83, 0.15)',
                   borderRadius: '12px',
-                  padding: '20px',
+                  padding: '16px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '16px',
-                  marginTop: '10px'
+                  gap: '14px',
+                  marginTop: '4px'
                 }}>
                   <h3 style={{
                     fontFamily: 'Cinzel, serif',
                     color: 'var(--primary)',
-                    fontSize: '1.05rem',
+                    fontSize: '1rem',
                     margin: 0,
                     display: 'flex',
                     alignItems: 'center',
@@ -1213,10 +1266,10 @@ export default function ClienteContratoPage() {
                     🤵 Equipe de Mão de Obra
                   </h3>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="contrato-grid-2">
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>Quantidade de Barmans</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Quantidade de Barmans</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button
                           type="button"
                           onClick={() => {
@@ -1224,16 +1277,14 @@ export default function ClienteContratoPage() {
                             setFormData(prev => ({ ...prev, barmans: val }));
                           }}
                           style={{
-                            width: '38px', height: '38px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
+                            width: '42px', height: '42px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
                             background: 'rgba(255,255,255,0.03)', color: 'var(--primary)', fontSize: '1.3rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifycontent: 'center', userSelect: 'none', transition: 'all 0.15s'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(203, 161, 83, 0.12)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                         >
                           -
                         </button>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF', minWidth: '24px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF', minWidth: '28px', textAlign: 'center' }}>
                           {formData.barmans !== undefined ? formData.barmans : 1}
                         </span>
                         <button
@@ -1243,20 +1294,18 @@ export default function ClienteContratoPage() {
                             setFormData(prev => ({ ...prev, barmans: val }));
                           }}
                           style={{
-                            width: '38px', height: '38px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
+                            width: '42px', height: '42px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
                             background: 'rgba(255,255,255,0.03)', color: 'var(--primary)', fontSize: '1.3rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifycontent: 'center', userSelect: 'none', transition: 'all 0.15s'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(203, 161, 83, 0.12)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                         >
                           +
                         </button>
                       </div>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>Quantidade de Ajudantes</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Quantidade de Ajudantes</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button
                           type="button"
                           onClick={() => {
@@ -1264,16 +1313,14 @@ export default function ClienteContratoPage() {
                             setFormData(prev => ({ ...prev, ajudantes: val }));
                           }}
                           style={{
-                            width: '38px', height: '38px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
+                            width: '42px', height: '42px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
                             background: 'rgba(255,255,255,0.03)', color: 'var(--primary)', fontSize: '1.3rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifycontent: 'center', userSelect: 'none', transition: 'all 0.15s'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(203, 161, 83, 0.12)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                         >
                           -
                         </button>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF', minWidth: '24px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#FFF', minWidth: '28px', textAlign: 'center' }}>
                           {formData.ajudantes !== undefined ? formData.ajudantes : 0}
                         </span>
                         <button
@@ -1283,12 +1330,10 @@ export default function ClienteContratoPage() {
                             setFormData(prev => ({ ...prev, ajudantes: val }));
                           }}
                           style={{
-                            width: '38px', height: '38px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
+                            width: '42px', height: '42px', borderRadius: '8px', border: '1px solid rgba(203, 161, 83, 0.3)',
                             background: 'rgba(255,255,255,0.03)', color: 'var(--primary)', fontSize: '1.3rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifycontent: 'center', userSelect: 'none', transition: 'all 0.15s'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(203, 161, 83, 0.12)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                         >
                           +
                         </button>
@@ -1303,14 +1348,14 @@ export default function ClienteContratoPage() {
                       <div style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '12px',
+                        gap: '10px',
                         background: 'rgba(203, 161, 83, 0.06)',
-                        padding: '14px 16px',
+                        padding: '12px 14px',
                         borderRadius: '8px',
                         borderLeft: '4px solid var(--primary)'
                       }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: '1.4' }}>
                             🤵 <strong>Recomendação para {formData.convidados || 0} convidados:</strong> {rec.barmans} {rec.barmans === 1 ? 'Barman' : 'Barmans'} e {rec.ajudantes} {rec.ajudantes === 1 ? 'Ajudante' : 'Ajudantes'}.
                           </span>
                           {showApplyBtn && (
@@ -1328,15 +1373,12 @@ export default function ClienteContratoPage() {
                                 fontSize: '0.78rem',
                                 fontWeight: 'bold',
                                 cursor: 'pointer',
-                                transition: 'transform 0.1s, opacity 0.2s',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '4px'
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                             >
-                              Aplicar Recomendação ✨
+                              Aplicar ✨
                             </button>
                           )}
                         </div>
@@ -1346,116 +1388,114 @@ export default function ClienteContratoPage() {
                 </div>
               )}
 
-              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Tipos de Drink na Festa *</label>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {['Com álcool', 'Sem álcool', 'Com e sem álcool'].map(s => (
+              <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '10px' }}>Tipos de Drink na Festa *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {['Com e sem álcool', 'Apenas sem álcool'].map(t => (
                     <div
-                      key={s}
-                      onClick={() => handleInput({ target: { name: 'tipodrink', value: s } })}
+                      key={t}
+                      onClick={() => handleInput({ target: { name: 'tipodrink', value: t } })}
                       style={{
-                        padding: '12px', borderRadius: '8px', cursor: 'pointer', flex: 1, minWidth: '100px',
-                        border: formData.tipodrink === s ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
-                        background: formData.tipodrink === s ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.02)',
-                        color: formData.tipodrink === s ? 'var(--primary)' : 'var(--text-secondary)',
-                        transition: 'all 0.25s', textAlign: 'center', fontSize: '0.85rem'
+                        padding: '12px', borderRadius: '8px', cursor: 'pointer',
+                        border: formData.tipodrink === t ? '1.5px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
+                        background: formData.tipodrink === t ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.02)',
+                        color: formData.tipodrink === t ? 'var(--primary)' : 'var(--text-secondary)',
+                        transition: 'all 0.2s', textAlign: 'center', fontSize: '0.85rem', fontWeight: formData.tipodrink === t ? 'bold' : 'normal'
                       }}
                     >
-                      {s}
+                      {t === 'Com e sem álcool' ? '🍸 Alcoólicos + Não Alcoólicos' : '🍹 Apenas Drinks Sem Álcool'}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* ADICIONAIS / OPCIONAIS - EXIBIR APENAS PARA MÃO DE OBRA */}
+              {/* COPOS DE VIDRO (ADICIONAL) - APENAS PARA MÃO DE OBRA */}
               {isMaoDeObra && (
-                <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', marginBottom: '12px' }}>Opcionais Adicionais</label>
-                  <div
-                    onClick={() => setFormData(prev => ({ ...prev, coposDeVidro: !prev.coposDeVidro }))}
-                    style={{
-                      padding: '14px 16px', borderRadius: '8px', cursor: 'pointer',
-                      border: formData.coposDeVidro ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
-                      background: formData.coposDeVidro ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.02)',
-                      color: formData.coposDeVidro ? 'var(--primary)' : 'var(--text-secondary)',
-                      transition: 'all 0.25s', display: 'flex', alignItems: 'center', gap: '12px'
-                    }}
-                  >
-                    <div style={{
-                      width: '20px', height: '20px', borderRadius: '4px', border: '1px solid var(--primary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', background: formData.coposDeVidro ? 'var(--primary)' : 'transparent', flexShrink: 0
-                    }}>
-                      {formData.coposDeVidro && <span style={{ color: '#000', fontSize: '0.8rem', fontWeight: 'bold' }}>✓</span>}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                      <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: formData.coposDeVidro ? 'var(--primary)' : '#FFF' }}>
-                        Adicional de Copos de Vidro 🍷
-                      </span>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        Fornecimento de copos de vidro para o evento (5 copos por convidado) • + R$ {parseFloat(generalConfig.precoCopoVidro !== undefined && generalConfig.precoCopoVidro !== '' ? generalConfig.precoCopoVidro : 3.5).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por convidado
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ESTIMATED FINANCIAL SUMMARY CARD */}
-              {formData.Servico && (
                 <div style={{
-                  background: 'rgba(203, 161, 83, 0.05)',
-                  border: '1px solid rgba(203, 161, 83, 0.25)',
-                  borderRadius: '10px',
-                  padding: '20px',
-                  marginTop: '10px'
-                }}>
-                  <h4 style={{ color: 'var(--primary)', margin: '0 0 12px 0', fontFamily: 'Cinzel, serif', borderBottom: '1px solid rgba(203,161,83,0.1)', paddingBottom: '6px' }}>
-                    💰 Resumo Financeiro Estimado
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {financials.is_per_person ? (
-                      <>
-                        <div>
-                          <span style={{ color: 'var(--text-muted)' }}>Mínimo de Convidados:</span> {financials.minimo_convidados}
-                        </div>
-                        <div>
-                          <span style={{ color: 'var(--text-muted)' }}>Convidados Cobrados:</span> {financials.convidados_cobrados}
-                        </div>
-                        <div>
-                          <span style={{ color: 'var(--text-muted)' }}>Valor por Convidado:</span> R$ {financials.valor_por_convidado_formatado}
-                        </div>
-                      </>
-                    ) : (
-                      <div>
-                        <span style={{ color: 'var(--text-muted)' }}>Convidados do Evento:</span> {financials.convidados_informados}
+                  background: formData.coposDeVidro ? 'rgba(203, 161, 83, 0.08)' : 'rgba(255,255,255,0.02)',
+                  border: formData.coposDeVidro ? '1.5px solid var(--primary)' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={() => setFormData(prev => ({ ...prev, coposDeVidro: !prev.coposDeVidro }))}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: formData.coposDeVidro ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                      color: formData.coposDeVidro ? '#000' : 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      flexShrink: 0
+                    }}>
+                      🍸
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '0.9rem' }}>
+                        Adicionar Copos e Taças de Vidro
                       </div>
-                    )}
-                    {financials.desconto > 0 && (
-                      <>
-                        <div style={{ color: '#FFF' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>Valor Bruto:</span> R$ {financials.valor_original_formatado}
-                        </div>
-                        <div style={{ color: '#F44336' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>Desconto:</span> - R$ {financials.desconto_formatado}
-                        </div>
-                      </>
-                    )}
-                    <div style={{ fontWeight: 'bold', color: '#FFF' }}>
-                      <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>Valor Total:</span> {financials.valor_total_formatado.includes('R$') ? financials.valor_total_formatado : `R$ ${financials.valor_total_formatado}`}
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        Higienizados para todo o evento (+ R$ 3,50 / convidado)
+                      </div>
                     </div>
                   </div>
-                  <div style={{ marginTop: '14px', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '10px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <strong>Forma de Pagamento sugerida (50/50):</strong>
-                    <ul style={{ margin: '6px 0 0 0', paddingLeft: '16px' }}>
-                      <li>Entrada: R$ {financials.parcela_1_valor_formatado} (no ato da assinatura)</li>
-                      <li>Sinal Final: R$ {financials.parcela_2_valor_formatado} (no dia do evento: {financials.parcela_2_data || '—'})</li>
-                    </ul>
+
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '6px',
+                    border: '1.5px solid var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: formData.coposDeVidro ? 'var(--primary)' : 'transparent',
+                    color: '#000',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                    flexShrink: 0
+                  }}>
+                    {formData.coposDeVidro && '✓'}
                   </div>
                 </div>
               )}
 
+              {/* CARD DE ESTIMATIVA DE INVESTIMENTO */}
+              <div style={{
+                background: 'rgba(203, 161, 83, 0.08)',
+                border: '1px solid var(--primary)',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Investimento Previsto
+                  </span>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--primary)', fontFamily: 'Cinzel, serif', marginTop: '2px' }}>
+                    {financials.valor_total_formatado}
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                  {formData.convidados || 0} convidados • {formData.duracao || 5}h de evento
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
+            <div className="contrato-actions">
               <button className="btn btn--secondary" onClick={prevStep} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FiArrowLeft /> Voltar
               </button>
@@ -1468,18 +1508,55 @@ export default function ClienteContratoPage() {
 
         {/* ── STEP 3: DRINKS SELECTION ────────────────────────── */}
         {step === 3 && (
-          <div style={{ background: '#0a140d', padding: '28px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', gap: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.3rem', margin: '0 0 10px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="contrato-card">
+            <h2 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.25rem', margin: '0 0 4px 0', borderBottom: '1px solid rgba(203,161,83,0.15)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <FiBookOpen /> 3. Escolha do Cardápio de Drinks
             </h2>
 
+            {/* STICKY / FLOATING MOBILE DRINK COUNTER */}
+            <div style={{
+              position: 'sticky',
+              top: '8px',
+              zIndex: 100,
+              background: 'rgba(12, 22, 16, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid var(--primary)',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
+              gap: '8px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', flexWrap: 'wrap' }}>
+                <span style={{ color: countAlcool >= limitAlcoolTotal ? '#4CAF50' : 'var(--primary)', fontWeight: 'bold' }}>
+                  🍸 Alcoólicos: {countAlcool} / {limitAlcoolTotal}
+                </span>
+                {isFrozen && (
+                  <span style={{ color: countFrozen >= limitFrozen ? '#4CAF50' : 'var(--primary-light)', fontWeight: 'bold' }}>
+                    🧊 Frozen: {countFrozen} / {limitFrozen}
+                  </span>
+                )}
+                {isPremium && (
+                  <span style={{ color: countSofisticados >= limitSofisticado ? '#4CAF50' : 'var(--primary-light)', fontWeight: 'bold' }}>
+                    ⭐ Sofisticados: {countSofisticados} / {limitSofisticado}
+                  </span>
+                )}
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                🍹 Sem Álcool: {formData.drinks_sem_alcool.length}
+              </span>
+            </div>
+
             {/* ALCOHOLIC DRINKS */}
             <div style={{ opacity: disableAlcoolGroup ? 0.4 : 1, pointerEvents: disableAlcoolGroup ? 'none' : 'auto' }}>
-              <h3 style={{ color: '#FFF', fontSize: '1.05rem', margin: '0 0 4px 0' }}>Drinks Alcoólicos (Regulares)</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 16px 0' }}>
-                {disableAlcoolGroup ? 'Desabilitado pela escolha do tipo de drink.' : `Selecione até ${limitAlcoolTotal} drinks no total do bar. (Selecionados: ${countAlcool} / ${limitAlcoolTotal})`}
+              <h3 style={{ color: '#FFF', fontSize: '1rem', margin: '0 0 4px 0' }}>Drinks Alcoólicos (Regulares)</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 12px 0' }}>
+                {disableAlcoolGroup ? 'Desabilitado pela escolha do tipo de drink.' : `Selecione até ${limitAlcoolTotal} drinks no total do bar.`}
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+              <div className="contrato-drinks-grid">
                 {DRINKS_ALCOOL.map(d => {
                   const isSelected = formData.drinks_alcool.includes(d.id);
                   const isLimitReached = !isSelected && countAlcool >= limitAlcoolTotal;
@@ -1487,27 +1564,28 @@ export default function ClienteContratoPage() {
                     <div
                       key={d.id}
                       onClick={() => !isLimitReached && toggleDrink('drinks_alcool', d.id)}
+                      className="contrato-drink-item"
                       style={{
-                        padding: '12px', borderRadius: '8px', border: isSelected ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
-                        background: isSelected ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.01)',
-                        cursor: isLimitReached ? 'not-allowed' : 'pointer', opacity: isLimitReached ? 0.5 : 1,
-                        display: 'flex', gap: '10px', alignItems: 'center', transition: 'all 0.2s'
+                        border: isSelected ? '1.5px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
+                        background: isSelected ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.02)',
+                        cursor: isLimitReached ? 'not-allowed' : 'pointer',
+                        opacity: isLimitReached ? 0.5 : 1
                       }}
                     >
                       <div style={{
-                        width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
+                        width: '20px', height: '20px', borderRadius: '4px', border: '1.5px solid var(--primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                       }}>
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
                       {d.image && (
-                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
                           {isNextImageAllowed(d.image) ? (
                             <Image
                               src={d.image}
                               alt={d.rawName}
                               fill
-                              sizes="40px"
+                              sizes="44px"
                               style={{ objectFit: 'cover' }}
                             />
                           ) : (
@@ -1519,9 +1597,9 @@ export default function ClienteContratoPage() {
                           )}
                         </div>
                       )}
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                        <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>
                       </div>
                     </div>
                   );
@@ -1531,12 +1609,12 @@ export default function ClienteContratoPage() {
 
             {/* FROZEN DRINKS */}
             {isFrozen && (
-              <div style={{ opacity: disableAlcoolGroup ? 0.4 : 1, pointerEvents: disableAlcoolGroup ? 'none' : 'auto', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-                <h3 style={{ color: 'var(--primary)', fontSize: '1.05rem', margin: '0 0 4px 0' }}>Drinks Frozen (Consome limite do bar)</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 16px 0' }}>
+              <div style={{ opacity: disableAlcoolGroup ? 0.4 : 1, pointerEvents: disableAlcoolGroup ? 'none' : 'auto', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px' }}>
+                <h3 style={{ color: 'var(--primary)', fontSize: '1rem', margin: '0 0 4px 0' }}>Drinks Frozen (Consome limite do bar)</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 12px 0' }}>
                   {disableAlcoolGroup ? 'Desabilitado pela escolha do tipo de drink.' : `Máx ${limitFrozen} drinks frozen. (Selecionados: ${countFrozen} / ${limitFrozen})`}
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+                <div className="contrato-drinks-grid">
                   {DRINKS_FROZEN.map(d => {
                     const isSelected = (formData.drinks_frozen || []).includes(d.id);
                     const isLimitReached = !isSelected && (countFrozen >= limitFrozen || countAlcool >= limitAlcoolTotal);
@@ -1544,27 +1622,28 @@ export default function ClienteContratoPage() {
                       <div
                         key={d.id}
                         onClick={() => !isLimitReached && toggleDrink('drinks_frozen', d.id)}
+                        className="contrato-drink-item"
                         style={{
-                          padding: '12px', borderRadius: '8px', border: isSelected ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
-                          background: isSelected ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.01)',
-                          cursor: isLimitReached ? 'not-allowed' : 'pointer', opacity: isLimitReached ? 0.5 : 1,
-                          display: 'flex', gap: '10px', alignItems: 'center', transition: 'all 0.2s'
+                          border: isSelected ? '1.5px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
+                          background: isSelected ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.02)',
+                          cursor: isLimitReached ? 'not-allowed' : 'pointer',
+                          opacity: isLimitReached ? 0.5 : 1
                         }}
                       >
                         <div style={{
-                          width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
+                          width: '20px', height: '20px', borderRadius: '4px', border: '1.5px solid var(--primary)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                         }}>
                           {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                         </div>
                         {d.image && (
-                          <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
                             {isNextImageAllowed(d.image) ? (
                               <Image
                                 src={d.image}
                                 alt={d.rawName}
                                 fill
-                                sizes="40px"
+                                sizes="44px"
                                 style={{ objectFit: 'cover' }}
                               />
                             ) : (
@@ -1576,9 +1655,9 @@ export default function ClienteContratoPage() {
                             )}
                           </div>
                         )}
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                          <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>
                         </div>
                       </div>
                     );
@@ -1589,12 +1668,12 @@ export default function ClienteContratoPage() {
 
             {/* PREMIUM / SOFISTICADOS DRINKS */}
             {isPremium && (
-              <div style={{ opacity: disableAlcoolGroup ? 0.4 : 1, pointerEvents: disableAlcoolGroup ? 'none' : 'auto', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-                <h3 style={{ color: 'var(--primary)', fontSize: '1.05rem', margin: '0 0 4px 0' }}>Drinks Sofisticados (Consome limite do bar)</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 16px 0' }}>
+              <div style={{ opacity: disableAlcoolGroup ? 0.4 : 1, pointerEvents: disableAlcoolGroup ? 'none' : 'auto', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px' }}>
+                <h3 style={{ color: 'var(--primary)', fontSize: '1rem', margin: '0 0 4px 0' }}>Drinks Sofisticados (Consome limite do bar)</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 12px 0' }}>
                   {disableAlcoolGroup ? 'Desabilitado pela escolha do tipo de drink.' : `Máx ${limitSofisticado} drink sofisticado. (Selecionados: ${countSofisticados} / ${limitSofisticado})`}
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+                <div className="contrato-drinks-grid">
                   {DRINKS_SOFISTICADOS.map(d => {
                     const isSelected = formData.drinks_sofisticados.includes(d.id);
                     const isLimitReached = !isSelected && (countSofisticados >= limitSofisticado || countAlcool >= limitAlcoolTotal);
@@ -1602,27 +1681,28 @@ export default function ClienteContratoPage() {
                       <div
                         key={d.id}
                         onClick={() => !isLimitReached && toggleDrink('drinks_sofisticados', d.id)}
+                        className="contrato-drink-item"
                         style={{
-                          padding: '12px', borderRadius: '8px', border: isSelected ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
-                          background: isSelected ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.01)',
-                          cursor: isLimitReached ? 'not-allowed' : 'pointer', opacity: isLimitReached ? 0.5 : 1,
-                          display: 'flex', gap: '10px', alignItems: 'center', transition: 'all 0.2s'
+                          border: isSelected ? '1.5px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
+                          background: isSelected ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.02)',
+                          cursor: isLimitReached ? 'not-allowed' : 'pointer',
+                          opacity: isLimitReached ? 0.5 : 1
                         }}
                       >
                         <div style={{
-                          width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
+                          width: '20px', height: '20px', borderRadius: '4px', border: '1.5px solid var(--primary)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                         }}>
                           {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                         </div>
                         {d.image && (
-                          <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
                             {isNextImageAllowed(d.image) ? (
                               <Image
                                 src={d.image}
                                 alt={d.rawName}
                                 fill
-                                sizes="40px"
+                                sizes="44px"
                                 style={{ objectFit: 'cover' }}
                               />
                             ) : (
@@ -1634,9 +1714,9 @@ export default function ClienteContratoPage() {
                             )}
                           </div>
                         )}
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                          <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>
                         </div>
                       </div>
                     );
@@ -1646,40 +1726,38 @@ export default function ClienteContratoPage() {
             )}
 
             {/* NON-ALCOHOLIC DRINKS */}
-            <div style={{ opacity: disableNAGroup ? 0.4 : 1, pointerEvents: disableNAGroup ? 'none' : 'auto', borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '20px' }}>
-              <h3 style={{ color: '#FFF', fontSize: '1.05rem', margin: '0 0 4px 0' }}>Drinks Sem Álcool (Extras)</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 16px 0' }}>
-                {disableNAGroup ? 'Desabilitado pela escolha do tipo de drink.' : `Selecione até ${limitNA} drinks sem álcool. (Selecionados: ${countNA} / ${limitNA})`}
+            <div style={{ borderTop: '1px solid rgba(203,161,83,0.1)', paddingTop: '16px' }}>
+              <h3 style={{ color: '#FFF', fontSize: '1rem', margin: '0 0 4px 0' }}>Drinks Sem Álcool (Sucos, Coquetéis & Mocktails)</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 12px 0' }}>
+                Selecione quantos desejar para o cardápio sem álcool do evento. (Selecionados: {formData.drinks_sem_alcool.length})
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+              <div className="contrato-drinks-grid">
                 {DRINKS_NA.map(d => {
                   const isSelected = formData.drinks_sem_alcool.includes(d.id);
-                  const isLimitReached = !isSelected && countNA >= limitNA;
                   return (
                     <div
                       key={d.id}
-                      onClick={() => !isLimitReached && toggleDrink('drinks_sem_alcool', d.id)}
+                      onClick={() => toggleDrink('drinks_sem_alcool', d.id)}
+                      className="contrato-drink-item"
                       style={{
-                        padding: '12px', borderRadius: '8px', border: isSelected ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
-                        background: isSelected ? 'rgba(203, 161, 83, 0.12)' : 'rgba(255,255,255,0.01)',
-                        cursor: isLimitReached ? 'not-allowed' : 'pointer', opacity: isLimitReached ? 0.5 : 1,
-                        display: 'flex', gap: '10px', alignItems: 'center', transition: 'all 0.2s'
+                        border: isSelected ? '1.5px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
+                        background: isSelected ? 'rgba(203, 161, 83, 0.15)' : 'rgba(255,255,255,0.02)'
                       }}
                     >
                       <div style={{
-                        width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--primary)',
+                        width: '20px', height: '20px', borderRadius: '4px', border: '1.5px solid var(--primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--primary)' : 'transparent', flexShrink: 0
                       }}>
                         {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>}
                       </div>
                       {d.image && (
-                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', position: 'relative', flexShrink: 0, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
                           {isNextImageAllowed(d.image) ? (
                             <Image
                               src={d.image}
                               alt={d.rawName}
                               fill
-                              sizes="40px"
+                              sizes="44px"
                               style={{ objectFit: 'cover' }}
                             />
                           ) : (
@@ -1691,9 +1769,9 @@ export default function ClienteContratoPage() {
                           )}
                         </div>
                       )}
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.85rem' }}>{d.name}</strong>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '2px', lineHeight: '1.2' }}>{d.desc}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                        <strong style={{ color: isSelected ? 'var(--primary)' : '#FFF', fontSize: '0.88rem' }}>{d.name}</strong>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px', lineHeight: '1.3' }}>{d.desc}</span>
                       </div>
                     </div>
                   );
@@ -1702,12 +1780,12 @@ export default function ClienteContratoPage() {
             </div>
 
             {submitStatus === 'error' && (
-              <div style={{ background: 'rgba(244, 67, 54, 0.12)', border: '1px solid #F44336', color: '#F44336', padding: '16px', borderRadius: '8px', fontSize: '0.9rem' }}>
+              <div style={{ background: 'rgba(244, 67, 54, 0.12)', border: '1px solid #F44336', color: '#F44336', padding: '14px', borderRadius: '8px', fontSize: '0.85rem' }}>
                 Ocorreu um erro ao salvar suas escolhas ou ao gerar o contrato. Por favor, tente novamente ou fale com a nossa equipe.
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
+            <div className="contrato-actions">
               <button className="btn btn--secondary" onClick={prevStep} disabled={isSubmitting} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FiArrowLeft /> Voltar
               </button>
@@ -1720,13 +1798,13 @@ export default function ClienteContratoPage() {
 
         {/* ── STEP 4: SUCCESS VIEW ────────────────────────────── */}
         {step === 4 && (
-          <div style={{ background: '#0a140d', padding: '48px 32px', borderRadius: '16px', border: '1px solid rgba(203, 161, 83, 0.25)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-            <FiCheckCircle size={64} style={{ color: 'var(--primary)', marginBottom: '10px' }} />
-            <h2 style={{ fontFamily: 'Cinzel, serif', color: '#FFF', fontSize: '1.8rem', margin: 0 }}>Tudo Pronto!</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0, maxWidth: '500px', lineHeight: '1.6' }}>
+          <div className="contrato-card" style={{ textAlign: 'center', alignItems: 'center', padding: '40px 20px', gap: '14px' }}>
+            <FiCheckCircle size={56} style={{ color: 'var(--primary)', marginBottom: '8px' }} />
+            <h2 style={{ fontFamily: 'Cinzel, serif', color: '#FFF', fontSize: '1.6rem', margin: 0 }}>Tudo Pronto!</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', margin: 0, maxWidth: '500px', lineHeight: '1.5' }}>
               Parabéns! Seus dados cadastrais e o cardápio de drinks da festa foram salvos com sucesso.
             </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0, maxWidth: '500px', lineHeight: '1.6' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0, maxWidth: '500px', lineHeight: '1.5' }}>
               O contrato em PDF com todas as cláusulas e o cardápio oficial selecionado está sendo gerado e será enviado no seu WhatsApp em breve para assinatura digital!
             </p>
           </div>
