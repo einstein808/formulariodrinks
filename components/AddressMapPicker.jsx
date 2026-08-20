@@ -1,28 +1,43 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FiSearch, FiMapPin, FiCheckCircle, FiCrosshair, FiX, FiMap, FiEdit2 } from 'react-icons/fi';
 
-// Função auxiliar para extrair dados limpos do Nominatim
-function parseNominatimData(data, fallbackLat, fallbackLng) {
-  if (!data) return null;
-  const address = data.address || {};
-  
-  // Extração inteligente de rua
-  const rua = address.road || address.pedestrian || address.street || address.footway || address.avenue || address.square || '';
-  
-  // Extração inteligente de número
-  const numero = address.house_number || address.street_number || '';
-  
-  // Extração inteligente de bairro
-  const bairro = address.suburb || address.neighbourhood || address.city_district || address.residential || address.quarter || (data.display_name ? data.display_name.split(',')[0].trim() : '');
-  
-  // Extração inteligente de cidade
-  const cidade = address.city || address.town || address.village || address.municipality || address.county || 'Juiz de Fora';
-  
-  // Extração de CEP
-  const cep = address.postcode || '';
-  
-  const lat = parseFloat(data.lat || fallbackLat);
-  const lng = parseFloat(data.lon || fallbackLng);
+const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBIlY1_e2_I1Qro82_WTwJH0s3s36J_36o';
+
+// Função para extrair dados limpos a partir do Place do Google
+function parseGooglePlace(place, fallbackLat, fallbackLng) {
+  if (!place) return null;
+
+  let rua = '';
+  let numero = '';
+  let bairro = '';
+  let cidade = 'Juiz de Fora';
+  let cep = '';
+
+  const components = place.address_components || [];
+  for (const c of components) {
+    const types = c.types || [];
+    if (types.includes('route')) rua = c.long_name;
+    if (types.includes('street_number')) numero = c.long_name;
+    if (types.includes('sublocality') || types.includes('sublocality_level_1') || types.includes('neighborhood')) {
+      bairro = c.long_name;
+    }
+    if (types.includes('administrative_area_level_2') || types.includes('locality')) {
+      cidade = c.long_name;
+    }
+    if (types.includes('postal_code')) cep = c.long_name;
+  }
+
+  // Se for um buffet ou nome de estabelecimento específico
+  if (!rua && place.name && place.name !== place.formatted_address) {
+    rua = place.name;
+  }
+
+  let lat = fallbackLat;
+  let lng = fallbackLng;
+  if (place.geometry && place.geometry.location) {
+    lat = typeof place.geometry.location.lat === 'function' ? place.geometry.location.lat() : place.geometry.location.lat;
+    lng = typeof place.geometry.location.lng === 'function' ? place.geometry.location.lng() : place.geometry.location.lng;
+  }
 
   return {
     rua,
@@ -32,38 +47,36 @@ function parseNominatimData(data, fallbackLat, fallbackLng) {
     cep,
     lat,
     lng,
-    fullAddress: data.display_name || (bairro && cidade ? `${bairro}, ${cidade}` : '')
+    fullAddress: place.formatted_address || [rua, numero, bairro, cidade].filter(Boolean).join(', ')
   };
 }
 
 export default function AddressMapPicker({
   value = {},
   onChange,
-  placeholder = "Digite o nome do buffet, sítio, rua ou bairro..."
+  placeholder = "Digite o nome do buffet, sítio, chácara, rua ou bairro..."
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [googleLoaded, setGoogleLoaded] = useState(false);
   const [isLocatingGps, setIsLocatingGps] = useState(false);
 
-  // Estado temporário dentro do modal antes de confirmar
+  // Estado temporário da localização dentro do modal
   const [tempLocation, setTempLocation] = useState({
     rua: value.rua || '',
     numero: value.numero || '',
     bairro: value.bairro || '',
     cidade: value.cidade || '',
-    lat: value.lat || -21.7642,
-    lng: value.lng || -43.3503,
+    lat: parseFloat(value.lat) || -21.7642,
+    lng: parseFloat(value.lng) || -43.3503,
     fullAddress: value.fullAddress || ''
   });
 
   const mapContainerRef = useRef(null);
-  const leafletMapRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const googleMapRef = useRef(null);
   const markerRef = useRef(null);
-  const debounceTimerRef = useRef(null);
+  const autocompleteRef = useRef(null);
 
   // Sincroniza dados com o valor externo
   useEffect(() => {
@@ -72,200 +85,187 @@ export default function AddressMapPicker({
       numero: value.numero || '',
       bairro: value.bairro || '',
       cidade: value.cidade || '',
-      lat: value.lat || -21.7642,
-      lng: value.lng || -43.3503,
+      lat: parseFloat(value.lat) || -21.7642,
+      lng: parseFloat(value.lng) || -43.3503,
       fullAddress: value.fullAddress || [value.rua, value.bairro, value.cidade].filter(Boolean).join(', ')
     });
   }, [value.rua, value.numero, value.bairro, value.cidade, value.lat, value.lng, value.fullAddress]);
 
-  // 1. Carregar Leaflet via CDN quando necessário
+  // 1. Carregar Script do Google Maps com Places API
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-      document.head.appendChild(link);
+    if (window.google && window.google.maps && window.google.maps.places) {
+      setGoogleLoaded(true);
+      return;
     }
 
-    if (!window.L) {
+    const scriptId = 'google-maps-sdk';
+    if (!document.getElementById(scriptId)) {
       const script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      script.id = scriptId;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places&language=pt-BR&region=BR`;
       script.async = true;
-      script.onload = () => setMapLoaded(true);
+      script.defer = true;
+      script.onload = () => setGoogleLoaded(true);
+      script.onerror = () => console.error("Erro ao carregar SDK do Google Maps");
       document.head.appendChild(script);
     } else {
-      setMapLoaded(true);
+      const interval = setInterval(() => {
+        if (window.google && window.google.maps && window.google.maps.places) {
+          setGoogleLoaded(true);
+          clearInterval(interval);
+        }
+      }, 200);
+      return () => clearInterval(interval);
     }
   }, []);
 
-  // Centralizar o mapa nas coordenadas e mover o pino
-  const centerMapOn = useCallback((lat, lng, zoomLevel = 16) => {
-    if (!leafletMapRef.current || !window.L) return;
-    const map = leafletMapRef.current;
-    map.setView([lat, lng], zoomLevel, { animate: true, duration: 0.5 });
-    if (markerRef.current) {
-      markerRef.current.setLatLng([lat, lng]);
-    }
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 150);
-  }, []);
+  // Geocodificação reversa via Google Geocoder
+  const reverseGeocodeGoogle = useCallback((lat, lng) => {
+    if (!window.google || !window.google.maps) return;
+    const geocoder = new window.google.maps.Geocoder();
 
-  // Re-geocodificar por coordenadas (Reverse Geocoding)
-  const reverseGeocode = useCallback(async (lat, lng) => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&countrycodes=br`,
-        { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const parsed = parseNominatimData(data, lat, lng);
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === 'OK' && results && results[0]) {
+        const parsed = parseGooglePlace(results[0], lat, lng);
         if (parsed) {
           setTempLocation(parsed);
           setSearchQuery(parsed.fullAddress || `${parsed.bairro}, ${parsed.cidade}`);
         }
       }
-    } catch (err) {
-      console.warn("Erro ao buscar endereço das coordenadas:", err);
-    }
+    });
   }, []);
 
-  // 2. Inicializar o Mapa Leaflet quando o modal for aberto
+  // 2. Inicializar o Google Map e o Autocomplete quando o modal abrir
   useEffect(() => {
-    if (!isOpen || !mapLoaded || !window.L || !mapContainerRef.current) return;
-    const L = window.L;
+    if (!isOpen || !googleLoaded || !window.google || !mapContainerRef.current) return;
 
-    const initialLat = parseFloat(tempLocation.lat) || -21.7642;
-    const initialLng = parseFloat(tempLocation.lng) || -43.3503;
-    const initialCoords = [initialLat, initialLng];
-    const initialZoom = tempLocation.rua ? 16 : 13;
+    const currentLat = parseFloat(tempLocation.lat) || -21.7642;
+    const currentLng = parseFloat(tempLocation.lng) || -43.3503;
+    const centerCoords = { lat: currentLat, lng: currentLng };
 
-    if (!leafletMapRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center: initialCoords,
-        zoom: initialZoom,
+    // Inicializa Mapa Google
+    if (!googleMapRef.current) {
+      const map = new window.google.maps.Map(mapContainerRef.current, {
+        center: centerCoords,
+        zoom: tempLocation.rua ? 16 : 14,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
         zoomControl: true,
-        preferCanvas: true,
-        fadeAnimation: false
+        gestureHandling: 'greedy', // Permite arrastar com 1 dedo no mobile
+        styles: [
+          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'on' }] }
+        ]
       });
 
-      // Camada de Mapa Voyager Clara e Rápida
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CARTO &copy; OpenStreetMap',
-        maxZoom: 19,
-        subdomains: 'abcd',
-        keepBuffer: 4,
-        updateWhenIdle: true
-      }).addTo(map);
-
-      // Pino Interativo
-      const marker = L.marker(initialCoords, {
+      // Marcador Interativo
+      const marker = new window.google.maps.Marker({
+        position: centerCoords,
+        map: map,
         draggable: true,
-        title: "Arraste este pino para o local exato do evento"
-      }).addTo(map);
-
-      marker.on('dragend', async () => {
-        const pos = marker.getLatLng();
-        centerMapOn(pos.lat, pos.lng, map.getZoom());
-        await reverseGeocode(pos.lat, pos.lng);
+        animation: window.google.maps.Animation.DROP,
+        title: "Local do Evento"
       });
 
-      map.on('click', async (e) => {
-        const { lat, lng } = e.latlng;
-        marker.setLatLng([lat, lng]);
-        centerMapOn(lat, lng, map.getZoom());
-        await reverseGeocode(lat, lng);
+      // Evento: Arrastar o pino
+      marker.addListener('dragend', () => {
+        const pos = marker.getPosition();
+        const lat = pos.lat();
+        const lng = pos.lng();
+        reverseGeocodeGoogle(lat, lng);
       });
 
-      leafletMapRef.current = map;
+      // Evento: Clicar no mapa para reposicionar o pino
+      map.addListener('click', (e) => {
+        const lat = e.latLng.lat();
+        const lng = e.latLng.lng();
+        marker.setPosition({ lat, lng });
+        reverseGeocodeGoogle(lat, lng);
+      });
+
+      googleMapRef.current = map;
       markerRef.current = marker;
     } else {
-      leafletMapRef.current.setView(initialCoords, initialZoom);
+      googleMapRef.current.setCenter(centerCoords);
+      googleMapRef.current.setZoom(tempLocation.rua ? 16 : 14);
       if (markerRef.current) {
-        markerRef.current.setLatLng(initialCoords);
+        markerRef.current.setPosition(centerCoords);
       }
     }
 
-    const timer = setTimeout(() => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize();
-      }
-    }, 250);
+    // Inicializa o Google Places Autocomplete no input
+    if (searchInputRef.current && !autocompleteRef.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current, {
+        componentRestrictions: { country: 'br' },
+        fields: ['address_components', 'geometry', 'formatted_address', 'name'],
+        types: ['geocode', 'establishment']
+      });
 
-    return () => clearTimeout(timer);
-  }, [isOpen, mapLoaded, centerMapOn, reverseGeocode, tempLocation.lat, tempLocation.lng, tempLocation.rua]);
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place || !place.geometry || !place.geometry.location) return;
 
-  // Busca Autocomplete com Debounce
-  const handleSearchInput = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const parsed = parseGooglePlace(place, lat, lng);
 
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        if (parsed) {
+          setTempLocation(parsed);
+          setSearchQuery(parsed.fullAddress || place.name || '');
 
-    if (query.trim().length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    debounceTimerRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Brasil')}&addressdetails=1&limit=6&countrycodes=br`,
-          { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setSuggestions(data || []);
-          setShowSuggestions(true);
+          if (googleMapRef.current) {
+            googleMapRef.current.setCenter({ lat, lng });
+            googleMapRef.current.setZoom(17);
+          }
+          if (markerRef.current) {
+            markerRef.current.setPosition({ lat, lng });
+          }
         }
-      } catch (err) {
-        console.warn("Erro na busca de endereço:", err);
-      } finally {
-        setIsSearching(false);
+      });
+
+      autocompleteRef.current = autocomplete;
+    }
+
+    // Garante que o mapa redesenhe se a janela mudar
+    const resizeTimer = setTimeout(() => {
+      if (window.google && googleMapRef.current) {
+        window.google.maps.event.trigger(googleMapRef.current, 'resize');
+        googleMapRef.current.setCenter(centerCoords);
       }
     }, 300);
-  };
 
-  // Ao selecionar uma sugestão da busca
-  const handleSelectSuggestion = (item) => {
-    setShowSuggestions(false);
-    const lat = parseFloat(item.lat);
-    const lng = parseFloat(item.lon);
-    const parsed = parseNominatimData(item, lat, lng);
+    return () => clearTimeout(resizeTimer);
+  }, [isOpen, googleLoaded, reverseGeocodeGoogle, tempLocation.lat, tempLocation.lng, tempLocation.rua]);
 
-    if (parsed) {
-      setTempLocation(parsed);
-      setSearchQuery(parsed.fullAddress || item.display_name);
-      centerMapOn(lat, lng, 16);
-    }
-  };
-
-  // Localização via GPS
+  // Localização atual via GPS do dispositivo
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocalização não é suportada neste navegador.");
+      alert("Geolocalização não é suportada neste dispositivo.");
       return;
     }
 
     setIsLocatingGps(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        centerMapOn(lat, lng, 17);
-        await reverseGeocode(lat, lng);
+
+        if (googleMapRef.current) {
+          googleMapRef.current.setCenter({ lat, lng });
+          googleMapRef.current.setZoom(17);
+        }
+        if (markerRef.current) {
+          markerRef.current.setPosition({ lat, lng });
+        }
+
+        reverseGeocodeGoogle(lat, lng);
         setIsLocatingGps(false);
       },
       (err) => {
-        console.warn("Erro ao obter GPS:", err);
-        alert("Não foi possível obter sua localização atual via GPS. Por favor, digite o endereço na busca.");
+        console.warn("Erro no GPS:", err);
+        alert("Não foi possível obter sua localização GPS. Por favor, pesquise o endereço na barra de busca.");
         setIsLocatingGps(false);
       },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -274,16 +274,8 @@ export default function AddressMapPicker({
 
   // Abrir Modal
   const handleOpenModal = () => {
-    setTempLocation({
-      rua: value.rua || '',
-      numero: value.numero || '',
-      bairro: value.bairro || '',
-      cidade: value.cidade || '',
-      lat: value.lat || -21.7642,
-      lng: value.lng || -43.3503,
-      fullAddress: value.fullAddress || [value.rua, value.bairro, value.cidade].filter(Boolean).join(', ')
-    });
-    setSearchQuery(value.fullAddress || [value.rua, value.bairro, value.cidade].filter(Boolean).join(', '));
+    const initialAddress = value.fullAddress || [value.rua, value.bairro, value.cidade].filter(Boolean).join(', ');
+    setSearchQuery(initialAddress);
     setIsOpen(true);
   };
 
@@ -334,12 +326,12 @@ export default function AddressMapPicker({
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', overflow: 'hidden' }}>
             <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#FFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {hasSelectedAddress ? [value.rua, value.numero, value.bairro].filter(Boolean).join(', ') : 'Buscar Endereço & Marcar no Mapa'}
+              {hasSelectedAddress ? [value.rua, value.numero, value.bairro].filter(Boolean).join(', ') : 'Buscar Endereço no Google Maps'}
             </span>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #aaa)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {hasSelectedAddress 
                 ? `📍 ${value.cidade || 'Juiz de Fora'} • Clique para alterar o ponto no mapa` 
-                : 'Toque aqui para pesquisar buffet, sítio ou rua do evento'}
+                : 'Pesquise buffets, sítios, chácaras ou ruas com Google Places'}
             </span>
           </div>
         </div>
@@ -365,7 +357,7 @@ export default function AddressMapPicker({
         </button>
       </div>
 
-      {/* ── MODAL POPUP DE SELEÇÃO DE ENDEREÇO & MAPA ── */}
+      {/* ── MODAL POPUP DE SELEÇÃO GOOGLE MAPS ── */}
       {isOpen && (
         <div
           style={{
@@ -409,10 +401,10 @@ export default function AddressMapPicker({
             }}>
               <div>
                 <h3 style={{ margin: 0, color: 'var(--primary, #CBA153)', fontSize: '1.15rem', fontFamily: 'Cinzel, serif', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FiMap /> Selecionar Local do Evento
+                  <FiMap /> Localização do Evento (Google Maps)
                 </h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary, #aaa)' }}>
-                  Digite o nome do local ou arraste o pino no mapa para ajustar
+                  Pesquise pelo nome do buffet, sítio, espaço ou arraste o pino no mapa
                 </p>
               </div>
 
@@ -437,7 +429,7 @@ export default function AddressMapPicker({
               </button>
             </div>
 
-            {/* Barra de Pesquisa e GPS */}
+            {/* Barra de Pesquisa Google Places e GPS */}
             <div style={{ padding: '14px 20px', background: '#111b15', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'relative', zIndex: 1000 }}>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{
@@ -445,17 +437,16 @@ export default function AddressMapPicker({
                   display: 'flex',
                   alignItems: 'center',
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(203, 161, 83, 0.3)',
+                  border: '1px solid rgba(203, 161, 83, 0.4)',
                   borderRadius: '10px',
                   padding: '10px 14px',
                   gap: '10px'
                 }}>
                   <FiSearch style={{ color: 'var(--primary, #CBA153)', fontSize: '1.1rem', flexShrink: 0 }} />
                   <input
+                    ref={searchInputRef}
                     type="text"
-                    value={searchQuery}
-                    onChange={handleSearchInput}
-                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    defaultValue={searchQuery}
                     placeholder={placeholder}
                     style={{
                       width: '100%',
@@ -463,7 +454,7 @@ export default function AddressMapPicker({
                       border: 'none',
                       color: '#FFF',
                       outline: 'none',
-                      fontSize: '0.9rem'
+                      fontSize: '0.92rem'
                     }}
                     autoFocus
                   />
@@ -472,16 +463,12 @@ export default function AddressMapPicker({
                       type="button"
                       onClick={() => {
                         setSearchQuery('');
-                        setSuggestions([]);
-                        setShowSuggestions(false);
+                        if (searchInputRef.current) searchInputRef.current.value = '';
                       }}
                       style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', padding: 0 }}
                     >
                       <FiX size={16} />
                     </button>
-                  )}
-                  {isSearching && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--primary, #CBA153)' }}>Buscando...</span>
                   )}
                 </div>
 
@@ -508,53 +495,13 @@ export default function AddressMapPicker({
                   <span>{isLocatingGps ? 'Localizando...' : 'Meu GPS'}</span>
                 </button>
               </div>
-
-              {/* Dropdown de Sugestões de Endereço */}
-              {showSuggestions && suggestions.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: '20px',
-                  right: '20px',
-                  zIndex: 99999,
-                  background: '#16221b',
-                  border: '1.5px solid var(--primary, #CBA153)',
-                  borderRadius: '10px',
-                  marginTop: '6px',
-                  overflow: 'hidden',
-                  boxShadow: '0 12px 36px rgba(0,0,0,0.9)'
-                }}>
-                  {suggestions.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => handleSelectSuggestion(item)}
-                      style={{
-                        padding: '12px 16px',
-                        borderBottom: idx < suggestions.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        color: '#FFFFFF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        transition: 'background 0.15s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(203, 161, 83, 0.2)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <FiMapPin style={{ color: '#FF9800', flexShrink: 0, fontSize: '1rem' }} />
-                      <span style={{ lineHeight: 1.3 }}>{item.display_name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Container do Mapa Leaflet */}
+            {/* Container do Google Map */}
             <div style={{ flex: 1, position: 'relative', width: '100%', background: '#e5e3df' }}>
               <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
-              {!mapLoaded && (
+              {!googleLoaded && (
                 <div style={{
                   position: 'absolute',
                   inset: 0,
@@ -566,7 +513,7 @@ export default function AddressMapPicker({
                   fontSize: '0.9rem',
                   fontWeight: 'bold'
                 }}>
-                  ⚡ Carregando mapa...
+                  ⚡ Carregando Google Maps...
                 </div>
               )}
 
@@ -589,7 +536,7 @@ export default function AddressMapPicker({
                 whiteSpace: 'nowrap',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
               }}>
-                👆 Toque no mapa ou arraste o marcador para ajustar o ponto
+                📍 Toque no mapa ou arraste o pino vermelho para ajustar o ponto exato
               </div>
             </div>
 
