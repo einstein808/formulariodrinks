@@ -500,6 +500,7 @@ export default function OrcamentoClient() {
                 const isReatividade = nameLower.includes('reatividade') || idLower.includes('reatividade') || (nameLower.includes('premium') && !nameLower.includes('mão'));
                 const isLaboratorio = (nameLower.includes('laborat') || p.popular) && !isReatividade;
                 const isExperimento = nameLower.includes('experimento') || idLower.includes('experimento');
+                const isMaoDeObra = nameLower.includes('obra') || idLower.includes('obra') || idLower === 'mao-de-obra';
 
                 // Drinks tag
                 let drinkPillText = '🍸 Opções de Drinks';
