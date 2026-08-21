@@ -9,6 +9,7 @@ import {
 import { BiDrink, BiParty } from 'react-icons/bi'
 import { MdCelebration } from 'react-icons/md'
 import { calculatePackagePrice, getMinTierPrice, DEFAULT_MAO_DE_OBRA_TIERS } from '../../lib/pricingUtils'
+import { sendWhatsAppQuote } from '../../lib/whatsappService'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
 
@@ -300,48 +301,25 @@ export default function OrcamentoClient() {
     updateField('telefone', v)
   }, [updateField])
 
-  const handleUnlockSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.nome.trim() || !formData.sobrenome.trim() || !formData.telefone || formData.telefone.replace(/\D/g, '').length < 10) {
-      alert("Por favor, preencha seu nome, sobrenome e um WhatsApp válido.");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      const isAbActive = abTestingConfig?.active;
-      const leadDataToSave = {
-        nome: formData.nome.trim(),
-        sobrenome: formData.sobrenome.trim(),
-        telefone: formData.telefone,
-        convidados: formData.convidados || 40,
-        dataEvento: formData.dataEvento || '',
-        horarioEvento: formData.horarioEvento || '',
-        abGroup: abGroup || 'A',
-        abCampaign: isAbActive ? (abTestingConfig?.campaignName || 'padrao') : 'padrao',
-        status: 'novo',
-        criadoEm: serverTimestamp(),
-      };
-      
-      const newLeadRef = push(ref(db, 'leads'));
-      await set(newLeadRef, leadDataToSave);
-      
-      setCurrentLeadId(newLeadRef.key);
-      setIsPriceUnlocked(true);
-      handleCloseUnlockModal();
-      
-      try {
-        localStorage.setItem('DRINKS_UNLOCKED', 'true');
-        localStorage.setItem('CURRENT_LEAD_ID', newLeadRef.key);
-      } catch (err) {}
-      
-    } catch (error) {
-      console.error("Erro ao salvar lead:", error);
-      alert("Erro ao conectar. Tente novamente.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  /* ---- Visible packages computation (handles A/B testing & hidden flags) ---- */
+  const isGroupB = abGroup === 'B';
+
+  const visiblePacotes = pacotes
+    .filter(p => !p.hidden)
+    .filter(p => {
+      if (isGroupB && abTestingConfig?.hideMaoDeObraInB) {
+        const name = (p.name || '').toLowerCase();
+        const id = (p.id || '').toLowerCase();
+        if (name.includes('obra') || id.includes('obra')) return false;
+      }
+      return true;
+    })
+    .map(p => {
+      if (isGroupB && p.priceB && p.priceB.trim() !== '') {
+        return { ...p, price: p.priceB };
+      }
+      return p;
+    });
 
   /* ---- Validation ---- */
   const validateStep = useCallback((step) => {
@@ -439,22 +417,32 @@ export default function OrcamentoClient() {
       }
 
       const isAbActive = abTestingConfig?.active;
-      const leadDataToSave = {
+      const rawLeadData = {
         ...formData,
-        cidade: finalCity,
+        cidade: finalCity || '',
         abGroup: abGroup || 'A',
         abCampaign: isAbActive ? (abTestingConfig?.campaignName || formData.abCampaign || 'padrao') : (formData.abCampaign || 'padrao'),
         status: 'novo',
-      }
-      delete leadDataToSave.novaCidade;
+        atualizadoEm: Date.now()
+      };
+      delete rawLeadData.novaCidade;
+
+      // Sanitizar campos para o Firebase (remover qualquer propriedade undefined)
+      const leadDataToSave = {};
+      Object.entries(rawLeadData).forEach(([k, v]) => {
+        if (v !== undefined) {
+          leadDataToSave[k] = v;
+        }
+      });
 
       let finalLeadId = currentLeadId;
       if (currentLeadId) {
         await update(ref(db, `leads/${currentLeadId}`), leadDataToSave);
       } else {
-        leadDataToSave.criadoEm = serverTimestamp();
+        leadDataToSave.criadoEm = Date.now();
         const newRef = await push(ref(db, 'leads'), leadDataToSave);
         finalLeadId = newRef.key;
+        setCurrentLeadId(newRef.key);
       }
       
       // Enviar mensagem via WhatsApp sem travar a conclusão do orçamento se o número não existir ou houver falha de API
@@ -464,15 +452,18 @@ export default function OrcamentoClient() {
         console.warn('Aviso no disparo de WhatsApp:', waErr);
       }
 
-      setIsSuccess(true)
-      try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
+      setIsSuccess(true);
+      try { 
+        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem('CURRENT_LEAD_ID');
+      } catch (e) {}
     } catch (err) {
-      console.error('Erro ao enviar:', err)
-      alert('Erro ao enviar formulário. Tente novamente.')
+      console.error('Erro ao enviar formulário:', err);
+      alert('Houve um problema ao salvar seu orçamento. Por favor, verifique os dados e tente novamente.');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }, [formData, currentStep, validateStep, pacotes, cidades])
+  }, [formData, currentStep, validateStep, pacotes, cidades, currentLeadId, abGroup, abTestingConfig, visiblePacotes]);
 
   const resetForm = useCallback(() => {
     try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
@@ -493,26 +484,6 @@ export default function OrcamentoClient() {
   /* ============================
      Render Steps
      ============================ */
-
-  /* ---- Visible packages computation (handles A/B testing & hidden flags) ---- */
-  const isGroupB = abGroup === 'B';
-
-  const visiblePacotes = pacotes
-    .filter(p => !p.hidden)
-    .filter(p => {
-      if (isGroupB && abTestingConfig?.hideMaoDeObraInB) {
-        const name = (p.name || '').toLowerCase();
-        const id = (p.id || '').toLowerCase();
-        if (name.includes('obra') || id.includes('obra')) return false;
-      }
-      return true;
-    })
-    .map(p => {
-      if (isGroupB && p.priceB && p.priceB.trim() !== '') {
-        return { ...p, price: p.priceB };
-      }
-      return p;
-    });
 
   /* ---- Render Steps ---- */
   const renderStep = () => {
@@ -763,72 +734,6 @@ export default function OrcamentoClient() {
               <h3 style={{ margin: '0 0 16px 0', fontSize: '1.2rem', color: 'var(--text-primary)' }}>Extras para seu evento</h3>
               <div className="upsell-container" style={{display:'flex', flexDirection:'column', gap:24}}>
                 
-                {/* Highlighted Frozen Upsell - Hidden only for standard-frozen */}
-                {formData.pacote !== 'standard-frozen' && (
-                <div style={{
-                  background: 'linear-gradient(145deg, #1A237E, #311B92)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '24px',
-                  border: formData.upsellFrozen ? '3px solid #00E5FF' : '3px solid transparent',
-                  boxShadow: formData.upsellFrozen ? '0 0 24px rgba(0, 229, 255, 0.4)' : '0 8px 32px rgba(0,0,0,0.3)',
-                  color: '#fff',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transition: 'all 0.3s ease'
-                }}>
-                  <div style={{
-                    position: 'absolute', top: -40, right: -40, width: 150, height: 150, 
-                    background: 'rgba(0, 229, 255, 0.1)', borderRadius: '50%', filter: 'blur(30px)', pointerEvents: 'none'
-                  }} />
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', zIndex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <div style={{
-                        width: 100, height: 100, borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                        border: '2px solid rgba(0, 229, 255, 0.5)', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
-                      }}>
-                        <img src="/frozen.jpg" alt="Frozen Experience" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                      <div>
-                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.4rem', fontFamily: 'Cinzel, serif', color: '#00E5FF' }}>
-                          Laboratório Frozen ❄️
-                        </h3>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#E0E0E0', lineHeight: 1.4 }}>
-                          A experiência visual definitiva para o seu evento. Máquina de drinks congelados tipo raspadinha com fumaça e cores vibrantes.
-                        </p>
-                        <div style={{ marginTop: 8, fontWeight: 'bold', color: '#00E5FF', fontSize: '1.1rem' }}>
-                          {formData.pacote === 'mao-de-obra' ? (
-                            <>+ R$ 250,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Adicional Fixo)</span></>
-                          ) : (
-                            <>+ R$ 10,00 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#A0A0A0' }}>(Por Convidado)</span></>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => updateField('upsellFrozen', !formData.upsellFrozen)}
-                      style={{
-                        width: '100%', padding: '14px', borderRadius: 'var(--radius-md)',
-                        background: formData.upsellFrozen ? 'rgba(0, 229, 255, 0.1)' : '#00E5FF',
-                        color: formData.upsellFrozen ? '#00E5FF' : '#000',
-                        border: formData.upsellFrozen ? '2px solid #00E5FF' : 'none',
-                        fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer',
-                        display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-                        transition: 'all 0.2s ease', fontFamily: 'Inter, sans-serif'
-                      }}
-                    >
-                      {formData.upsellFrozen ? (
-                        <><FiCheck size={20} /> Máquina Adicionada!</>
-                      ) : (
-                        <>Sim! Quero a Máquina de Frozen</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                )}
-
                 {/* Secondary Upsell - Chopp */}
                 <button
                   type="button"
