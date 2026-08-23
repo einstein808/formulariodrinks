@@ -837,16 +837,20 @@ const detectCategoryByDescription = (desc) => {
       showToast("Descrição do custo é obrigatória.", "warning");
       return;
     }
-    const numValor = parseFloat(valor) || 0;
     const cat = categoriaInput || detectCategoryByDescription(descricao);
     const costId = `custo-${Date.now()}`;
     const numQty = parseFloat(newCost.quantidade) || 0;
     const numUnit = parseFloat(newCost.valorUnitario) || 0;
+    const rawValor = parseFloat(valor) || 0;
+    
+    // Se tem quantidade e valor unitário, calcular o total corretamente
+    const totalValor = (numQty > 0 && numUnit > 0) ? numQty * numUnit : rawValor;
+    
     try {
       const costData = {
         id: costId,
         descricao: descricao.trim(),
-        valor: numValor,
+        valor: totalValor,
         categoria: cat,
         ...(numQty > 0 ? { quantidade: numQty } : {}),
         ...(numUnit > 0 ? { valorUnitario: numUnit } : {}),
@@ -4319,17 +4323,15 @@ const detectCategoryByDescription = (desc) => {
                       <input
                         type="number"
                         placeholder="Qtd"
-                        title="Quantidade (opcional)"
+                        title="Quantidade"
                         value={newCost.quantidade}
                         onChange={(e) => {
                           const q = e.target.value;
                           setNewCost(prev => {
                             const numQ = parseFloat(q) || 0;
-                            const numV = parseFloat(prev.valor) || 0;
                             const numU = parseFloat(prev.valorUnitario) || 0;
-                            let v = prev.valor;
-                            if (numQ > 0 && numU > 0) v = (numQ * numU).toFixed(2);
-                            return { ...prev, quantidade: q, valor: v };
+                            const total = (numQ > 0 && numU > 0) ? (numQ * numU).toFixed(2) : prev.valor;
+                            return { ...prev, quantidade: q, valor: total };
                           });
                         }}
                         style={{ width: '56px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 6px', fontSize: '0.88rem', outline: 'none', textAlign: 'center' }}
@@ -4343,7 +4345,7 @@ const detectCategoryByDescription = (desc) => {
                           const desc = e.target.value;
                           const matchedPreset = Object.values(financeiroPresets).find(p => p.descricao.toLowerCase().trim() === desc.toLowerCase().trim());
                           if (matchedPreset) {
-                            setNewCost(prev => ({ ...prev, descricao: matchedPreset.descricao, valor: matchedPreset.valor.toString(), categoria: detectCategoryByDescription(matchedPreset.descricao) }));
+                            setNewCost(prev => ({ ...prev, descricao: matchedPreset.descricao, valorUnitario: matchedPreset.valor.toString(), valor: ((parseFloat(prev.quantidade) || 1) * matchedPreset.valor).toString(), categoria: detectCategoryByDescription(matchedPreset.descricao) }));
                           } else {
                             setNewCost(prev => ({ ...prev, descricao: desc, categoria: detectCategoryByDescription(desc) }));
                           }
@@ -4352,19 +4354,25 @@ const detectCategoryByDescription = (desc) => {
                       />
                       <input
                         type="number"
-                        placeholder="R$ valor"
-                        value={newCost.valor}
+                        placeholder="R$ unit."
+                        title="Valor unitário"
+                        value={newCost.valorUnitario}
                         onChange={(e) => {
-                          const v = e.target.value;
+                          const u = e.target.value;
                           setNewCost(prev => {
                             const numQ = parseFloat(prev.quantidade) || 1;
-                            const numV = parseFloat(v) || 0;
-                            const numU = numQ > 0 ? (numV / numQ).toFixed(2) : v;
-                            return { ...prev, valor: v, valorUnitario: numU };
+                            const numU = parseFloat(u) || 0;
+                            const total = (numQ > 0 && numU > 0) ? (numQ * numU).toFixed(2) : u;
+                            return { ...prev, valorUnitario: u, valor: total };
                           });
                         }}
-                        style={{ flex: '1', minWidth: '80px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none' }}
+                        style={{ flex: '1', minWidth: '70px', background: '#0c1610', border: '1px solid rgba(203,161,83,0.12)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none' }}
                       />
+                      {parseFloat(newCost.quantidade) > 0 && parseFloat(newCost.valorUnitario) > 0 && (
+                        <span style={{ color: 'var(--primary)', fontSize: '0.82rem', fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: '70px', textAlign: 'right' }}>
+                          = R$ {(parseFloat(newCost.quantidade) * parseFloat(newCost.valorUnitario)).toFixed(2)}
+                        </span>
+                      )}
                       <select
                         value={newCost.categoria || 'insumos'}
                         onChange={(e) => setNewCost(prev => ({ ...prev, categoria: e.target.value }))}
