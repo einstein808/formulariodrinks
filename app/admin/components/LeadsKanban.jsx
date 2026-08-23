@@ -4457,15 +4457,21 @@ const detectCategoryByDescription = (desc) => {
                                 ))}
                               </select>
                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{custo.descricao}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.85rem' }}>{custo.descricao}</span>
                                 {numQ > 0 && (
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                    {numQ}x {numU > 0 ? `(${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numU)} cada)` : ''}
+                                  <span style={{ fontSize: '0.74rem', color: 'var(--primary)', fontWeight: '500', marginTop: '2px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ background: 'rgba(203,161,83,0.12)', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(203,161,83,0.25)' }}>
+                                      {numQ}x {numU > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numU) : ''}
+                                    </span>
                                   </span>
                                 )}
                               </div>
-                              <span style={{ color: '#F44336', fontWeight: '600', marginRight: '6px' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(getCustoValor(custo))}</span>
-                              <button type="button" onClick={() => handleRemoveCost(custo.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '2px 4px' }}><FiTrash2 size={13} /></button>
+                              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '6px' }}>
+                                <span style={{ color: '#F44336', fontWeight: 'bold', fontSize: '0.88rem' }}>
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(getCustoValor(custo))}
+                                </span>
+                              </div>
+                              <button type="button" onClick={() => handleRemoveCost(custo.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center' }} title="Remover custo"><FiTrash2 size={14} /></button>
                             </div>
                           );
                         })}
