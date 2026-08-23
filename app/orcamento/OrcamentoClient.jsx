@@ -360,20 +360,35 @@ export default function OrcamentoClient() {
       try {
         let finalCity = formData.cidade;
         if (formData.cidade === 'Outra cidade...') finalCity = formData.novaCidade.trim();
-        const leadSnap = {
+        const leadSnap = {};
+        Object.entries({
           ...formData,
           cidade: finalCity,
           status: 'novo',
           criadoEm: Date.now(),
           abGroup: abGroup || 'A',
-        };
-        delete leadSnap.novaCidade;
+        }).forEach(([k, v]) => { if (v !== undefined && k !== 'novaCidade') leadSnap[k] = v; });
         const newRef = await push(ref(db, 'leads'), leadSnap);
         setCurrentLeadId(newRef.key);
         try { localStorage.setItem('CURRENT_LEAD_ID', newRef.key); } catch (_) {}
       } catch (err) {
         console.warn('Aviso ao pré-salvar lead:', err);
       }
+    }
+
+    // Update existing lead with latest form data on every step advance
+    if (currentLeadId) {
+      try {
+        let finalCity = formData.cidade;
+        if (formData.cidade === 'Outra cidade...') finalCity = formData.novaCidade.trim();
+        const updatedData = {};
+        Object.entries({
+          ...formData,
+          cidade: finalCity,
+          atualizadoEm: Date.now(),
+        }).forEach(([k, v]) => { if (v !== undefined && k !== 'novaCidade') updatedData[k] = v; });
+        update(ref(db, `leads/${currentLeadId}`), updatedData).catch(() => {});
+      } catch (_) {}
     }
 
     setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
