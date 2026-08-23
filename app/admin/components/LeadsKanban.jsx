@@ -53,9 +53,17 @@ const getFinanceStatusHelper = (lead) => {
   return { label: 'Parcial', color: '#FFD54F', bg: 'rgba(255, 213, 79, 0.1)' };
 };
 
+const getCustoValor = (c) => {
+  if (!c) return 0;
+  const q = parseFloat(c.quantidade) || 0;
+  const u = parseFloat(c.valorUnitario) || 0;
+  if (q > 0 && u > 0) return q * u;
+  return parseFloat(c.valor) || 0;
+};
+
 const hasCustosLancados = (lead) => {
   const custosObj = lead?.financeiro?.custos || {};
-  const total = Object.values(custosObj).reduce((acc, cost) => acc + (parseFloat(cost.valor) || 0), 0);
+  const total = Object.values(custosObj).reduce((acc, cost) => acc + getCustoValor(cost), 0);
   return total > 0;
 };
 
@@ -313,6 +321,29 @@ export default function LeadsKanban() {
         const data = snapshot.val();
         const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val }));
         leadsArray.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
+        
+        // Auto-fix custos no Firebase se quantidade > 0 e valorUnitario > 0 mas valor != quantidade * valorUnitario
+        const updates = {};
+        leadsArray.forEach(lead => {
+          const custos = lead?.financeiro?.custos;
+          if (!custos) return;
+          Object.entries(custos).forEach(([cid, c]) => {
+            const q = parseFloat(c.quantidade) || 0;
+            const u = parseFloat(c.valorUnitario) || 0;
+            const v = parseFloat(c.valor) || 0;
+            if (q > 0 && u > 0) {
+              const correctVal = q * u;
+              if (Math.abs(v - correctVal) > 0.01) {
+                updates[`leads/${lead.id}/financeiro/custos/${cid}/valor`] = correctVal;
+                c.valor = correctVal;
+              }
+            }
+          });
+        });
+        if (Object.keys(updates).length > 0) {
+          update(ref(db), updates).catch(() => {});
+        }
+
         setLeads(leadsArray);
       } else {
         setLeads([]);
@@ -1514,7 +1545,7 @@ const detectCategoryByDescription = (desc) => {
   const valorRestante = Math.max(0, (faturamento - desconto) - valorPago);
   const custosObj = selectedLead?.financeiro?.custos || {};
   const custosLista = Object.values(custosObj);
-  const totalCustos = custosLista.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+  const totalCustos = custosLista.reduce((acc, c) => acc + getCustoValor(c), 0);
   const lucro = (faturamento - desconto) - totalCustos;
   const margem = (faturamento - desconto) > 0 ? (lucro / (faturamento - desconto)) * 100 : 0;
 
@@ -4433,7 +4464,7 @@ const detectCategoryByDescription = (desc) => {
                                   </span>
                                 )}
                               </div>
-                              <span style={{ color: '#F44336', fontWeight: '600', marginRight: '6px' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custo.valor)}</span>
+                              <span style={{ color: '#F44336', fontWeight: '600', marginRight: '6px' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(getCustoValor(custo))}</span>
                               <button type="button" onClick={() => handleRemoveCost(custo.id)} style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '2px 4px' }}><FiTrash2 size={13} /></button>
                             </div>
                           );

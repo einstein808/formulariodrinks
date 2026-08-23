@@ -34,6 +34,14 @@ const EVENT_TYPE_EMOJIS = {
   'Outro': '✨'
 };
 
+const getCustoValor = (c) => {
+  if (!c) return 0;
+  const q = parseFloat(c.quantidade) || 0;
+  const u = parseFloat(c.valorUnitario) || 0;
+  if (q > 0 && u > 0) return q * u;
+  return parseFloat(c.valor) || 0;
+};
+
 export default function AnalyticsDashboard() {
   const [leads, setLeads] = useState([]);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -347,7 +355,7 @@ export default function AnalyticsDashboard() {
     const pago = parseFloat(fin.valorPago) || 0;
     const rest = Math.max(0, fat - pago);
     const custos = fin.custos ? Object.values(fin.custos) : [];
-    const totCustos = custos.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+    const totCustos = custos.reduce((acc, c) => acc + getCustoValor(c), 0);
     const luc = fat - totCustos;
     const marg = fat > 0 ? (luc / fat) * 100 : 0;
 
@@ -357,7 +365,7 @@ export default function AnalyticsDashboard() {
 
     // Accumulate by category
     custos.forEach(c => {
-      const valor = parseFloat(c.valor) || 0;
+      const valor = getCustoValor(c);
       const cat = c.categoria || detectCategoryByDescription(c.descricao);
       if (custosPorCategoria[cat] !== undefined) {
         custosPorCategoria[cat] += valor;
@@ -418,7 +426,7 @@ export default function AnalyticsDashboard() {
       entry.Lucro += luc;
 
       custos.forEach(c => {
-        const valor = parseFloat(c.valor) || 0;
+        const valor = getCustoValor(c);
         const cat = c.categoria || detectCategoryByDescription(c.descricao);
         if (entry[cat] !== undefined) {
           entry[cat] += valor;
