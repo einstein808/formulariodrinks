@@ -60,7 +60,9 @@ export default function OrcamentoClient() {
 
   const [abGroup, setAbGroup] = useState('A')
   const [abTestingConfig, setAbTestingConfig] = useState(null)
+  const abInitialized = useRef(false);
 
+  // Força via URL (?ab=A ou ?ab=B)
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -69,34 +71,36 @@ export default function OrcamentoClient() {
         if (forced === 'A' || forced === 'B') {
           localStorage.setItem('DRINKS_AB_GROUP', forced);
           setAbGroup(forced);
+          abInitialized.current = true;
         }
       }
     } catch (e) {}
   }, []);
 
+  // Determina grupo A/B após config carregar
   useEffect(() => {
-    if (configLoading) return;
+    if (configLoading || abInitialized.current) return;
+    
     try {
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const forced = params.get('ab')?.toUpperCase();
-        if (forced === 'A' || forced === 'B') {
-          setAbGroup(forced);
-          return;
-        }
+      // Verificar se já tem grupo salvo no localStorage
+      const savedGroup = localStorage.getItem('DRINKS_AB_GROUP');
+      if (savedGroup === 'A' || savedGroup === 'B') {
+        setAbGroup(savedGroup);
+        abInitialized.current = true;
+        return;
       }
 
-      let group = localStorage.getItem('DRINKS_AB_GROUP');
-      const targetPercentA = abTestingConfig && abTestingConfig.percentA !== undefined ? parseInt(abTestingConfig.percentA, 10) : 70;
-      const thresholdA = targetPercentA / 100;
-
-      if (!group) {
-        group = Math.random() < thresholdA ? 'A' : 'B';
-        localStorage.setItem('DRINKS_AB_GROUP', group);
-      }
-      setAbGroup(group);
+      // Sortear novo grupo
+      const percentA = abTestingConfig?.percentA !== undefined 
+        ? parseInt(abTestingConfig.percentA, 10) 
+        : 70;
+      const newGroup = Math.random() * 100 < percentA ? 'A' : 'B';
+      localStorage.setItem('DRINKS_AB_GROUP', newGroup);
+      setAbGroup(newGroup);
+      abInitialized.current = true;
     } catch (e) {
       setAbGroup('A');
+      abInitialized.current = true;
     }
   }, [configLoading, abTestingConfig]);
 
@@ -401,19 +405,20 @@ export default function OrcamentoClient() {
         finalCity = formData.novaCidade.trim();
       }
 
-      // Incrementar a contagem da cidade no Firebase
+      // Incrementar a contagem da cidade no Firebase (silencioso - não bloqueia o fluxo)
       if (finalCity) {
-        const normalizeString = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-        const cityKey = normalizeString(finalCity);
-        const cityRef = ref(db, `config/cidades/${cityKey}`);
-        
-        get(cityRef).then(snap => {
-          if (snap.exists()) {
-            update(cityRef, { count: (snap.val().count || 0) + 1 }).catch(() => {});
-          } else {
-            set(cityRef, { name: finalCity, count: 1 }).catch(() => {});
-          }
-        }).catch(() => {});
+        try {
+          const normalizeString = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+          const cityKey = normalizeString(finalCity);
+          const cityRef = ref(db, `config/cidades/${cityKey}`);
+          get(cityRef).then(snap => {
+            if (snap.exists()) {
+              update(cityRef, { count: (snap.val().count || 0) + 1 }).catch(() => {});
+            } else {
+              set(cityRef, { name: finalCity, count: 1 }).catch(() => {});
+            }
+          }).catch(() => {});
+        } catch (_) {}
       }
 
       const isAbActive = abTestingConfig?.active;
