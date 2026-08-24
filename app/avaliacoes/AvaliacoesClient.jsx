@@ -21,7 +21,17 @@ export default function AvaliacoesClient() {
         const avaliacoesSnap = await get(ref(db, 'avaliacoes'));
         if (avaliacoesSnap.exists()) {
           const val = avaliacoesSnap.val();
-          const arr = Object.entries(val).map(([id, value]) => ({ id, ...value }));
+          const arr = Object.entries(val)
+            .map(([id, value]) => ({ id, ...value }))
+            .filter(a => a.stars >= 4 && (Boolean(a.printUrl) || (a.feedback && a.feedback !== 'Redirecionado para Google Reviews')));
+          
+          arr.sort((a, b) => {
+            if (a.printUrl && !b.printUrl) return -1;
+            if (!a.printUrl && b.printUrl) return 1;
+            if (a.destacado && !b.destacado) return -1;
+            if (!a.destacado && b.destacado) return 1;
+            return 0;
+          });
           setDbReviews(arr);
         }
 
