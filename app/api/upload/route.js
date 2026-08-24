@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
+import sharp from 'sharp';
 
 const s3Client = new S3Client({
   endpoint: 'https://s3.gabryelamaro.com',
@@ -31,13 +32,32 @@ export async function POST(request) {
     // Gerar nome único e limpo para o arquivo
     const timestamp = Date.now();
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const objectKey = `${timestamp}_${cleanFileName}`;
+    
+    let finalBuffer = buffer;
+    let finalContentType = file.type;
+    let objectKey = `${timestamp}_${cleanFileName}`;
+
+    // Compressão automática com sharp para imagens (exceto GIFs animados e SVGs)
+    if (file.type.startsWith('image/') && !file.type.includes('gif') && !file.type.includes('svg')) {
+      try {
+        finalBuffer = await sharp(buffer)
+          .rotate() // Mantém orientação correta da câmera
+          .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 80, effort: 4 })
+          .toBuffer();
+        finalContentType = 'image/webp';
+        const baseName = cleanFileName.substring(0, cleanFileName.lastIndexOf('.')) || cleanFileName;
+        objectKey = `${timestamp}_${baseName}.webp`;
+      } catch (sharpErr) {
+        console.warn('Aviso ao otimizar imagem com sharp, usando original:', sharpErr);
+      }
+    }
 
     const command = new PutObjectCommand({
       Bucket: 'eventos',
       Key: objectKey,
-      Body: buffer,
-      ContentType: file.type,
+      Body: finalBuffer,
+      ContentType: finalContentType,
       CacheControl: 'public, max-age=31536000, immutable',
     });
 

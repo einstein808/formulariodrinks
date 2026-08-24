@@ -134,13 +134,16 @@ export default function AvaliacoesClient() {
               alt="Avaliações do Google" 
               width={1000}
               height={300}
+              sizes="(max-width: 1000px) 100vw, 1000px"
+              quality={80}
+              priority
               style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '400px', objectFit: 'contain' }} 
             />
           </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '24px' }}>
-          {reviewsToDisplay.map((r) => (
+          {reviewsToDisplay.map((r, idx) => (
             <div 
               key={r.id} 
               style={{ 
@@ -166,7 +169,16 @@ export default function AvaliacoesClient() {
               {r.printUrl ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
                   <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', width: '100%', position: 'relative', height: '180px' }}>
-                    <Image src={r.printUrl} alt={r.nome} fill style={{ objectFit: 'contain' }} />
+                    <Image 
+                      src={r.printUrl} 
+                      alt={r.nome ? `Depoimento de ${r.nome}` : 'Depoimento de cliente'} 
+                      fill 
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 300px"
+                      loading="lazy"
+                      decoding="async"
+                      quality={75}
+                      style={{ objectFit: 'contain' }} 
+                    />
                   </div>
                   {r.feedback && r.feedback !== 'Redirecionado para Google Reviews' && (
                     <p style={{ 

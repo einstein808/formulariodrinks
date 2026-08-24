@@ -335,9 +335,10 @@ export default function HomeClient() {
   };
 
   const featuredReviews = avaliacoes.filter(ava => ava.destacado === true);
+  const allValidReviews = featuredReviews.length > 0 ? featuredReviews : avaliacoes;
   const reviewsToDisplay = loading
     ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true } ]
-    : (featuredReviews.length > 0 ? featuredReviews : avaliacoes);
+    : allValidReviews.slice(0, 6);
 
   const galleryToDisplay = loading
     ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true } ]
@@ -460,8 +461,9 @@ export default function HomeClient() {
                           alt={`Print do depoimento do cliente ${ava.nome} avaliando o Laboratório de Drinks com 5 estrelas`} 
                           fill
                           sizes="(max-width: 768px) 280px, 320px"
-                          loading={idx === 0 ? "eager" : "lazy"}
-                          priority={idx === 0}
+                          loading="lazy"
+                          decoding="async"
+                          quality={75}
                           style={{ objectFit: 'contain' }} 
                         />
                       </div>
@@ -502,6 +504,18 @@ export default function HomeClient() {
                 </div>
               ))}
             </div>
+
+            {allValidReviews.length > 6 && (
+              <div style={{ textAlign: 'center', marginTop: 20 }}>
+                <button
+                  onClick={() => router.push('/avaliacoes')}
+                  className="btn btn--outline"
+                  style={{ minHeight: 40, padding: '8px 24px', fontSize: '0.88rem', fontWeight: 600 }}
+                >
+                  Ver todas as {allValidReviews.length} avaliações →
+                </button>
+              </div>
+            )}
           </div>
         </section>
       )}
