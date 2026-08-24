@@ -312,11 +312,11 @@ export default function HomeClient() {
           <div className="galeria-grid">
             {galleryToDisplay.map((evento, idx) => (
               evento.isSkeleton ? (
-                <div key={evento.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, height: 340, border: '1px solid rgba(203, 161, 83, 0.08)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: 240, background: 'rgba(255,255,255,0.03)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
-                  <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ height: 16, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '70%' }} />
-                    <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '40%' }} />
+                <div key={evento.id || idx} className="skeleton-card" style={{ background: 'var(--bg-card)', borderRadius: 16, height: 340, border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div className="skeleton-shimmer" style={{ height: 240, borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
+                  <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
+                    <div className="skeleton-shimmer" style={{ height: 16, borderRadius: 4, width: '70%' }} />
+                    <div className="skeleton-shimmer" style={{ height: 12, borderRadius: 4, width: '40%' }} />
                   </div>
                 </div>
               ) : (
@@ -366,21 +366,21 @@ export default function HomeClient() {
               {reviewsToDisplay.map((ava, idx) => (
                 <div key={ava.id || idx} style={{ 
                   minWidth: 280, flex: '0 0 clamp(280px, 80vw, 320px)', background: 'var(--bg-card)', padding: ava.isSkeleton ? 24 : (ava.printUrl ? 12 : 24), borderRadius: 12, 
-                  border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 16
+                  border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', gap: 16
                 }}>
                   {ava.isSkeleton ? (
-                    <div className="skeleton-pulse" style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+                    <div className="skeleton-card" style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%' }}>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        {[1,2,3,4,5].map(s => <div key={s} style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(203, 161, 83, 0.15)' }} />)}
+                        {[1,2,3,4,5].map(s => <div key={s} className="skeleton-shimmer" style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(203, 161, 83, 0.3)' }} />)}
                       </div>
-                      <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '100%' }} />
-                      <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '85%' }} />
-                      <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '60%' }} />
+                      <div className="skeleton-shimmer" style={{ height: 14, borderRadius: 4, width: '100%' }} />
+                      <div className="skeleton-shimmer" style={{ height: 14, borderRadius: 4, width: '85%' }} />
+                      <div className="skeleton-shimmer" style={{ height: 14, borderRadius: 4, width: '60%' }} />
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto', paddingTop: 8 }}>
-                        <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
+                        <div className="skeleton-shimmer" style={{ width: 38, height: 38, borderRadius: '50%' }} />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                          <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '50%' }} />
-                          <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '30%' }} />
+                          <div className="skeleton-shimmer" style={{ height: 12, borderRadius: 4, width: '50%' }} />
+                          <div className="skeleton-shimmer" style={{ height: 10, borderRadius: 4, width: '30%' }} />
                         </div>
                       </div>
                     </div>
@@ -557,7 +557,33 @@ export default function HomeClient() {
               }
               
               return pacote.isSkeleton ? (
-                <div key={pacote.id || idx} className="skeleton-pulse" style={{ background: 'rgba(0,0,0,0.5)', borderRadius: 16, height: 460, border: '1px solid rgba(255,255,255,0.05)', padding: 32 }} />
+                <div key={pacote.id || idx} className="skeleton-card" style={{ 
+                  background: 'var(--bg-card)', 
+                  borderRadius: 16, 
+                  height: 460, 
+                  border: '1px solid rgba(203, 161, 83, 0.25)', 
+                  padding: 32,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <div className="skeleton-shimmer" style={{ width: 50, height: 50, borderRadius: '50%' }} />
+                    <div className="skeleton-shimmer" style={{ width: 140, height: 20, borderRadius: 6 }} />
+                    <div className="skeleton-shimmer" style={{ width: 110, height: 16, borderRadius: 12 }} />
+                  </div>
+                  <div className="skeleton-shimmer" style={{ height: 14, borderRadius: 4, width: '90%', margin: '0 auto' }} />
+                  <div className="skeleton-shimmer" style={{ height: 32, borderRadius: 6, width: '55%', margin: '8px auto' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '12px 0', flex: 1 }}>
+                    {[1,2,3].map(i => (
+                      <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <div className="skeleton-shimmer" style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0 }} />
+                        <div className="skeleton-shimmer" style={{ height: 12, borderRadius: 4, width: `${85 - i * 12}%` }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="skeleton-shimmer" style={{ height: 44, borderRadius: 8, width: '100%' }} />
+                </div>
               ) : (
                 <div key={pacote.id} style={{ 
                   background: 'var(--bg-card)',
@@ -667,10 +693,10 @@ export default function HomeClient() {
         <div className="drinks-grid">
           {drinksToDisplay.map(drink => (
             drink.isSkeleton ? (
-              <div key={drink.id} className="skeleton-pulse" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, height: 280, border: '1px solid rgba(203, 161, 83, 0.05)', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ height: 220, background: 'rgba(255,255,255,0.03)' }} />
+              <div key={drink.id} className="skeleton-card" style={{ background: 'var(--bg-card)', borderRadius: 16, height: 280, border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className="skeleton-shimmer" style={{ height: 220 }} />
                 <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: '60%' }} />
+                  <div className="skeleton-shimmer" style={{ height: 16, borderRadius: 4, width: '60%' }} />
                 </div>
               </div>
             ) : (
@@ -726,12 +752,21 @@ export default function HomeClient() {
       </div>
       
       <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.65; }
-          50% { opacity: 0.35; }
+        @keyframes shimmer {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
         }
-        .skeleton-pulse {
-          animation: pulse 1.5s ease-in-out infinite;
+        .skeleton-shimmer {
+          background: linear-gradient(90deg, rgba(255,255,255,0.04) 20%, rgba(203,161,83,0.18) 50%, rgba(255,255,255,0.04) 80%) !important;
+          background-size: 200% 100% !important;
+          animation: shimmer 1.6s ease-in-out infinite !important;
+        }
+        .skeleton-card {
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
         }
 
         .hide-scrollbar::-webkit-scrollbar { display: none; }

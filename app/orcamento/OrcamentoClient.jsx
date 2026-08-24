@@ -991,9 +991,18 @@ export default function OrcamentoClient() {
 
       <div className="app">
         {configLoading ? (
-          <div className="loading-screen">
-            <div className="btn__spinner" style={{width:40,height:40,borderWidth:3}} />
-            <p style={{marginTop:16,color:'var(--text-secondary)'}}>Carregando...</p>
+          <div className="loading-screen" style={{
+            minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '20px 0'
+          }}>
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid rgba(203, 161, 83, 0.25)',
+              borderRadius: 16, padding: '36px 28px', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxWidth: 300, width: '100%', textAlign: 'center'
+            }}>
+              <img src="/logo.webp" alt="Logo" style={{ width: 70, height: 'auto', marginBottom: 4 }} />
+              <div className="btn__spinner" style={{ width: 36, height: 36, borderWidth: 3, borderTopColor: 'var(--primary)' }} />
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.92rem', fontWeight: 500 }}>Carregando formulário...</p>
+            </div>
           </div>
         ) : (
         <>
