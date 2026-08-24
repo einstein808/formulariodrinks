@@ -38,6 +38,7 @@ export async function POST(request) {
       Key: objectKey,
       Body: buffer,
       ContentType: file.type,
+      CacheControl: 'public, max-age=31536000, immutable',
     });
 
     await s3Client.send(command);

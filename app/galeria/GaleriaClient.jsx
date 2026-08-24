@@ -17,7 +17,7 @@ function EventoCard({ evento, onOpen, formatDate }) {
 
   const [fotoIdx, setFotoIdx] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
-  const [pausado, setPausado] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const intervalRef = useRef(null);
 
   const avancar = () => {
@@ -30,10 +30,13 @@ function EventoCard({ evento, onOpen, formatDate }) {
   };
 
   useEffect(() => {
-    if (todasFotos.length <= 1 || pausado) return;
-    intervalRef.current = setInterval(avancar, 3000);
+    if (todasFotos.length <= 1 || !hovered) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    intervalRef.current = setInterval(avancar, 2500);
     return () => clearInterval(intervalRef.current);
-  }, [todasFotos.length, pausado, fotoIdx]);
+  }, [todasFotos.length, hovered, fotoIdx]);
 
   const fotoAtual = todasFotos[fotoIdx]?.url;
   const totalMidias = (evento.midias || []).length;
@@ -54,13 +57,15 @@ function EventoCard({ evento, onOpen, formatDate }) {
         e.currentTarget.style.transform = 'translateY(-6px)'; 
         e.currentTarget.style.boxShadow = '0 12px 30px rgba(203, 161, 83, 0.18)'; 
         e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.5)'; 
-        setPausado(true); 
+        setHovered(true); 
       }}
       onMouseLeave={(e) => { 
         e.currentTarget.style.transform = 'translateY(0)'; 
         e.currentTarget.style.boxShadow = 'none'; 
         e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.15)'; 
-        setPausado(false);
+        setHovered(false);
+        setFotoIdx(0);
+        setFadeIn(true);
       }}
     >
       <div style={{ height: 220, background: '#111', position: 'relative', overflow: 'hidden' }}>

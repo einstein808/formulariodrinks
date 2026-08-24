@@ -507,7 +507,7 @@ function ShoppingListContent() {
                     >
                       {d.image ? (
                         <div className="drink-card__image-container" style={{ width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: 8, border: '1px solid var(--primary)', zIndex: 1, flexShrink: 0 }}>
-                          <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={d.image} alt={d.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       ) : (
                         <span className="drink-card__emoji">{d.emoji}</span>
@@ -537,7 +537,7 @@ function ShoppingListContent() {
                         >
                           {d.image ? (
                             <div className="drink-card__image-container" style={{ width: 70, height: 70, borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: 8, border: '1px solid #00E5FF', zIndex: 1, flexShrink: 0 }}>
-                              <img src={d.image} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <img src={d.image} alt={d.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             </div>
                           ) : (
                             <span className="drink-card__emoji">{d.emoji}</span>

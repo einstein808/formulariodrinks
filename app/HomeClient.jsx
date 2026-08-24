@@ -18,7 +18,7 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
 
   const [fotoIdx, setFotoIdx] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
-  const [pausado, setPausado] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const intervalRef = useRef(null);
 
   const avancar = () => {
@@ -31,10 +31,13 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
   };
 
   useEffect(() => {
-    if (todasFotos.length <= 1 || pausado) return;
-    intervalRef.current = setInterval(avancar, 3000);
+    if (todasFotos.length <= 1 || !hovered) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    intervalRef.current = setInterval(avancar, 2500);
     return () => clearInterval(intervalRef.current);
-  }, [todasFotos.length, pausado, fotoIdx]);
+  }, [todasFotos.length, hovered, fotoIdx]);
 
   const fotoAtual = todasFotos[fotoIdx]?.url;
   const totalMidias = (evento.midias || []).length;
@@ -56,13 +59,15 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
         e.currentTarget.style.transform = 'translateY(-4px)'; 
         e.currentTarget.style.boxShadow = 'var(--shadow-md)'; 
         e.currentTarget.style.borderColor = 'rgba(203, 161, 83, 0.35)'; 
-        setPausado(true); 
+        setHovered(true); 
       }}
       onMouseLeave={(e) => { 
         e.currentTarget.style.transform = 'translateY(0)'; 
         e.currentTarget.style.boxShadow = 'none'; 
         e.currentTarget.style.borderColor = 'var(--border-color)'; 
-        setPausado(false);
+        setHovered(false);
+        setFotoIdx(0);
+        setFadeIn(true);
       }}
     >
       {/* Área da capa com slideshow */}
@@ -381,8 +386,16 @@ export default function HomeClient() {
                     </div>
                   ) : ava.printUrl ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', width: '100%' }}>
-                      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', flex: 1, maxHeight: '200px', width: '100%' }}>
-                        <img src={ava.printUrl} alt={`Print do depoimento do cliente ${ava.nome} avaliando o Laboratório de Drinks com 5 estrelas`} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} fetchPriority={idx === 0 ? "high" : "auto"} />
+                      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', flex: 1, maxHeight: '200px', height: 200, width: '100%', position: 'relative' }}>
+                        <Image 
+                          src={ava.printUrl} 
+                          alt={`Print do depoimento do cliente ${ava.nome} avaliando o Laboratório de Drinks com 5 estrelas`} 
+                          fill
+                          sizes="(max-width: 768px) 280px, 320px"
+                          loading={idx === 0 ? "eager" : "lazy"}
+                          priority={idx === 0}
+                          style={{ objectFit: 'contain' }} 
+                        />
                       </div>
                       {ava.feedback && ava.feedback !== 'Redirecionado para Google Reviews' && (
                         <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, fontSize: '0.85rem', lineHeight: 1.4, textAlign: 'center' }}>

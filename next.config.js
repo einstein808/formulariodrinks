@@ -5,6 +5,8 @@ const nextConfig = {
     optimizePackageImports: ['react-icons', 'recharts']
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 2592000,
     remotePatterns: [
       {
         protocol: 'https',
