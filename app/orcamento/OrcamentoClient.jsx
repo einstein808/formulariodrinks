@@ -197,7 +197,7 @@ export default function OrcamentoClient() {
     telefone: '',
     cidade: '',
     novaCidade: '',
-    convidados: 40,
+    convidados: '',
     dataEvento: '',
     tipoEvento: '',
     duracao: 5,
@@ -340,6 +340,9 @@ export default function OrcamentoClient() {
         }
         break
       case 1: // Sobre seu Evento
+        if (!formData.convidados || Number(formData.convidados) < 1) {
+          e.convidados = 'Informe a quantidade de convidados'
+        }
         if (!formData.dataEvento) e.dataEvento = 'Data é obrigatória'
         if (!formData.tipoEvento) e.tipoEvento = 'Selecione o tipo de evento'
         if (!formData.horarioEvento) e.horarioEvento = 'Horário de início é obrigatório'
@@ -489,7 +492,7 @@ export default function OrcamentoClient() {
     try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
     setFormData({
       pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '', novaCidade: '',
-      convidados: 40, dataEvento: '', tipoEvento: '',
+      convidados: '', dataEvento: '', tipoEvento: '',
       duracao: 5, horarioEvento: '',
       tiposDrinks: [], drinksEscolhidos: [],
       upsellChopp: false, upsellFrozen: false,
@@ -607,10 +610,12 @@ export default function OrcamentoClient() {
                         )}
                       </div>
 
-                      {/* Total do Evento para os convidados selecionados */}
-                      <div className="package-card__price-total">
-                        Total: R$ {calc.finalPrice.toLocaleString('pt-BR')} para {formData.convidados || 40} convidados
-                      </div>
+                      {/* Total do Evento para os convidados selecionados (apenas pacotes por pessoa do Grupo A) */}
+                      {!isGroupB && !calc.isTier && calc.isPerPerson && Boolean(formData.convidados) && (
+                        <div className="package-card__price-total">
+                          Total: R$ {calc.finalPrice.toLocaleString('pt-BR')} para {formData.convidados} convidados
+                        </div>
+                      )}
                     </div>
 
                     {(isGroupB || isMaoDeObra || calc.isTier) && ((p.priceTiers && p.priceTiers.length > 0) || isMaoDeObra) && (
@@ -685,23 +690,29 @@ export default function OrcamentoClient() {
         return (
           <div className="step-enter" key="step-1">
             <div className="form-group">
-              <label htmlFor="convidadosInput" className="form-label">Quantidade de Convidados</label>
+              <label htmlFor="convidadosInput" className="form-label">
+                Quantidade de Convidados <span style={{ color: 'var(--primary)' }}>*</span>
+              </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
                 <input
                   id="convidadosInput"
                   type="number"
-                  className="form-input"
-                  min="30"
-                  max="1000"
-                  placeholder="Ex: 50"
-                  value={formData.convidados || ''}
-                  onChange={e => updateField('convidados', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  className={`form-input ${errors.convidados ? 'form-input--error' : ''}`}
+                  min="1"
+                  max="5000"
+                  placeholder="Ex: 80"
+                  value={formData.convidados}
+                  onChange={e => {
+                    const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
+                    updateField('convidados', val);
+                  }}
                   style={{ fontSize: '1.25rem', fontWeight: 'bold', width: '150px', textAlign: 'center' }}
                 />
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                  convidados (Mínimo recomendado: 40)
+                  convidados
                 </span>
               </div>
+              {errors.convidados && <span className="form-error">{errors.convidados}</span>}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
