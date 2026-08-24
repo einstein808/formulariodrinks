@@ -20,6 +20,18 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
   const [fadeIn, setFadeIn] = useState(true);
   const [hovered, setHovered] = useState(false);
   const intervalRef = useRef(null);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const swipedRef = useRef(false);
+
+  const retroceder = () => {
+    if (todasFotos.length <= 1) return;
+    setFadeIn(false);
+    setTimeout(() => {
+      setFotoIdx(i => (i - 1 + todasFotos.length) % todasFotos.length);
+      setFadeIn(true);
+    }, 250);
+  };
 
   const avancar = () => {
     if (todasFotos.length <= 1) return;
@@ -27,7 +39,7 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
     setTimeout(() => {
       setFotoIdx(i => (i + 1) % todasFotos.length);
       setFadeIn(true);
-    }, 300);
+    }, 250);
   };
 
   useEffect(() => {
@@ -39,6 +51,39 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
     return () => clearInterval(intervalRef.current);
   }, [todasFotos.length, hovered, fotoIdx]);
 
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    swipedRef.current = false;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = touchStartX.current - endX;
+    const diffY = touchStartY.current - endY;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      swipedRef.current = true;
+      if (diffX > 0) {
+        avancar();
+      } else {
+        retroceder();
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  const handleClick = () => {
+    if (swipedRef.current) {
+      swipedRef.current = false;
+      return;
+    }
+    onOpen(evento);
+  };
+
   const fotoAtual = todasFotos[fotoIdx]?.url;
   const totalMidias = (evento.midias || []).length;
   const temVideo = (evento.midias || []).some(m => m.tipo === 'video');
@@ -46,7 +91,9 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
 
   return (
     <div
-      onClick={() => onOpen(evento)}
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
         background: 'var(--bg-card)',
         borderRadius: 12,
@@ -54,6 +101,7 @@ function EventoCard({ evento, onOpen, formatDate, priority = false }) {
         border: '1px solid var(--border-color)',
         cursor: 'pointer',
         transition: 'transform 0.25s ease, border-color 0.25s, box-shadow 0.25s',
+        touchAction: 'pan-y'
       }}
       onMouseEnter={(e) => { 
         e.currentTarget.style.transform = 'translateY(-4px)'; 
@@ -250,6 +298,34 @@ export default function HomeClient() {
 
   const prevMidia = () => setMidiaAtual(i => (i - 1 + (eventoAberto?.midias?.length || 1)) % (eventoAberto?.midias?.length || 1));
   const nextMidia = () => setMidiaAtual(i => (i + 1) % (eventoAberto?.midias?.length || 1));
+
+  const modalTouchStartX = useRef(null);
+  const modalTouchStartY = useRef(null);
+
+  const handleModalTouchStart = (e) => {
+    modalTouchStartX.current = e.touches[0].clientX;
+    modalTouchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleModalTouchEnd = (e) => {
+    if (modalTouchStartX.current === null || modalTouchStartY.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = modalTouchStartX.current - endX;
+    const diffY = modalTouchStartY.current - endY;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX > 0) {
+        // Arrasta da direita para a esquerda -> Próxima foto
+        nextMidia();
+      } else {
+        // Arrasta da esquerda para a direita -> Foto anterior
+        prevMidia();
+      }
+    }
+    modalTouchStartX.current = null;
+    modalTouchStartY.current = null;
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -923,10 +999,12 @@ export default function HomeClient() {
             </button>
           </div>
 
-          {/* Área da mídia */}
+          {/* Área da mídia com suporte a swipe */}
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 900, flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#0a0a0a', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}
+            onTouchStart={handleModalTouchStart}
+            onTouchEnd={handleModalTouchEnd}
+            style={{ width: '100%', maxWidth: 900, flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#0a0a0a', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)', touchAction: 'pan-y' }}
           >
             {eventoAberto.midias && eventoAberto.midias.length > 0 ? (
               <>
