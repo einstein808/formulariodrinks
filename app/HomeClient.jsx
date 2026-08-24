@@ -343,10 +343,6 @@ export default function HomeClient() {
     ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true } ]
     : (verTodosEventos ? galeria : galeria.slice(0, 3));
 
-  const drinksToDisplay = loading
-    ? [ { id: 's1', isSkeleton: true }, { id: 's2', isSkeleton: true }, { id: 's3', isSkeleton: true }, { id: 's4', isSkeleton: true }, { id: 's5', isSkeleton: true }, { id: 's6', isSkeleton: true } ]
-    : (verTodosDrinks ? drinks : drinks.slice(0, 6));
-
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 100 }}>
       <BackgroundEffects />
@@ -509,57 +505,6 @@ export default function HomeClient() {
           </div>
         </section>
       )}
-
-      {/* 3. Drinks Gallery */}
-      <section style={{ position: 'relative', zIndex: 10, padding: '36px 16px', maxWidth: 1000, margin: '0 auto' }}>
-        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', marginBottom: 28, letterSpacing: '0.03em' }}>
-          Cardápio de Drinks Exclusivos
-        </h2>
-
-        <div className="drinks-grid">
-          {drinksToDisplay.map(drink => (
-            drink.isSkeleton ? (
-              <div key={drink.id} className="skeleton-card" style={{ background: 'var(--bg-card)', borderRadius: 16, height: 280, border: '1px solid rgba(203, 161, 83, 0.25)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div className="skeleton-shimmer" style={{ height: 220 }} />
-                <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
-                  <div className="skeleton-shimmer" style={{ height: 16, borderRadius: 4, width: '60%' }} />
-                </div>
-              </div>
-            ) : (
-              <div key={drink.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.1)' }}>
-                <div style={{ height: 220, background: '#111', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {drink.image ? (
-                    <Image 
-                      src={drink.image} 
-                      alt={`Coquetel ${drink.name} premium preparado pelo Laboratório de Drinks`} 
-                      fill
-                      sizes="(max-width: 768px) 50vw, 20vw"
-                      style={{ objectFit: 'cover' }} 
-                    />
-                  ) : (
-                    <span style={{ fontSize: '4rem' }}>{drink.emoji}</span>
-                  )}
-                </div>
-                <div style={{ padding: '16px 20px', textAlign: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>{drink.name}</h3>
-                </div>
-              </div>
-            )
-          ))}
-        </div>
-
-        {drinks.length > 6 && (
-          <div style={{ textAlign: 'center', marginTop: 28 }}>
-            <button
-              onClick={() => setVerTodosDrinks(v => !v)}
-              className="btn btn--outline"
-              style={{ minHeight: 48, minWidth: 200, fontSize: '1rem', fontWeight: 600 }}
-            >
-              {verTodosDrinks ? '↑ Ver menos' : `Ver todos os ${drinks.length} drinks`}
-            </button>
-          </div>
-        )}
-      </section>
 
 
       {/* Fixed CTA */}
