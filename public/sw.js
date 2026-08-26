@@ -1,78 +1,75 @@
-const CACHE_NAME = 'labdrinks-pwa-v2';
-const STATIC_CACHE_NAME = 'labdrinks-static-v2';
+const CACHE_NAME = 'labdrinks-pwa-v3';
+const STATIC_CACHE_NAME = 'labdrinks-static-v3';
 
+// Assets puramente estáticos e imutáveis para pré-cache
 const PRECACHE_ASSETS = [
-  '/',
-  '/admin',
-  '/admin/login',
-  '/orcamento',
-  '/galeria',
-  '/avaliacoes',
   '/manifest.json',
   '/logo.webp',
   '/favicon.svg',
+  '/favicon.ico',
   '/hero.png',
   '/frozen.jpg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
 
-// 1. Install — Pre-cache critical routes and core static assets
+// 1. Install — Pré-cache de assets visuais estáticos e skipWaiting imediato
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('Algum asset estático falhou ao pré-cachear:', err);
+        console.warn('Pré-cache parcial:', err);
       });
     })
   );
-  self.skipWaiting();
 });
 
-// 2. Activate — Clean up obsolete caches
+// 2. Activate — Limpeza agressiva de todos os caches antigos (v1, v2)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
         keys
           .filter((key) => key !== CACHE_NAME && key !== STATIC_CACHE_NAME)
-          .map((key) => caches.delete(key))
+          .map((key) => {
+            console.log('Limpando cache legado:', key);
+            return caches.delete(key);
+          })
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// 3. Fetch — Intelligent Multi-Tier Caching
+// 3. Fetch — Estratégia Inteligente: Network-First para páginas e Network-Only para Admin
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET, Firebase realtime DB, Google Auth, external analytics, and APIs
+  // A. BYPASS COMPLETO: Rotas dinâmicas, Admin, APIs, Firebase e Auth
+  // NUNCA cachear o painel admin ou chamadas de banco de dados
   if (
     request.method !== 'GET' ||
+    url.pathname.startsWith('/admin') ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/escala') ||
+    url.pathname.startsWith('/lista-compras') ||
+    url.pathname.startsWith('/contrato') ||
     url.hostname.includes('firebaseio.com') ||
     url.hostname.includes('googleapis.com') ||
     url.hostname.includes('google.com') ||
     url.hostname.includes('evolution') ||
     url.hostname.includes('gotenberg') ||
-    url.pathname.startsWith('/api/') ||
     url.protocol === 'chrome-extension:'
   ) {
     return;
   }
 
-  // A. CACHE-FIRST: Static assets (_next/static, fonts, icons, images, local media)
-  // Assets with hashes or immutable nature load instantly from cache (0ms)
+  // B. CACHE-FIRST com Network Fallback: Assets estáticos com hash do Next.js e mídias
   if (
     url.pathname.startsWith('/_next/static/') ||
     request.destination === 'font' ||
-    request.destination === 'image' ||
-    url.pathname.startsWith('/icons/') ||
-    url.pathname.endsWith('.webp') ||
-    url.pathname.endsWith('.png') ||
-    url.pathname.endsWith('.jpg') ||
-    url.pathname.endsWith('.svg')
+    url.pathname.startsWith('/icons/')
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {
@@ -83,20 +80,17 @@ self.addEventListener('fetch', (event) => {
             caches.open(STATIC_CACHE_NAME).then((cache) => cache.put(request, clone));
           }
           return networkResponse;
-        }).catch(() => {
-          // Offline fallback for images
-          return cached;
         });
       })
     );
     return;
   }
 
-  // B. STALE-WHILE-REVALIDATE: HTML navigation & dynamic app pages
-  // Serves instant cached page so user sees zero lag, then refreshes cache in background
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      const fetchPromise = fetch(request)
+  // C. NETWORK-FIRST para Páginas HTML e Navegações
+  // Busca SEMPRE a versão mais recente na rede. Se estiver offline, entrega o cache.
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    event.respondWith(
+      fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
@@ -104,13 +98,31 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch((err) => {
-          // If offline and no network, return cached response if available
-          return cachedResponse;
-        });
+        .catch(() => {
+          // Offline fallback: entrega a página salva em cache
+          return caches.match(request).then((cached) => {
+            return cached || caches.match('/');
+          });
+        })
+    );
+    return;
+  }
 
-      // If cached response exists, serve it IMMEDIATELY for 0ms load time
+  // D. STALE-WHILE-REVALIDATE para outras requisições (imagens soltas, etc.)
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(STATIC_CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
+
       return cachedResponse || fetchPromise;
     })
   );
 });
+

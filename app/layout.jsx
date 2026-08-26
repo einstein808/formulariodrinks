@@ -17,6 +17,13 @@ export const metadata = {
   primaryColor: '#cba153',
   publisher: 'Laboratório de Drinks',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' }
+    ],
+    apple: '/favicon.svg',
+  },
   robots: {
     index: true,
     follow: true,

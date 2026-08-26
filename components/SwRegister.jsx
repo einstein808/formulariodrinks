@@ -5,17 +5,36 @@ export default function SwRegister() {
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
       if ('serviceWorker' in navigator) {
+        let refreshing = false;
+
+        // Ao detectar que um novo Service Worker assumiu o controle, atualiza suavemente
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+
         window.addEventListener('load', () => {
           navigator.serviceWorker
             .register('/sw.js')
             .then((registration) => {
-              // Verifica periodicamente se há nova versão
+              // Força verificação imediata de nova versão no servidor
+              registration.update();
+
+              // Verifica atualizações quando o app ganha foco
+              document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                  registration.update();
+                }
+              });
+
               registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker) {
                   installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('Nova versão do PWA disponível e pronta para uso.');
+                      console.log('Nova versão do PWA instalada e ativando...');
                     }
                   };
                 }
@@ -36,3 +55,4 @@ export default function SwRegister() {
 
   return null;
 }
+
