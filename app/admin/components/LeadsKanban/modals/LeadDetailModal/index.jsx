@@ -165,27 +165,39 @@ export default function LeadDetailModal({
       >
         {/* MODAL HEADER */}
         <div style={{
-          padding: '16px 20px',
+          padding: '14px 16px',
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          flexDirection: 'column',
+          gap: '10px',
           background: 'var(--bg-input)',
           flexShrink: 0
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.25rem' }}>
-                {selectedLead.nome} {selectedLead.sobrenome}
-              </h2>
+          {/* Top Line: Name and Close Button */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Cinzel, serif', fontSize: '1.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {selectedLead.nome} {selectedLead.sobrenome || ''}
+            </h2>
+            <button 
+              onClick={onClose} 
+              style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '40px', minHeight: '40px', padding: 0 }}
+              aria-label="Fechar"
+            >
+              <FiX size={22} />
+            </button>
+          </div>
+
+          {/* Second Line: Group Toggle, Status Selector and Temperature */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => onToggleAbGroup(selectedLead.id, selectedLead.abGroup)}
-                title="Clique para alternar entre Grupo A (Por Convidado) e Grupo B (Preço Fixo por Faixa)"
+                title="Alternar entre Grupo A e Grupo B"
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: '700',
-                  padding: '3px 10px',
+                  padding: '4px 10px',
                   borderRadius: '6px',
                   background: selectedLead.abGroup === 'B' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(203, 161, 83, 0.15)',
                   color: selectedLead.abGroup === 'B' ? '#00E5FF' : 'var(--primary)',
@@ -196,57 +208,60 @@ export default function LeadDetailModal({
                   gap: '4px'
                 }}
               >
-                {selectedLead.abGroup === 'B' ? '🧪 Grupo B (Preço Fixo) 🔄' : '🅰️ Grupo A (Por Convidado) 🔄'}
+                {selectedLead.abGroup === 'B' ? '🧪 Grupo B (Preço Fixo)' : '🅰️ Grupo A (Por Convidado)'}
               </button>
+
               {followUpCount >= 3 ? (
-                <span style={{ fontSize: '0.7rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>❄️ Esfriou</span>
+                <span style={{ fontSize: '0.72rem', color: '#00E5FF', background: 'rgba(0, 229, 255, 0.1)', padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>❄️ Esfriou</span>
               ) : (
-                isStale && <span style={{ fontSize: '0.7rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: '500' }}>🔥 Esfriando</span>
+                isStale && <span style={{ fontSize: '0.72rem', color: '#F44336', background: 'rgba(244, 67, 54, 0.1)', padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>🔥 Esfriando</span>
               )}
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-              Telefone: {formatPhone(selectedLead.telefone)}
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Status</label>
+
+            {/* Status Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Status:</span>
               <select 
                 value={selectedLead.status || 'novo'}
                 onChange={(e) => onStatusChange(selectedLead.id, e.target.value)}
                 className="form-select"
                 style={{ 
-                  marginTop: 0, 
-                  padding: '4px 10px', 
+                  margin: 0, 
+                  padding: '4px 8px', 
                   fontSize: '0.8rem', 
                   borderRadius: '6px', 
-                  background: 'var(--bg-input)', 
-                  borderColor: 'rgba(203, 161, 83, 0.3)',
+                  background: 'rgba(203, 161, 83, 0.1)', 
+                  borderColor: 'rgba(203, 161, 83, 0.35)',
                   color: 'var(--primary)',
                   fontWeight: 'bold',
                   height: '32px',
-                  width: '140px'
+                  cursor: 'pointer'
                 }}
               >
                 {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
             </div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
-              <FiX size={22} />
-            </button>
           </div>
+
+          {/* Third Line: Quick Contact Info */}
+          {selectedLead.telefone && (
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              Telefone: <strong style={{ color: 'var(--text-primary)' }}>{formatPhone(selectedLead.telefone)}</strong>
+            </div>
+          )}
         </div>
 
         {/* TABS NAVIGATION */}
         <div style={{
           display: 'flex',
           borderBottom: '1px solid var(--border-color)',
-          background: 'rgba(255,255,255,0.02)',
+          background: 'rgba(0,0,0,0.2)',
           overflowX: 'auto',
           scrollbarWidth: 'none',
+          whiteSpace: 'nowrap',
           flexShrink: 0,
-          minHeight: '46px'
+          padding: '4px 8px',
+          gap: '4px'
         }}>
           {[
             { id: 'info', label: '📋 Dados Gerais' },
@@ -386,46 +401,22 @@ export default function LeadDetailModal({
 
         {/* MODAL FOOTER */}
         <div style={{
-          padding: '12px 20px',
-          borderTop: '1px solid rgba(203, 161, 83, 0.12)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '10px',
-          background: 'var(--bg-app)',
-          flexWrap: 'wrap'
+          padding: '12px 16px',
+          borderTop: '1px solid var(--border-color)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: '8px',
+          background: 'var(--bg-input)',
+          flexShrink: 0
         }}>
-          <div style={{ display: 'flex', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
-            {selectedLead.telefone && (
-              <a
-                href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  background: '#25D366',
-                  color: '#FFF',
-                  borderRadius: '8px',
-                  padding: '8px 14px',
-                  fontSize: '0.82rem',
-                  fontWeight: 'bold',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  minHeight: 40
-                }}
-              >
-                💬 WhatsApp
-              </a>
-            )}
+          {selectedLead.telefone && (
             <a
-              href={`/contrato/${selectedLead.id}`}
+              href={`https://wa.me/55${selectedLead.telefone.replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                background: 'rgba(203, 161, 83, 0.12)',
-                border: '1px solid rgba(203, 161, 83, 0.3)',
-                color: 'var(--primary)',
+                background: '#25D366',
+                color: '#FFF',
                 borderRadius: '8px',
                 padding: '8px 12px',
                 fontSize: '0.82rem',
@@ -433,66 +424,98 @@ export default function LeadDetailModal({
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '6px',
-                minHeight: 40
+                minHeight: '40px'
               }}
             >
-              📄 Contrato
+              💬 WhatsApp
             </a>
-          </div>
+          )}
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {!isEditingLead ? (
-              <button
-                onClick={startEditing}
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.82rem',
-                  minHeight: 40,
-                  fontWeight: 'bold'
-                }}
-              >
-                ✏️ Editar
-              </button>
-            ) : (
-              <button
-                onClick={handleSave}
-                style={{
-                  background: 'var(--primary)',
-                  border: 'none',
-                  color: '#000',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.82rem',
-                  minHeight: 40,
-                  fontWeight: 'bold'
-                }}
-              >
-                💾 Salvar
-              </button>
-            )}
-            <button 
-              onClick={onClose} 
+          <a
+            href={`/contrato/${selectedLead.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: 'rgba(203, 161, 83, 0.12)',
+              border: '1px solid rgba(203, 161, 83, 0.3)',
+              color: 'var(--primary)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontSize: '0.82rem',
+              fontWeight: 'bold',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              minHeight: '40px'
+            }}
+          >
+            📄 Contrato
+          </a>
+
+          {!isEditingLead ? (
+            <button
+              onClick={startEditing}
               style={{
-                background: 'none',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: 'var(--text-secondary)',
-                padding: '8px 14px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '8px 12px',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '0.82rem',
-                minHeight: 40
+                minHeight: '40px',
+                fontWeight: 'bold',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              Fechar
+              ✏️ Editar
             </button>
-          </div>
+          ) : (
+            <button
+              onClick={handleSave}
+              style={{
+                background: 'var(--primary)',
+                border: 'none',
+                color: '#000',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                minHeight: '40px',
+                fontWeight: 'bold',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              💾 Salvar
+            </button>
+          )}
+
+          <button 
+            onClick={onClose} 
+            style={{
+              background: 'none',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: 'var(--text-secondary)',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              minHeight: '40px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Fechar
+          </button>
         </div>
 
       </div>

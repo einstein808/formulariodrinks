@@ -43,15 +43,15 @@ export default function TabFinanceiro({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.25s ease' }}>
 
       {/* ── KPI BAR ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' }}>
         {[
           { label: 'Faturamento', value: faturamento, color: 'var(--text-primary)', icon: '💰' },
           { label: 'Já Pago', value: valorPago, color: '#4CAF50', icon: '✅' },
           { label: valorRestante > 0 ? 'Falta Pagar' : 'Quitado!', value: valorRestante, color: valorRestante > 0 ? '#FFD54F' : '#4CAF50', icon: valorRestante > 0 ? '⏳' : '🎉' },
         ].map(kpi => (
-          <div key={kpi.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '12px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{kpi.icon} {kpi.label}</div>
-            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: kpi.color }}>
+          <div key={kpi.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px' }}>{kpi.icon} {kpi.label}</div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 'bold', color: kpi.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {kpi.label === 'Quitado!' ? '🎉' : formatCurrency(kpi.value)}
             </div>
           </div>
@@ -72,30 +72,32 @@ export default function TabFinanceiro({
 
       {/* ── RECEBER PAGAMENTO ── */}
       <div style={{ background: 'rgba(76,175,80,0.04)', border: '1px solid rgba(76,175,80,0.15)', borderRadius: '12px', padding: '14px' }}>
-        <div style={{ fontSize: '0.8rem', color: '#4CAF50', fontWeight: 'bold', marginBottom: '10px' }}>💰 Registrar Pagamento Recebido</div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <input
-            type="number"
-            placeholder="Valor (R$)"
-            value={newPaymentVal}
-            onChange={(e) => setNewPaymentVal(e.target.value)}
-            style={{ flex: '1', minWidth: '90px', background: '#0c1610', border: '1px solid rgba(76,175,80,0.2)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.9rem', outline: 'none' }}
-          />
-          <select
-            value={newPaymentForma}
-            onChange={(e) => setNewPaymentForma(e.target.value)}
-            style={{ flex: '1', minWidth: '110px', background: '#0c1610', border: '1px solid rgba(76,175,80,0.2)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none', cursor: 'pointer', height: '42px' }}
-          >
-            {['Pix', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro', 'Transferência'].map(f => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+        <div style={{ fontSize: '0.82rem', color: '#4CAF50', fontWeight: 'bold', marginBottom: '10px' }}>💰 Registrar Pagamento Recebido</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <input
+              type="number"
+              placeholder="Valor (R$)"
+              value={newPaymentVal}
+              onChange={(e) => setNewPaymentVal(e.target.value)}
+              style={{ background: '#0c1610', border: '1px solid rgba(76,175,80,0.2)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.9rem', outline: 'none', height: '42px' }}
+            />
+            <select
+              value={newPaymentForma}
+              onChange={(e) => setNewPaymentForma(e.target.value)}
+              style={{ background: '#0c1610', border: '1px solid rgba(76,175,80,0.2)', borderRadius: '8px', color: '#f0f2ec', padding: '10px 12px', fontSize: '0.88rem', outline: 'none', cursor: 'pointer', height: '42px' }}
+            >
+              {['Pix', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro', 'Transferência'].map(f => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             onClick={async () => { await handleRegisterRecebimento(newPaymentVal, newPaymentForma); setNewPaymentVal(''); }}
-            style={{ background: '#4CAF50', border: 'none', color: '#000', fontWeight: 'bold', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.88rem', height: '42px', whiteSpace: 'nowrap' }}
+            style={{ background: '#4CAF50', border: 'none', color: '#000', fontWeight: 'bold', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.88rem', minHeight: '42px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            ✓ Confirmar
+            ✓ Confirmar Pagamento
           </button>
         </div>
 

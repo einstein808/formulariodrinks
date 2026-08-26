@@ -1314,8 +1314,8 @@ body {
   }
 
   .admin-main {
-    padding-top: calc(56px + env(safe-area-inset-top, 0px) + 10px) !important;
-    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+    padding-top: calc(58px + env(safe-area-inset-top, 0px) + 16px) !important;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 24px) !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
     height: 100vh !important;
@@ -1328,12 +1328,12 @@ body {
     bottom: 0; left: 0; right: 0;
     height: calc(58px + env(safe-area-inset-bottom, 0px));
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: rgba(10, 15, 11, 0.96);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(203, 161, 83, 0.15);
+    background: rgba(10, 15, 11, 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(203, 161, 83, 0.2);
     z-index: 100;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.8);
   }
 
   .admin-bottom-nav-item {
@@ -1356,13 +1356,13 @@ body {
   .admin-modal-container {
     max-width: 100vw !important;
     width: 100vw !important;
-    max-height: 94vh !important;
-    border-radius: 18px 18px 0 0 !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
     border-left: none !important;
     border-right: none !important;
     border-bottom: none !important;
     margin: 0 !important;
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.85) !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9) !important;
     animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
 
@@ -1401,12 +1401,12 @@ body {
   }
 
   .admin-calendar-cell {
-    min-height: 64px !important;
-    padding: 4px !important;
+    min-height: 58px !important;
+    padding: 4px 2px !important;
   }
 
   .admin-calendar-day-label {
-    font-size: 0.6rem !important;
+    font-size: 0.62rem !important;
     padding: 6px 2px !important;
   }
 

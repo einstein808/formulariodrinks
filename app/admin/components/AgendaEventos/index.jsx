@@ -75,24 +75,47 @@ export default function AgendaEventos() {
   }
 
   return (
-    <div style={{ paddingBottom: '40px' }}>
+    <div style={{ paddingBottom: '90px' }}>
       {/* Header & Controls */}
-      <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FiCalendar /> Agenda de Eventos
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Visualize as datas de todas as festas fechadas e realizadas.</p>
+      <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h1 style={{ fontSize: '1.45rem', margin: '0 0 4px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FiCalendar /> Agenda de Eventos
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.85rem' }}>Visualize todas as festas fechadas e realizadas.</p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+        {/* Controles de Navegação e Visão Responsivos */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Navegação de Mês */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-input)', padding: '6px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', flex: '1', minWidth: '240px' }}>
+            <button onClick={prevMonth} className="btn btn--outline" style={{ padding: '6px', minWidth: '34px', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Mês Anterior">
+              <FiChevronLeft size={18} />
+            </button>
+            
+            <h2 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-primary)', textAlign: 'center', flex: 1 }}>
+              {monthName} <span style={{ color: 'var(--primary)' }}>{year}</span>
+            </h2>
+            
+            <button onClick={nextMonth} className="btn btn--outline" style={{ padding: '6px', minWidth: '34px', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Próximo Mês">
+              <FiChevronRight size={18} />
+            </button>
+
+            <button onClick={goToToday} className="btn btn--primary" style={{ padding: '6px 12px', marginLeft: '6px', fontSize: '0.8rem', minHeight: '34px', height: '34px' }}>
+              Hoje
+            </button>
+          </div>
+
           {/* Toggle Grade/Lista */}
-          <div style={{ display: 'flex', background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '4px' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '4px', flexShrink: 0 }}>
             <button 
               onClick={() => setModoVisao('grade')} 
               style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: modoVisao === 'grade' ? 'bold' : 'normal',
-                background: modoVisao === 'grade' ? 'var(--primary)' : 'transparent', color: modoVisao === 'grade' ? '#000' : 'var(--text-secondary)'
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: modoVisao === 'grade' ? 'bold' : 'normal',
+                background: modoVisao === 'grade' ? 'var(--primary)' : 'transparent', color: modoVisao === 'grade' ? '#000' : 'var(--text-secondary)',
+                minHeight: '34px'
               }}
             >
               <FiGrid /> Grade
@@ -100,30 +123,12 @@ export default function AgendaEventos() {
             <button 
               onClick={() => setModoVisao('lista')} 
               style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: modoVisao === 'lista' ? 'bold' : 'normal',
-                background: modoVisao === 'lista' ? 'var(--primary)' : 'transparent', color: modoVisao === 'lista' ? '#000' : 'var(--text-secondary)'
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: modoVisao === 'lista' ? 'bold' : 'normal',
+                background: modoVisao === 'lista' ? 'var(--primary)' : 'transparent', color: modoVisao === 'lista' ? '#000' : 'var(--text-secondary)',
+                minHeight: '34px'
               }}
             >
               <FiList /> Lista
-            </button>
-          </div>
-
-          {/* Navegação de Mês */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'var(--bg-input)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-            <button onClick={prevMonth} className="btn btn--outline" style={{ padding: '8px', minWidth: 'auto', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FiChevronLeft size={20} />
-            </button>
-            
-            <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', minWidth: '150px', textAlign: 'center' }}>
-              {monthName} <span style={{ color: 'var(--primary)' }}>{year}</span>
-            </h2>
-            
-            <button onClick={nextMonth} className="btn btn--outline" style={{ padding: '8px', minWidth: 'auto', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FiChevronRight size={20} />
-            </button>
-
-            <button onClick={goToToday} className="btn btn--primary" style={{ padding: '8px 16px', marginLeft: '8px', fontSize: '0.9rem' }}>
-              Hoje
             </button>
           </div>
         </div>

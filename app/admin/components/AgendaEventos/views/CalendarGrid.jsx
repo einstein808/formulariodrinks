@@ -12,19 +12,27 @@ export default function CalendarGrid({
   onSelectEvento
 }) {
   return (
-    <div style={{ background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-      
-      {/* Cabeçalho dos dias da semana */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
-        {daysOfWeek.map(day => (
-          <div key={day} className="admin-calendar-day-label" style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>
-            {day}
-          </div>
-        ))}
-      </div>
+    <div style={{ 
+      background: 'var(--bg-input)', 
+      borderRadius: '12px', 
+      border: '1px solid var(--border-color)', 
+      overflowX: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      scrollbarWidth: 'thin',
+      scrollbarColor: 'rgba(203, 161, 83, 0.25) transparent'
+    }}>
+      <div style={{ minWidth: '640px' }}>
+        {/* Cabeçalho dos dias da semana */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
+          {daysOfWeek.map(day => (
+            <div key={day} className="admin-calendar-day-label" style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+              {day}
+            </div>
+          ))}
+        </div>
 
-      {/* Células dos dias */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(120px, auto)' }}>
+        {/* Células dos dias */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(110px, auto)' }}>
         
         {/* Espaços vazios do mês anterior */}
         {Array.from({ length: firstDayOfMonth }).map((_, index) => (
@@ -123,5 +131,6 @@ export default function CalendarGrid({
         })}
       </div>
     </div>
-  );
+  </div>
+);
 }
