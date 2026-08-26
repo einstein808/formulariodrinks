@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ref, onValue, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiBell, FiSend, FiX } from 'react-icons/fi';

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiPlus, FiTrash2, FiUser, FiPhone, FiBriefcase, FiX } from 'react-icons/fi';

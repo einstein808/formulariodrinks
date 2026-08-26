@@ -12,6 +12,7 @@ function EscalaContent() {
 
   const [lead, setLead] = useState(null);
   const [helper, setHelper] = useState(null);
+  const [allAjudantes, setAllAjudantes] = useState({});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -21,7 +22,7 @@ function EscalaContent() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!leadId || !helperSlug) {
+      if (!leadId) {
         setLoading(false);
         return;
       }
@@ -30,17 +31,24 @@ function EscalaContent() {
         if (leadSnap.exists()) {
           const leadData = leadSnap.val();
           setLead(leadData);
-          if (leadData.ajudantes && leadData.ajudantes[helperSlug]) {
-            setCurrentStatus(leadData.ajudantes[helperSlug].status);
+          if (helperSlug && leadData.ajudantes && leadData.ajudantes[helperSlug]) {
+            const hVal = leadData.ajudantes[helperSlug];
+            setCurrentStatus(typeof hVal === 'object' ? hVal.status : hVal);
           }
         }
 
-        const helperSnap = await get(ref(db, `config/ajudantes/${helperSlug}`));
-        if (helperSnap.exists()) {
-          setHelper(helperSnap.val());
-        } else {
-          // Se não estiver no cadastro global, tenta usar a informação do lead
-          setHelper({ nome: helperSlug.replace(/-/g, ' ') });
+        const allHelpersSnap = await get(ref(db, 'config/ajudantes'));
+        if (allHelpersSnap.exists()) {
+          setAllAjudantes(allHelpersSnap.val());
+        }
+
+        if (helperSlug) {
+          const helperSnap = await get(ref(db, `config/ajudantes/${helperSlug}`));
+          if (helperSnap.exists()) {
+            setHelper(helperSnap.val());
+          } else {
+            setHelper({ nome: helperSlug.replace(/-/g, ' ') });
+          }
         }
       } catch (err) {
         console.error("Erro ao carregar escala:", err);
@@ -53,7 +61,7 @@ function EscalaContent() {
 
   const handleChoiceClick = (selectedChoice) => {
     setChoice(selectedChoice);
-    setShowConfirmModal(true); // Exibe o modal de confirmação (Dupla Validação)
+    setShowConfirmModal(true);
   };
 
   const handleConfirmSubmit = async () => {
@@ -93,21 +101,164 @@ function EscalaContent() {
     );
   }
 
-  if (!lead || !helperSlug) {
+  if (!lead) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: '#FFF', textAlign: 'center', padding: 24 }}>
         <FiAlertTriangle size={48} style={{ color: 'var(--primary)', marginBottom: 16 }} />
-        <h2>Escala ou Link Inválido</h2>
-        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Verifique se o link recebido no WhatsApp está completo.</p>
+        <h2>Evento ou Link Não Encontrado</h2>
+        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Não encontramos um evento com este identificador.</p>
       </div>
     );
   }
 
   const dataStr = lead.dataEvento ? lead.dataEvento.split('-').reverse().join('/') : '—';
   const horarioStr = lead.horarioEvento || '—';
-  const cidadeStr = lead.cidade || '—';
+  const cidadeStr = [lead.rua, lead.numero, lead.bairro, lead.cidade].filter(Boolean).join(', ') || lead.cidade || '—';
   const tipoStr = lead.tipoEvento || 'Evento';
 
+  // ── VISÃO GERAL DO ADMIN / EQUIPE COMPLETA (SEM HELPER SLUG) ──
+  if (!helperSlug) {
+    const ajudantesObj = lead.ajudantes || {};
+    const ajudantesEntries = Object.entries(ajudantesObj);
+    const confirmadosCount = ajudantesEntries.filter(([_, val]) => (typeof val === 'object' ? val.status : val) === 'confirmado').length;
+
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: 'var(--text-primary)', padding: '24px 16px' }}>
+        <div style={{ maxWidth: 620, width: '100%', background: 'var(--bg-card)', padding: '32px 24px', borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <img src="/logo.webp" alt="Logo" style={{ width: 100, marginBottom: 16 }} />
+            <h1 style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.5rem', margin: '0 0 6px 0' }}>
+              Escala da Equipe
+            </h1>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Evento de <strong style={{ color: 'var(--text-primary)' }}>{lead.nome} {lead.sobrenome || ''}</strong>
+            </div>
+          </div>
+
+          {/* Card com Detalhes do Evento */}
+          <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FiCalendar style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Data</span>
+                  <span style={{ fontSize: '0.88rem', color: '#FFF', fontWeight: 'bold' }}>{dataStr}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FiClock style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Horário</span>
+                  <span style={{ fontSize: '0.88rem', color: '#FFF', fontWeight: 'bold' }}>{horarioStr}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, gridColumn: '1 / -1' }}>
+                <FiMapPin style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>Local / Endereço</span>
+                  <span style={{ fontSize: '0.88rem', color: '#FFF', fontWeight: 500 }}>{cidadeStr}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Roster de Membros da Equipe */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <FiUser style={{ color: 'var(--primary)' }} /> Membros Escalados ({ajudantesEntries.length})
+              </h3>
+              <span style={{ fontSize: '0.75rem', background: 'rgba(76,175,80,0.15)', color: '#4CAF50', border: '1px solid rgba(76,175,80,0.3)', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+                {confirmadosCount} de {ajudantesEntries.length} confirmados
+              </span>
+            </div>
+
+            {ajudantesEntries.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {ajudantesEntries.map(([slug, statusVal]) => {
+                  const helperInfo = allAjudantes[slug];
+                  const helperStatus = typeof statusVal === 'object' && statusVal !== null
+                    ? (statusVal.status || 'pendente')
+                    : (statusVal || 'pendente');
+                  const isConfirmed = helperStatus === 'confirmado';
+                  const isRefused = helperStatus === 'recusado' || helperStatus === 'indisponivel';
+                  const nomeHelper = helperInfo?.nome || slug.replace(/-/g, ' ');
+                  const especialidade = helperInfo?.especialidade || 'Barman / Staff';
+                  const telHelper = helperInfo?.telefone;
+
+                  return (
+                    <div key={slug} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-input)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', gap: '10px', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                          {nomeHelper}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {especialidade} {telHelper ? `· ${telHelper}` : ''}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 'bold', 
+                          padding: '4px 10px', 
+                          borderRadius: '12px',
+                          background: isConfirmed ? 'rgba(76, 175, 80, 0.15)' : (isRefused ? 'rgba(244, 67, 54, 0.15)' : 'rgba(203, 161, 83, 0.15)'),
+                          color: isConfirmed ? '#4CAF50' : (isRefused ? '#F44336' : '#FFD54F'),
+                          border: `1px solid ${isConfirmed ? 'rgba(76, 175, 80, 0.3)' : (isRefused ? 'rgba(244, 67, 54, 0.3)' : 'rgba(203, 161, 83, 0.3)')}`
+                        }}>
+                          {isConfirmed ? '✅ Confirmado' : (isRefused ? '❌ Indisponível' : '⏳ Pendente')}
+                        </span>
+
+                        {telHelper && (
+                          <a
+                            href={`https://wa.me/55${telHelper.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${nomeHelper}! Sobre sua escala para o evento do dia ${dataStr}...`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              background: '#25D366',
+                              color: '#FFF',
+                              borderRadius: '6px',
+                              padding: '5px 8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title="Conversar no WhatsApp"
+                          >
+                            💬
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center', background: 'var(--bg-input)', borderRadius: '10px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Nenhum membro da equipe foi adicionado à escala deste evento ainda.
+              </div>
+            )}
+          </div>
+
+          <div style={{ textAlign: 'center', borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+            <a 
+              href="/admin" 
+              style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}
+            >
+              ← Voltar ao Painel Admin
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── VISÃO INDIVIDUAL DO AJUDANTE (COM HELPER SLUG) ──
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: 'var(--text-primary)', padding: 24 }}>
       <div style={{ maxWidth: 500, width: '100%', background: 'var(--bg-card)', padding: '32px 24px', borderRadius: 16, border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', textAlign: 'center' }}>

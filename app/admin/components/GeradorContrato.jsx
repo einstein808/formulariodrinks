@@ -1,25 +1,14 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
+import { db } from '@/lib/firebase';
 import { calculatePackagePrice, DEFAULT_MAO_DE_OBRA_TIERS } from '../../../lib/pricingUtils';
+import { getRecommendation } from '../../../lib/utils';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
 import AddressMapPicker from '../../../components/AddressMapPicker';
 import Image from 'next/image';
 
 // Drinks will be loaded dynamically from Firebase Database config/drinksMenu.
-
-const getRecommendation = (guestsCount) => {
-  const qty = parseInt(guestsCount || 0, 10);
-  if (qty <= 0) return { barmans: 1, ajudantes: 0 };
-  if (qty <= 60) return { barmans: 1, ajudantes: 1 };
-  if (qty <= 100) return { barmans: 2, ajudantes: 0 };
-  
-  const extras = qty - 100;
-  const staffExtra = Math.ceil(extras / 40);
-  const barmans = 2 + Math.floor(staffExtra / 2);
-  const ajudantes = Math.ceil(staffExtra / 2);
-  return { barmans, ajudantes };
-};
 
 const isNextImageAllowed = (src) => {
   if (!src) return false;

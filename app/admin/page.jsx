@@ -287,18 +287,18 @@ export default function AdminDashboard() {
         
         {activeTab === 'eventos' && (
           <>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6, marginBottom: 20, scrollbarWidth: 'none' }}>
               <button 
                 onClick={() => setSubTab('agenda')} 
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'agenda' ? 'var(--primary)' : 'transparent', color: subTab === 'agenda' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'agenda' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'agenda' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                Agenda
+                📅 Agenda
               </button>
               <button 
                 onClick={() => setSubTab('contratos')} 
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'contratos' ? 'var(--primary)' : 'transparent', color: subTab === 'contratos' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'contratos' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'contratos' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                Contratos
+                ✍️ Contratos
               </button>
             </div>
             {subTab === 'agenda' && <AgendaEventos />}
@@ -308,18 +308,18 @@ export default function AdminDashboard() {
 
         {activeTab === 'metricas' && (
           <>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6, marginBottom: 20, scrollbarWidth: 'none' }}>
               <button 
                 onClick={() => setSubTab('analytics')} 
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'analytics' ? 'var(--primary)' : 'transparent', color: subTab === 'analytics' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'analytics' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'analytics' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                Gráficos
+                📊 Gráficos & KPIs
               </button>
               <button 
                 onClick={() => setSubTab('estoque')} 
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'estoque' ? 'var(--primary)' : 'transparent', color: subTab === 'estoque' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'estoque' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'estoque' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                Estoque
+                📦 Estoque
               </button>
             </div>
             {subTab === 'analytics' && <AnalyticsDashboard />}
@@ -329,24 +329,24 @@ export default function AdminDashboard() {
 
         {activeTab === 'config' && (
           <>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6, marginBottom: 20, scrollbarWidth: 'none' }}>
               <button 
                 onClick={() => setSubTab('configs')} 
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'configs' ? 'var(--primary)' : 'transparent', color: subTab === 'configs' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'configs' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'configs' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                Pacotes & Drinks
+                🍹 Pacotes, Preços & Sistema
               </button>
               <button 
                 onClick={() => setSubTab('parceiros')} 
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'parceiros' ? 'var(--primary)' : 'transparent', color: subTab === 'parceiros' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'parceiros' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'parceiros' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                Parceiros
+                🤝 Cerimonialistas
               </button>
               <button 
                 onClick={() => setSubTab('equipe')} 
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: subTab === 'equipe' ? 'var(--primary)' : 'transparent', color: subTab === 'equipe' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: '0.2s ease' }}
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'equipe' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'equipe' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                Equipe
+                👥 Equipe / Ajudantes
               </button>
             </div>
             {subTab === 'configs' && <ConfigsEditor />}

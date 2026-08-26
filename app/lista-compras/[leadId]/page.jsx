@@ -4,25 +4,8 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { ref, get, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiCheck, FiShoppingCart, FiChevronRight, FiShare2, FiRefreshCw } from 'react-icons/fi';
+import { DEFAULT_FIXED_ITEMS, CATEGORY_LABELS } from '@/lib/shoppingCalculator';
 
-
-const DEFAULT_FIXED_ITEMS = [
-  { id: 'sifao_espuma', nome: 'Sifão de Espuma (carga)', categoria: 'bar', tipoCalc: 'fixo', quantidade: 6, unidade: 'un' },
-  { id: 'limoes', nome: 'Limões', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.04, unidade: 'kg' },
-  { id: 'gelo', nome: 'Gelo', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.2, unidade: 'kg' },
-  { id: 'hortela', nome: 'Hortelã', categoria: 'insumo', tipoCalc: 'porConvidado', quantidade: 0.02, unidade: 'maço' },
-  { id: 'decoracao', nome: 'Decoração de Mesa', categoria: 'decoracao', tipoCalc: 'fixo', quantidade: 1, unidade: 'kit' },
-  { id: 'guardanapos', nome: 'Guardanapos', categoria: 'descartavel', tipoCalc: 'porConvidado', quantidade: 0.05, unidade: 'pct' },
-  { id: 'canudos', nome: 'Canudos', categoria: 'descartavel', tipoCalc: 'fixo', quantidade: 2, unidade: 'pct' },
-];
-
-const CATEGORY_LABELS = {
-  bar:        { label: '🍸 Equipamentos de Bar', color: '#cba153' },
-  insumo:     { label: '🍋 Insumos Frescos', color: '#4CAF50' },
-  decoracao:  { label: '✨ Decoração', color: '#CE93D8' },
-  descartavel:{ label: '🧾 Descartáveis', color: '#00E5FF' },
-  drinks:     { label: '🍹 Bebidas e Insumos Calculados', color: '#FF9800' },
-};
 function ShoppingListContent() {
   const { leadId } = useParams();
   const searchParams = useSearchParams();
