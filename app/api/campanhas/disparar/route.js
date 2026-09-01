@@ -3,8 +3,11 @@ import { ref, get, set, push, update } from 'firebase/database';
 import { db } from '../../../../lib/firebase';
 import { cleanPhoneForWhatsApp } from '../../../../lib/utils';
 
-const DELAY_MS = 1500;
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -20,6 +23,25 @@ function formatDateBr(dateStr) {
   return dateStr;
 }
 
+/**
+ * Processa sintaxe Spintax {Opção 1|Opção 2|Opção 3} recursivamente
+ */
+function processSpintax(text) {
+  if (!text) return '';
+  let result = text;
+  const spintaxRegex = /\{([^{}]+)\}/g;
+  
+  let match;
+  while ((match = spintaxRegex.exec(result)) !== null) {
+    const choices = match[1].split('|');
+    const chosen = choices[Math.floor(Math.random() * choices.length)];
+    result = result.replace(match[0], chosen);
+    spintaxRegex.lastIndex = 0;
+  }
+  
+  return result;
+}
+
 function interpolarParceiro(template, parceiro, categoriasList) {
   const pCats = Array.isArray(parceiro.categorias) 
     ? parceiro.categorias 
@@ -32,11 +54,13 @@ function interpolarParceiro(template, parceiro, categoriasList) {
 
   const currentMonth = MESES[new Date().getMonth()];
 
-  return (template || '')
+  let raw = (template || '')
     .replace(/\{\{nome\}\}/gi, parceiro.nome || '')
     .replace(/\{\{categorias\}\}/gi, catNames || 'Parceiro')
     .replace(/\{\{categoria\}\}/gi, catNames || 'Parceiro')
     .replace(/\{\{mes\}\}/gi, currentMonth);
+
+  return processSpintax(raw);
 }
 
 function interpolarLead(template, lead) {
@@ -44,7 +68,7 @@ function interpolarLead(template, lead) {
   const primeiroNome = (lead.nome || '').trim().split(' ')[0] || 'Cliente';
   const dataFormatada = formatDateBr(lead.dataEvento);
 
-  return (template || '')
+  let raw = (template || '')
     .replace(/\{\{nome\}\}/gi, primeiroNome)
     .replace(/\{\{nomeCompleto\}\}/gi, `${lead.nome || ''} ${lead.sobrenome || ''}`.trim())
     .replace(/\{\{tipoEvento\}\}/gi, lead.tipoEvento || 'evento')
@@ -53,6 +77,8 @@ function interpolarLead(template, lead) {
     .replace(/\{\{pacote\}\}/gi, lead.pacote || 'personalizado')
     .replace(/\{\{convidados\}\}/gi, (lead.convidados || '').toString())
     .replace(/\{\{mes\}\}/gi, currentMonth);
+
+  return processSpintax(raw);
 }
 
 async function getEvolutionConfig() {
@@ -84,6 +110,30 @@ async function getEvolutionConfig() {
   return { baseUrl, instance, apiKey };
 }
 
+/**
+ * Simula presença "Digitando..." via Evolution API
+ */
+async function simulateTypingPresence(baseUrl, instance, apiKey, number, durationMs = 2500) {
+  try {
+    const presenceEndpoint = `${baseUrl}/chat/sendPresence/${instance}`;
+    await fetch(presenceEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': apiKey
+      },
+      body: JSON.stringify({
+        number,
+        presence: 'composing',
+        delay: durationMs
+      })
+    });
+  } catch (err) {
+    // Falha silenciosa de presença para não interromper fluxo principal
+    console.warn('Presença de digitação ignorada:', err.message);
+  }
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -109,7 +159,6 @@ export async function POST(request) {
     let isLeads = publico === 'leads';
 
     if (isLeads) {
-      // Disparo para LEADS / CLIENTES
       const leadsSnap = await get(ref(db, 'leads'));
       if (!leadsSnap.exists()) {
         return NextResponse.json({ error: 'Nenhum lead encontrado' }, { status: 404 });
@@ -123,7 +172,6 @@ export async function POST(request) {
         targetItems = allLeads;
       }
     } else {
-      // Disparo para PARCEIROS
       const [parceirosSnap, categoriasSnap] = await Promise.all([
         get(ref(db, 'config/cerimonialistas')),
         get(ref(db, 'config/categorias-parceiros'))
@@ -153,7 +201,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nenhum destinatário selecionado para disparo' }, { status: 400 });
     }
 
-    // Registra início da campanha no Firebase
+    // Registra início da campanha com flags anti-ban
     await set(ref(db, `campanhas/${campanhaId}`), {
       id: campanhaId,
       publico: isLeads ? 'leads' : 'parceiros',
@@ -163,6 +211,11 @@ export async function POST(request) {
       midia: midia || '',
       criadaEm: agoraIso,
       status: 'em_andamento',
+      antiBan: {
+        spintaxAtivo: true,
+        typingSimulated: true,
+        jitterDelay: '4s-8s + pausas de lote'
+      },
       total: targetItems.length,
       sucesso: 0,
       erro: 0,
@@ -190,10 +243,17 @@ export async function POST(request) {
         continue;
       }
 
+      // 1. Interpolação + Spintax dinâmico único para cada contato
       const textPersonalizado = isLeads
         ? interpolarLead(mensagem, item)
         : interpolarParceiro(mensagem, item, item._categoriasList || []);
 
+      // 2. Simulação de Digitação Humana (2.0s a 3.5s)
+      const typingDuration = getRandomInt(2000, 3500);
+      await simulateTypingPresence(baseUrl, instance, apiKey, cleaned, typingDuration);
+      await sleep(typingDuration);
+
+      // 3. Montagem do payload de envio
       let sendEndpoint = `${baseUrl}/message/sendText/${instance}`;
       let sendPayload = {
         number: cleaned,
@@ -232,7 +292,6 @@ export async function POST(request) {
           };
 
           if (isLeads) {
-            // Atualiza último contato e registra na timeline de mensagens do lead
             await update(ref(db, `leads/${item.id}`), {
               ultimoContato: updateTime
             });
@@ -245,7 +304,6 @@ export async function POST(request) {
               sentAt: updateTime
             });
           } else {
-            // Atualiza último contato no parceiro
             await set(ref(db, `config/cerimonialistas/${item.slug}/ultimoContato`), updateTime);
           }
         } else {
@@ -271,9 +329,16 @@ export async function POST(request) {
       await set(ref(db, `campanhas/${campanhaId}/erro`), erroCount);
       await set(ref(db, `campanhas/${campanhaId}/resultados/${itemKey}`), resultados[itemKey]);
 
-      // Delay entre mensagens
+      // 4. Jitter Delay Humanizado entre mensagens (4s a 7s)
       if (i < targetItems.length - 1) {
-        await sleep(DELAY_MS);
+        const humanDelay = getRandomInt(4000, 7000);
+        await sleep(humanDelay);
+
+        // 5. Pausa de Lote a cada 8 envios (15s a 25s) para resfriamento do socket
+        if ((i + 1) % 8 === 0) {
+          const batchCoolingPause = getRandomInt(15000, 25000);
+          await sleep(batchCoolingPause);
+        }
       }
     }
 

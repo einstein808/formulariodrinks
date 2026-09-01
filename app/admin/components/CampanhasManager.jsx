@@ -4,7 +4,8 @@ import { ref, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { 
   FiSend, FiImage, FiInstagram, FiFileText, FiClock, FiAlertCircle, 
-  FiCheckCircle, FiXCircle, FiUsers, FiCheck, FiX, FiZap, FiSearch
+  FiCheckCircle, FiXCircle, FiUsers, FiCheck, FiX, FiZap, FiSearch,
+  FiShield, FiRefreshCw
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import MinioImageUpload from './MinioImageUpload';
@@ -18,6 +19,20 @@ function diasDesde(isoString) {
   if (!isoString) return null;
   const diff = Date.now() - new Date(isoString).getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function processSpintax(text) {
+  if (!text) return '';
+  let result = text;
+  const spintaxRegex = /\{([^{}]+)\}/g;
+  let match;
+  while ((match = spintaxRegex.exec(result)) !== null) {
+    const choices = match[1].split('|');
+    const chosen = choices[Math.floor(Math.random() * choices.length)];
+    result = result.replace(match[0], chosen);
+    spintaxRegex.lastIndex = 0;
+  }
+  return result;
 }
 
 function getLeadLastContactDays(lead) {
@@ -60,23 +75,23 @@ function formatDateBr(dateStr) {
 const TEMPLATES_SUGERIDOS = {
   leads_esfriando: {
     label: '🟡 Reaquecer Leads Esfriando (7-14 dias)',
-    text: "Olá, {{nome}}! Tudo bem? 😊\n\nPassando para saber se você conseguiu dar uma olhada na nossa proposta de coquetelaria para o seu {{tipoEvento}} em {{dataEvento}}!\n\nNossa agenda para esse período já está com alta procura. Se quiser ajustar algum drink ou o valor do pacote {{pacote}}, consigo uma condição especial para fecharmos ainda essa semana! 🍹🍸\n\nPodemos conversar?"
+    text: "{Olá|Oi|Oie}, {{nome}}! {Tudo bem|Tudo certo por aí}? 😊\n\n{Passando para saber se você conseguiu dar uma olhada na|Queria ver se você conseguiu avaliar a} nossa proposta de coquetelaria para o seu {{tipoEvento}} em {{dataEvento}}!\n\nNossa agenda para esse período {já está bem concorrida|já está com alta procura}. Se quiser ajustar {algum drink|os coquetéis} ou o valor do pacote {{pacote}}, consigo uma {condição especial|proposta exclusiva} para fecharmos {ainda essa semana|nos próximos dias}! 🍹🍸\n\n{Podemos conversar|Quer que eu te mande um cardápio atualizado}?"
   },
   leads_esfriou: {
     label: '🧊 Reativar Leads que Esfriaram (+15 dias)',
-    text: "Oi, {{nome}}! Como estão os preparativos para o seu {{tipoEvento}}? 🎉\n\nEstava revisando minha agenda aqui e lembrei de você! Sei que organizar festa é uma correria danada, mas ainda temos disponibilidade para a sua data em {{cidade}}.\n\nQuer que eu atualize o orçamento com novos drinks e uma condição exclusiva para o seu evento? Me dá um alô por aqui! 🥂🍹"
+    text: "{Oi|Olá}, {{nome}}! {Como estão os preparativos|Como andam os detalhes} para o seu {{tipoEvento}}? 🎉\n\n{Estava revisando minha agenda aqui e lembrei de você|Revisando nosso calendário aqui me lembrei do seu evento}! Sei que organizar festa é {uma correria|bem corrido}, mas ainda temos disponibilidade para a sua data em {{cidade}}.\n\nQuer que eu atualize o orçamento com {drinks novos|opções especiais} e uma condição {exclusiva|diferenciada} para o seu evento? Me dá um alô por aqui! 🥂🍹"
   },
   leads_negociacao: {
     label: '💬 Lembrete para Leads em Negociação',
-    text: "Olá, {{nome}}! Tudo bem por aí? 🍹\n\nEstou finalizando o cronograma de contratações deste mês de {{mes}} e gostaria de saber se ficou alguma dúvida sobre o cardápio de drinks para o seu {{tipoEvento}}.\n\nQualquer ajuste que precisar fazer nos drinks ou na estrutura do bar, é só me avisar por aqui!"
+    text: "{Olá|Oi}, {{nome}}! {Tudo bem por aí|Tudo certinho}? 🍹\n\nEstou finalizando o cronograma de contratações deste mês de {{mes}} e gostaria de saber se ficou alguma dúvida sobre o cardápio de drinks para o seu {{tipoEvento}}.\n\nQualquer ajuste que precisar fazer nos drinks ou na estrutura do bar, é só me avisar por aqui!"
   },
   leads_fechados: {
     label: '🏆 Pós-Venda / Reativação para Fechados',
-    text: "Olá, {{nome}}! Tudo bem? 🍸\n\nPassando para agradecer mais uma vez a confiança no Laboratório de Drinks para o seu {{tipoEvento}}!\n\nSe tiver amigos ou familiares organizando eventos e precisando de barman profissional em {{cidade}}, pode me indicar por aqui! Sempre temos mimos especiais para indicações de vocês. Um abraço!"
+    text: "{Olá|Oi}, {{nome}}! {Tudo bem|Como vai}? 🍸\n\nPassando para agradecer mais uma vez a confiança no Laboratório de Drinks para o seu {{tipoEvento}}!\n\nSe tiver amigos ou familiares organizando eventos e precisando de barman profissional em {{cidade}}, pode me indicar por aqui! Sempre temos mimos especiais para indicações de vocês. Um abraço!"
   },
   parceiros_mes: {
     label: '🤝 Campanha Mensal para Parceiros',
-    text: "Olá, {{nome}}! Tudo bem? 😊\n\nPassando para desejar um excelente mês de {{mes}} e lembrar que estamos sempre prontos para atender seus clientes com nossa coquetelaria premium! 🍹🥂\n\nQualquer orçamento que precisar para eventos, é só me chamar aqui!"
+    text: "{Olá|Oi|Oie}, {{nome}}! {Tudo bem|Como você está}? 😊\n\nPassando para desejar um excelente mês de {{mes}} e lembrar que estamos sempre prontos para atender seus clientes com nossa coquetelaria premium! 🍹🥂\n\nQualquer orçamento que precisar para eventos, é só me chamar aqui!"
   }
 };
 
@@ -89,14 +104,15 @@ export default function CampanhasManager() {
   const [loading, setLoading] = useState(true);
 
   // Segmentação Leads
-  const [segmentoLead, setSegmentoLead] = useState('esfriando'); // 'esfriando' | 'esfriou' | 'negociacao' | 'novo' | 'fechado' | 'todos'
+  const [segmentoLead, setSegmentoLead] = useState('esfriando');
   const [searchFilter, setSearchFilter] = useState('');
 
   // Form states
-  const [tipo, setTipo] = useState('texto'); // 'texto' | 'imagem' | 'instagram'
+  const [tipo, setTipo] = useState('texto');
   const [mensagem, setMensagem] = useState(TEMPLATES_SUGERIDOS.leads_esfriando.text);
   const [midia, setMidia] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [previewSeed, setPreviewSeed] = useState(0);
 
   // Dispatch states
   const [disparando, setDisparando] = useState(false);
@@ -222,7 +238,6 @@ export default function CampanhasManager() {
     };
   });
 
-  // Filtro atual de leads
   const filteredLeads = classifiedLeads.filter(l => {
     if (l.optout) return false;
 
@@ -249,10 +264,8 @@ export default function CampanhasManager() {
     return matchesSegment && matchesSearch;
   });
 
-  // Itens atualmente ativos de acordo com o público
   const currentTargetItems = publico === 'leads' ? filteredLeads : parceiros;
 
-  // Atualizar seleção quando muda de segmento ou público
   useEffect(() => {
     if (publico === 'leads') {
       setSelectedIds(filteredLeads.map(l => l.id));
@@ -277,22 +290,20 @@ export default function CampanhasManager() {
     }
   };
 
-  // Contagens para badges
   const countEsfriando = classifiedLeads.filter(l => l._tempStatus === 'esfriando').length;
   const countEsfriou = classifiedLeads.filter(l => l._tempStatus === 'esfriou').length;
   const countNegociacao = classifiedLeads.filter(l => l.status === 'negociacao').length;
   const countFechados = classifiedLeads.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
 
-  // Trocar template sugerido
   const aplicarTemplate = (tplKey) => {
     const tpl = TEMPLATES_SUGERIDOS[tplKey];
     if (tpl) {
       setMensagem(tpl.text);
-      showToast(`Template "${tpl.label}" aplicado!`);
+      setPreviewSeed(prev => prev + 1);
+      showToast(`Template aplicado!`);
     }
   };
 
-  // Sample para Preview
   const sampleItem = publico === 'leads'
     ? (filteredLeads.find(l => selectedIds.includes(l.id)) || filteredLeads[0] || {
         nome: 'Mariana',
@@ -340,10 +351,10 @@ export default function CampanhasManager() {
       txt += `\n\n👉 Confira nossa publicação: ${midia.trim()}`;
     }
 
-    return txt;
+    // Processa spintax para preview visual
+    return processSpintax(txt);
   };
 
-  // Disparo
   const handleDisparar = () => {
     if (!mensagem.trim()) {
       showToast('Digite a mensagem antes de disparar', 'warning');
@@ -366,10 +377,16 @@ export default function CampanhasManager() {
     const publicoLabel = publico === 'leads' ? 'cliente(s) / lead(s)' : 'parceiro(s)';
 
     showConfirm(
-      `Deseja realmente disparar esta campanha para ${count} ${publicoLabel} via Evolution API? O envio será realizado com intervalo de 1.5s entre cada mensagem.`,
+      `Deseja realmente disparar esta campanha para ${count} ${publicoLabel} via Evolution API?
+      
+🛡️ Proteção Anti-Ban Ativada:
+• Simulação de digitação (digitando...)
+• Intervalo humanizado de 4s a 7s por envio
+• Pausa de resfriamento a cada 8 mensagens
+• Variações Spintax ativas`,
       async () => {
         setDisparando(true);
-        setProgresso({ total: count, sucesso: 0, erro: 0, status: 'Iniciando envio...' });
+        setProgresso({ total: count, sucesso: 0, erro: 0, status: 'Iniciando envio humanizado...' });
 
         try {
           const payload = {
@@ -389,7 +406,7 @@ export default function CampanhasManager() {
           const data = await res.json();
 
           if (res.ok && data.ok) {
-            showToast(`Campanha finalizada! ${data.sucesso} enviadas com sucesso, ${data.erro} falhas.`, 'success');
+            showToast(`Campanha finalizada com sucesso! ${data.sucesso} enviadas, ${data.erro} falhas.`, 'success');
           } else {
             showToast(data.error || 'Erro ao realizar disparo da campanha', 'error');
           }
@@ -417,12 +434,33 @@ export default function CampanhasManager() {
     <div>
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>
-          Campanhas WhatsApp & Relacionamento
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-          Dispare mensagens personalizadas em lote para reaquecer clientes e manter parceiros engajados.
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>
+              Campanhas WhatsApp & Relacionamento
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+              Dispare mensagens personalizadas em lote para reaquecer clientes e manter parceiros engajados.
+            </p>
+          </div>
+
+          {/* Badge Anti-Ban Shield */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 14px',
+            borderRadius: '20px',
+            background: 'rgba(76, 175, 80, 0.12)',
+            border: '1px solid rgba(76, 175, 80, 0.35)',
+            color: '#4CAF50',
+            fontSize: '0.82rem',
+            fontWeight: 600
+          }}>
+            <FiShield size={16} />
+            Proteção Anti-Ban Ativa (Spintax + Digitando + Delays)
+          </div>
+        </div>
       </div>
 
       {/* ── SELETOR DE PÚBLICO-ALVO (LEADS vs PARCEIROS) ────────────────────────── */}
@@ -620,13 +658,12 @@ export default function CampanhasManager() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FiSend style={{ color: 'var(--primary)' }} /> Nova Campanha para {publico === 'leads' ? 'Clientes' : 'Parceiros'}
+              <FiSend style={{ color: 'var(--primary)' }} /> Nova Mensagem ({publico === 'leads' ? 'Clientes' : 'Parceiros'})
             </h3>
 
-            {/* Atalhos de templates */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <FiZap size={14} style={{ color: 'var(--primary)' }} />
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Sugestões rápidas</span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Spintax e IA ativos</span>
             </div>
           </div>
 
@@ -741,21 +778,21 @@ export default function CampanhasManager() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
               <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                Mensagem do WhatsApp
+                Mensagem do WhatsApp (com suporte a Spintax <code>{"{Opção 1|Opção 2}"}</code>)
               </label>
               <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>
                 {publico === 'leads' 
-                  ? 'Variáveis: {{nome}}, {{tipoEvento}}, {{dataEvento}}, {{cidade}}, {{pacote}}'
-                  : 'Variáveis: {{nome}}, {{categorias}}, {{mes}}'}
+                  ? 'Tags: {{nome}}, {{tipoEvento}}, {{dataEvento}}, {{cidade}}, {{pacote}}'
+                  : 'Tags: {{nome}}, {{categorias}}, {{mes}}'}
               </span>
             </div>
             <textarea
               className="form-input"
-              rows={7}
+              rows={8}
               value={mensagem}
               onChange={(e) => setMensagem(e.target.value)}
               placeholder="Digite o texto da campanha..."
-              style={{ width: '100%', resize: 'vertical', lineHeight: 1.5 }}
+              style={{ width: '100%', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit' }}
             />
           </div>
 
@@ -891,12 +928,12 @@ export default function CampanhasManager() {
             {disparando ? (
               <>
                 <div className="btn__spinner" />
-                <span>Enviando mensagens ({progresso.status})...</span>
+                <span>Enviando com proteção anti-ban ({progresso.status})...</span>
               </>
             ) : (
               <>
                 <FaWhatsapp size={20} />
-                <span>Disparar Campanha para {selectedIds.length} {publico === 'leads' ? 'Cliente(s)' : 'Parceiro(s)'}</span>
+                <span>Disparar Campanha Segura para {selectedIds.length} {publico === 'leads' ? 'Cliente(s)' : 'Parceiro(s)'}</span>
               </>
             )}
           </button>
@@ -911,9 +948,31 @@ export default function CampanhasManager() {
           display: 'flex',
           flexDirection: 'column'
         }}>
-          <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-primary)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-            📱 Prévia no WhatsApp
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              📱 Prévia no WhatsApp
+            </h3>
+            
+            <button
+              type="button"
+              onClick={() => setPreviewSeed(prev => prev + 1)}
+              style={{
+                background: 'none',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Testar outra variação de Spintax aleatória"
+            >
+              <FiRefreshCw size={12} /> Testar Variação Spintax
+            </button>
+          </div>
 
           <div style={{
             background: '#0b141a',
@@ -955,7 +1014,7 @@ export default function CampanhasManager() {
                   {sampleItem.nome} {sampleItem.sobrenome || ''}
                 </div>
                 <div style={{ color: '#25D366', fontSize: '0.72rem' }}>
-                  Online (Simulação de Envio)
+                  Digitando... (Simulação Ativa)
                 </div>
               </div>
             </div>
@@ -1008,8 +1067,8 @@ export default function CampanhasManager() {
             </div>
           </div>
 
-          <div style={{ marginTop: '14px', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            Disparo automático via Evolution API com delay de 1.5s para proteção contra bloqueios.
+          <div style={{ marginTop: '14px', fontSize: '0.8rem', color: '#4CAF50', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <FiShield size={14} /> Cada lead receberá uma variação única com intervalo randômico de 4s a 7s.
           </div>
         </div>
 
@@ -1211,9 +1270,9 @@ export default function CampanhasManager() {
             <h3 style={{ margin: '0 0 12px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontSize: '1.15rem' }}>
               {confirmModal.title}
             </h3>
-            <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.5 }}>
+            <div style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
               {confirmModal.message}
-            </p>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button 
                 onClick={confirmModal.onCancel}
@@ -1227,7 +1286,7 @@ export default function CampanhasManager() {
                 className="btn btn--primary"
                 style={{ padding: '8px 20px', fontSize: '0.85rem', minHeight: '40px', height: 'auto', width: 'auto', flex: 'none', color: 'var(--bg-dark)' }}
               >
-                Confirmar Disparo
+                Confirmar Disparo Seguro
               </button>
             </div>
           </div>
