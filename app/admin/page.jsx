@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
-import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX, FiFileText, FiPackage } from 'react-icons/fi';
+import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX, FiFileText, FiPackage, FiSend } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 
 const LeadsKanban = dynamic(() => import('./components/LeadsKanban'), {
@@ -20,6 +20,10 @@ const AnalyticsDashboard = dynamic(() => import('./components/AnalyticsDashboard
 });
 
 const CerimonialstasManager = dynamic(() => import('./components/CerimonialstasManager'), {
+  loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
+  ssr: false
+});
+const CampanhasManager = dynamic(() => import('./components/CampanhasManager'), {
   loading: () => <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="btn__spinner" /></div>,
   ssr: false
 });
@@ -41,10 +45,11 @@ const EstoqueManager = dynamic(() => import('./components/EstoqueManager'), {
 });
 
 const navItems = [
-  { id: 'leads',    label: 'Leads',         icon: FiUsers },
-  { id: 'eventos',  label: 'Eventos',       icon: FiCalendar },
-  { id: 'metricas', label: 'Métricas',      icon: FiPieChart },
-  { id: 'config',   label: 'Configurações', icon: FiSettings },
+  { id: 'leads',      label: 'Leads',         icon: FiUsers },
+  { id: 'eventos',    label: 'Eventos',       icon: FiCalendar },
+  { id: 'campanhas',  label: 'Campanhas',     icon: FiSend },
+  { id: 'metricas',   label: 'Métricas',      icon: FiPieChart },
+  { id: 'config',     label: 'Configurações', icon: FiSettings },
 ];
 
 export default function AdminDashboard() {
@@ -306,6 +311,8 @@ export default function AdminDashboard() {
           </>
         )}
 
+        {activeTab === 'campanhas' && <CampanhasManager />}
+
         {activeTab === 'metricas' && (
           <>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6, marginBottom: 20, scrollbarWidth: 'none' }}>
@@ -340,7 +347,13 @@ export default function AdminDashboard() {
                 onClick={() => setSubTab('parceiros')} 
                 style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'parceiros' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'parceiros' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
               >
-                🤝 Cerimonialistas
+                🤝 Parceiros
+              </button>
+              <button 
+                onClick={() => setSubTab('campanhas')} 
+                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'campanhas' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'campanhas' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
+              >
+                📣 Campanhas WhatsApp
               </button>
               <button 
                 onClick={() => setSubTab('equipe')} 
@@ -351,6 +364,7 @@ export default function AdminDashboard() {
             </div>
             {subTab === 'configs' && <ConfigsEditor />}
             {subTab === 'parceiros' && <CerimonialstasManager />}
+            {subTab === 'campanhas' && <CampanhasManager />}
             {subTab === 'equipe' && <AjudantesManager />}
           </>
         )}

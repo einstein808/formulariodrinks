@@ -1,7 +1,11 @@
+"use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { ref, onValue, set, remove } from 'firebase/database';
+import { ref, onValue, set, remove, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
-import { FiPlus, FiTrash2, FiCopy, FiCheck, FiUser, FiPhone, FiLink, FiAlertCircle, FiX } from 'react-icons/fi';
+import { FiLink, FiX, FiSend } from 'react-icons/fi';
+import CategoriasManagerSection from './parceiros/CategoriasManagerSection';
+import ParceiroForm from './parceiros/ParceiroForm';
+import ParceiroCard from './parceiros/ParceiroCard';
 
 function slugify(text) {
   return text
@@ -14,6 +18,7 @@ function slugify(text) {
 }
 
 function formatPhone(value) {
+  if (!value) return '';
   let v = value.replace(/\D/g, '');
   if (v.length > 11) v = v.slice(0, 11);
   if (v.length > 7) return `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
@@ -22,18 +27,35 @@ function formatPhone(value) {
   return v;
 }
 
+const CATEGORIAS_DEFAULT = [
+  { slug: 'cerimonialista', nome: 'Cerimonialista', cor: '#cba153' },
+  { slug: 'cantor', nome: 'Cantor', cor: '#4cbb7b' },
+  { slug: 'pagodeiro', nome: 'Pagodeiro', cor: '#e67e22' },
+  { slug: 'decoracao', nome: 'Decoração', cor: '#e84393' },
+];
+
 export default function CerimonialstasManager() {
   const [parceiros, setParceiros] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ nome: '', whatsapp: '' });
+
+  // Form & Edit state
+  const [editingSlug, setEditingSlug] = useState(null);
+  const [form, setForm] = useState({
+    nome: '',
+    whatsapp: '',
+    foto: '',
+    categorias: ['cerimonialista'],
+    exibirNaVitrine: true
+  });
   const [saving, setSaving] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState(null);
   const [errors, setErrors] = useState({});
   const [siteUrl, setSiteUrl] = useState('');
 
-  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' | 'warning' }
-  const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm, onCancel }
-
+  // Toast & Modals
+  const [toast, setToast] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
   const confirmModalRef = useRef(false);
 
   const showToast = (message, type = 'success') => {
@@ -59,7 +81,6 @@ export default function CerimonialstasManager() {
     confirmModalRef.current = true;
   };
 
-  // Listen to popstate to close confirmModal on mobile back button
   useEffect(() => {
     const handlePopState = () => {
       if (confirmModalRef.current) {
@@ -72,12 +93,12 @@ export default function CerimonialstasManager() {
   }, []);
 
   useEffect(() => {
-    const r = ref(db, 'config/cerimonialistas');
-    const unsub = onValue(r, (snap) => {
+    // Parceiros
+    const unsubParceiros = onValue(ref(db, 'config/cerimonialistas'), (snap) => {
       if (snap.exists()) {
         const data = snap.val();
         const arr = Object.entries(data).map(([slug, val]) => ({ slug, ...val }));
-        arr.sort((a, b) => a.nome.localeCompare(b.nome));
+        arr.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
         setParceiros(arr);
       } else {
         setParceiros([]);
@@ -85,48 +106,179 @@ export default function CerimonialstasManager() {
       setLoading(false);
     });
 
-    const configRef = ref(db, 'config/general');
-    const unsubConfig = onValue(configRef, (snap) => {
+    // Categorias
+    const unsubCats = onValue(ref(db, 'config/categorias-parceiros'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        const arr = Object.entries(data).map(([slug, val]) => ({ slug, ...val }));
+        arr.sort((a, b) => (a.ordem ?? 99) - (b.ordem ?? 99));
+        setCategorias(arr);
+      } else {
+        CATEGORIAS_DEFAULT.forEach((cat, index) => {
+          set(ref(db, `config/categorias-parceiros/${cat.slug}`), {
+            ...cat,
+            ordem: index
+          });
+        });
+        setCategorias(CATEGORIAS_DEFAULT);
+      }
+    });
+
+    // Site URL
+    const unsubConfig = onValue(ref(db, 'config/general'), (snap) => {
       if (snap.exists() && snap.val().siteUrl) {
         const url = snap.val().siteUrl;
         setSiteUrl(url.endsWith('/') ? url.slice(0, -1) : url);
       } else {
-        setSiteUrl(window.location.origin);
+        setSiteUrl(typeof window !== 'undefined' ? window.location.origin : '');
       }
     });
 
-    return () => { unsub(); unsubConfig(); };
+    return () => {
+      unsubParceiros();
+      unsubCats();
+      unsubConfig();
+    };
   }, []);
 
-  const validate = () => {
+  // CRUD Categorias
+  const handleAddCategory = async (nome, cor) => {
+    const catSlug = slugify(nome);
+    try {
+      await set(ref(db, `config/categorias-parceiros/${catSlug}`), {
+        slug: catSlug,
+        nome,
+        cor: cor || '#cba153',
+        ordem: categorias.length
+      });
+      showToast(`Categoria "${nome}" adicionada!`, 'success');
+    } catch (err) {
+      console.error('Erro ao criar categoria:', err);
+      showToast('Erro ao criar categoria.', 'error');
+    }
+  };
+
+  const handleDeleteCategory = (catSlug, catNome) => {
+    showConfirm(`Deseja excluir a categoria "${catNome}"?`, async () => {
+      try {
+        await remove(ref(db, `config/categorias-parceiros/${catSlug}`));
+        showToast('Categoria removida!', 'success');
+      } catch (err) {
+        console.error('Erro ao excluir categoria:', err);
+        showToast('Erro ao excluir categoria.', 'error');
+      }
+    }, 'Excluir Categoria');
+  };
+
+  // Edição de Parceiro
+  const handleStartEdit = (parceiro) => {
+    setEditingSlug(parceiro.slug);
+    const pCats = Array.isArray(parceiro.categorias) 
+      ? parceiro.categorias 
+      : (parceiro.categoria ? [parceiro.categoria] : ['cerimonialista']);
+    
+    setForm({
+      nome: parceiro.nome || '',
+      whatsapp: formatPhone(parceiro.whatsapp),
+      foto: parceiro.foto || '',
+      categorias: pCats,
+      exibirNaVitrine: parceiro.exibirNaVitrine !== false
+    });
+    setErrors({});
+
+    // Scroll até o formulário
+    const el = document.getElementById('form-parceiro');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSlug(null);
+    setForm({
+      nome: '',
+      whatsapp: '',
+      foto: '',
+      categorias: categorias.length > 0 ? [categorias[0].slug] : ['cerimonialista'],
+      exibirNaVitrine: true
+    });
+    setErrors({});
+  };
+
+  // Toggle rápido de exibição na vitrine direto do card
+  const handleToggleVitrine = async (slug, novoStatus) => {
+    try {
+      await update(ref(db, `config/cerimonialistas/${slug}`), {
+        exibirNaVitrine: novoStatus
+      });
+      showToast(
+        novoStatus ? 'Parceiro agora está visível na vitrine pública!' : 'Parceiro agora está oculto da vitrine (apenas indicação)',
+        'success'
+      );
+    } catch (err) {
+      console.error('Erro ao alterar visibilidade na vitrine:', err);
+      showToast('Erro ao atualizar visibilidade.', 'error');
+    }
+  };
+
+  // Validação do Form
+  const validateForm = () => {
     const e = {};
     if (!form.nome.trim()) e.nome = 'Nome é obrigatório';
     const digits = form.whatsapp.replace(/\D/g, '');
     if (digits.length < 10) e.whatsapp = 'WhatsApp inválido';
+    if (!form.categorias || form.categorias.length === 0) e.categorias = 'Selecione pelo menos uma categoria';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = async () => {
-    if (!validate()) return;
+  const handleSaveParceiro = async () => {
+    if (!validateForm()) return;
     setSaving(true);
     try {
-      const slug = slugify(form.nome);
-      if (parceiros.some(p => p.slug === slug)) {
-        setErrors({ nome: `Já existe um parceiro com slug "${slug}". Use um nome diferente.` });
-        setSaving(false);
-        return;
+      if (editingSlug) {
+        // Modo Edição
+        await update(ref(db, `config/cerimonialistas/${editingSlug}`), {
+          nome: form.nome.trim(),
+          whatsapp: form.whatsapp.replace(/\D/g, ''),
+          foto: form.foto || '',
+          categorias: form.categorias,
+          exibirNaVitrine: Boolean(form.exibirNaVitrine),
+          atualizadoEm: new Date().toISOString()
+        });
+
+        showToast('Parceiro atualizado com sucesso!', 'success');
+        handleCancelEdit();
+      } else {
+        // Modo Criação
+        const slug = slugify(form.nome);
+        if (parceiros.some(p => p.slug === slug)) {
+          setErrors({ nome: `Já existe um parceiro com slug "${slug}". Use um nome diferente.` });
+          setSaving(false);
+          return;
+        }
+
+        await set(ref(db, `config/cerimonialistas/${slug}`), {
+          nome: form.nome.trim(),
+          whatsapp: form.whatsapp.replace(/\D/g, ''),
+          foto: form.foto || '',
+          categorias: form.categorias,
+          exibirNaVitrine: Boolean(form.exibirNaVitrine),
+          slug,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+        });
+
+        setForm({
+          nome: '',
+          whatsapp: '',
+          foto: '',
+          categorias: categorias.length > 0 ? [categorias[0].slug] : ['cerimonialista'],
+          exibirNaVitrine: true
+        });
+        setErrors({});
+        showToast('Parceiro cadastrado com sucesso!', 'success');
       }
-      await set(ref(db, `config/cerimonialistas/${slug}`), {
-        nome: form.nome.trim(),
-        whatsapp: form.whatsapp.replace(/\D/g, ''),
-        slug,
-        ativo: true,
-        criadoEm: new Date().toISOString(),
-      });
-      setForm({ nome: '', whatsapp: '' });
-      setErrors({});
-      showToast('Parceiro cadastrado com sucesso!', 'success');
     } catch (err) {
       console.error('Erro ao salvar parceiro:', err);
       showToast('Erro ao salvar parceiro. Tente novamente.', 'error');
@@ -135,10 +287,11 @@ export default function CerimonialstasManager() {
     }
   };
 
-  const handleDelete = async (slug, nome) => {
+  const handleDeleteParceiro = async (slug, nome) => {
     showConfirm(`Excluir "${nome}"? Os leads vinculados não serão afetados.`, async () => {
       try {
         await remove(ref(db, `config/cerimonialistas/${slug}`));
+        if (editingSlug === slug) handleCancelEdit();
         showToast('Parceiro excluído com sucesso!', 'success');
       } catch (err) {
         console.error('Erro ao excluir:', err);
@@ -163,78 +316,49 @@ export default function CerimonialstasManager() {
     <div>
       {/* Header */}
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>
-          Parceiros Cerimonialistas
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-          Cadastre seus parceiros e gere links rastreáveis para identificar indicações.
-        </p>
-      </div>
-
-      {/* Form de Cadastro */}
-      <div style={{
-        background: 'var(--bg-input)', borderRadius: '12px', padding: '24px',
-        border: '1px solid var(--border-color)', marginBottom: '32px',
-        borderTop: '4px solid var(--primary)'
-      }}>
-        <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)', fontSize: '1rem' }}>
-          <FiPlus style={{ marginRight: 8, verticalAlign: 'middle' }} />
-          Novo Parceiro
-        </h3>
-
-        <div className="admin-team-grid" style={{ alignItems: 'flex-end' }}>
-          {/* Nome */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-              <FiUser size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-              Nome do Cerimonialista
-            </label>
-            <input
-              type="text"
-              className={`form-input ${errors.nome ? 'form-input--error' : ''}`}
-              placeholder="Ex: Maria Fernanda"
-              value={form.nome}
-              onChange={e => setForm(p => ({ ...p, nome: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && handleSave()}
-            />
-            {errors.nome && <span className="form-error" style={{ fontSize: '0.75rem' }}>{errors.nome}</span>}
-            {form.nome && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                Link: <code style={{ color: 'var(--primary)' }}>/?ref={slugify(form.nome)}</code>
-              </span>
-            )}
+            <h1 style={{ fontSize: '1.8rem', margin: '0 0 8px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>
+              Gestão de Parceiros
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+              Cadastre, edite e categorize cantores, pagodeiros, decoradores e cerimonialistas. Defina quem aparece na vitrine pública ou apenas como parceiro de indicação.
+            </p>
           </div>
-
-          {/* WhatsApp */}
-          <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-              <FiPhone size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-              WhatsApp
-            </label>
-            <input
-              type="tel"
-              className={`form-input ${errors.whatsapp ? 'form-input--error' : ''}`}
-              placeholder="(32) 99999-0000"
-              value={form.whatsapp}
-              onChange={e => setForm(p => ({ ...p, whatsapp: formatPhone(e.target.value) }))}
-              onKeyDown={e => e.key === 'Enter' && handleSave()}
-            />
-            {errors.whatsapp && <span className="form-error" style={{ fontSize: '0.75rem' }}>{errors.whatsapp}</span>}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <a
+              href="/parceiros"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn--outline"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', padding: '8px 16px' }}
+            >
+              <FiLink size={14} /> Ver Vitrine Pública (/parceiros)
+            </a>
           </div>
-
-          {/* Botão */}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="btn btn--primary"
-            style={{ height: 44, whiteSpace: 'nowrap' }}
-          >
-            {saving ? <div className="btn__spinner" /> : <><FiPlus size={16} /> Cadastrar</>}
-          </button>
         </div>
       </div>
 
-      {/* Lista de Parceiros */}
+      {/* 1. Categorias */}
+      <CategoriasManagerSection
+        categorias={categorias}
+        onAddCategoria={handleAddCategory}
+        onDeleteCategoria={handleDeleteCategory}
+      />
+
+      {/* 2. Formulário (Novo ou Edição) */}
+      <ParceiroForm
+        form={form}
+        setForm={setForm}
+        errors={errors}
+        saving={saving}
+        categorias={categorias}
+        editingSlug={editingSlug}
+        onSave={handleSaveParceiro}
+        onCancelEdit={handleCancelEdit}
+      />
+
+      {/* 3. Lista de Parceiros */}
       {parceiros.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '60px 20px',
@@ -243,88 +367,23 @@ export default function CerimonialstasManager() {
         }}>
           <div style={{ fontSize: '3rem', marginBottom: 12 }}>🤝</div>
           <p style={{ margin: 0, fontSize: '1rem' }}>Nenhum parceiro cadastrado ainda.</p>
-          <p style={{ margin: '8px 0 0 0', fontSize: '0.85rem' }}>Cadastre seu primeiro cerimonialista acima!</p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '0.85rem' }}>Cadastre cantores, cerimonialistas ou decoradores acima!</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {parceiros.map((p) => {
-            const link = `${siteUrl}/?ref=${p.slug}`;
-            const isCopied = copiedSlug === p.slug;
-            return (
-              <div
-                key={p.slug}
-                className="admin-partner-grid"
-                style={{
-                  background: 'var(--bg-input)', borderRadius: '10px', padding: '16px 20px',
-                  border: '1px solid var(--border-color)',
-                  transition: 'border-color 0.2s'
-                }}
-              >
-                {/* Nome */}
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 2 }}>Parceiro</div>
-                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: '50%',
-                      background: 'rgba(203,161,83,0.15)', border: '1px solid var(--primary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 'bold', flexShrink: 0
-                    }}>
-                      {p.nome.charAt(0).toUpperCase()}
-                    </div>
-                    {p.nome}
-                  </div>
-                </div>
-
-                {/* WhatsApp */}
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 2 }}>WhatsApp</div>
-                  <div style={{ color: '#25D366', fontWeight: 500, fontSize: '0.9rem' }}>
-                    <FiPhone size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                    {formatPhone(p.whatsapp)}
-                  </div>
-                </div>
-
-                {/* Link */}
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 2 }}>
-                    <FiLink size={10} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                    Link rastreável
-                  </div>
-                  <div style={{
-                    fontSize: '0.8rem', color: 'var(--primary)', fontFamily: 'monospace',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                  }}>
-                    /?ref={p.slug}
-                  </div>
-                </div>
-
-                {/* Copiar Link */}
-                <button
-                  onClick={() => copyLink(p.slug)}
-                  className="btn btn--outline"
-                  style={{
-                    padding: '8px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6,
-                    borderColor: isCopied ? '#4CAF50' : 'var(--border-color)',
-                    color: isCopied ? '#4CAF50' : 'var(--text-secondary)',
-                    transition: 'all 0.2s'
-                  }}
-                  title="Copiar link rastreável"
-                >
-                  {isCopied ? <><FiCheck size={14} /> Copiado!</> : <><FiCopy size={14} /> Copiar Link</>}
-                </button>
-
-                {/* Excluir */}
-                <button
-                  onClick={() => handleDelete(p.slug, p.nome)}
-                  style={{ background: 'none', border: 'none', color: '#F44336', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }}
-                  title="Excluir parceiro"
-                >
-                  <FiTrash2 size={18} />
-                </button>
-              </div>
-            );
-          })}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {parceiros.map((p) => (
+            <ParceiroCard
+              key={p.slug}
+              parceiro={p}
+              categorias={categorias}
+              siteUrl={siteUrl}
+              copiedSlug={copiedSlug}
+              onCopyLink={copyLink}
+              onEdit={handleStartEdit}
+              onToggleVitrine={handleToggleVitrine}
+              onDelete={handleDeleteParceiro}
+            />
+          ))}
         </div>
       )}
 

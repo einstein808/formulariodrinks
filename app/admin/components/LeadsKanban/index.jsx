@@ -138,6 +138,7 @@ export default function LeadsKanban() {
   // Hook Actions
   const leadOps = useLeadOperations({
     leads,
+    setLeads,
     selectedLead,
     setSelectedLead,
     cerimonialistas,
@@ -601,6 +602,7 @@ export default function LeadsKanban() {
           onSelectLead={setSelectedLead}
           onStatusChange={leadOps.handleStatusChange}
           onToggleAbGroup={leadOps.toggleLeadAbGroup}
+          onDeleteLead={leadOps.handleDeleteLead}
         />
       ) : (
         <TableView
@@ -613,6 +615,7 @@ export default function LeadsKanban() {
           setCurrentPage={setCurrentPage}
           onSelectLead={setSelectedLead}
           onStatusChange={leadOps.handleStatusChange}
+          onDeleteLead={leadOps.handleDeleteLead}
         />
       )}
 
@@ -624,6 +627,7 @@ export default function LeadsKanban() {
         onStatusChange={leadOps.handleStatusChange}
         onToggleAbGroup={leadOps.toggleLeadAbGroup}
         onSaveEditLead={leadOps.handleSaveEditLead}
+        handleDeleteLead={leadOps.handleDeleteLead}
         pacotes={pacotes}
         cerimonialistas={cerimonialistas}
         drinksMenu={drinksMenu}

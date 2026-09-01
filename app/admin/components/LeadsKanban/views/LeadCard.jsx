@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiCalendar, FiMapPin, FiHeart, FiPhone } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiHeart, FiPhone, FiTrash2 } from 'react-icons/fi';
 import { COLUMNS } from '@/lib/constants';
 import { getFinanceStatusHelper, hasCustosLancados, getLeadStatusHelper } from '../filters';
 
@@ -9,7 +9,8 @@ export default function LeadCard({
   cerimonialistas,
   onSelectLead,
   onStatusChange,
-  onToggleAbGroup
+  onToggleAbGroup,
+  onDeleteLead
 }) {
   const { isStale, followUpCount } = getLeadStatusHelper(lead);
   const isFrozenLead = followUpCount >= 3;
@@ -124,62 +125,94 @@ export default function LeadCard({
         </div>
       )}
 
-      {/* BOTÃO RÁPIDO DO WHATSAPP */}
-      {lead.telefone && (
-        <div 
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: 'flex',
-            gap: '8px',
-            marginTop: '12px',
-            paddingTop: '10px',
-            borderTop: '1px solid rgba(255,255,255,0.06)'
-          }}
-        >
-          <a
-            href={`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* BOTÃO RÁPIDO DO WHATSAPP & AÇÕES */}
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          display: 'flex',
+          gap: '8px',
+          marginTop: '12px',
+          paddingTop: '10px',
+          borderTop: '1px solid rgba(255,255,255,0.06)'
+        }}
+      >
+        {lead.telefone ? (
+          <>
+            <a
+              href={`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                background: '#25D366',
+                color: '#FFF',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '0.82rem',
+                fontWeight: 'bold',
+                textDecoration: 'none',
+                minHeight: '38px',
+                boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)'
+              }}
+            >
+              <FiPhone size={14} /> WhatsApp
+            </a>
+            <a
+              href={`tel:${lead.telefone.replace(/\D/g, '')}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255,255,255,0.06)',
+                color: 'var(--text-primary)',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                border: '1px solid var(--border-color)',
+                minHeight: '38px'
+              }}
+              title="Ligar para o cliente"
+            >
+              📞
+            </a>
+          </>
+        ) : (
+          <div style={{ flex: 1, fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+            Sem telefone cadastrado
+          </div>
+        )}
+
+        {onDeleteLead && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteLead(lead.id);
+            }}
             style={{
-              flex: 1,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              background: '#25D366',
-              color: '#FFF',
+              background: 'rgba(244, 67, 54, 0.08)',
+              color: '#F44336',
               borderRadius: '8px',
               padding: '8px 12px',
-              fontSize: '0.82rem',
-              fontWeight: 'bold',
-              textDecoration: 'none',
+              border: '1px solid rgba(244, 67, 54, 0.3)',
+              cursor: 'pointer',
               minHeight: '38px',
-              boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)'
+              transition: 'all 0.2s'
             }}
+            title="Excluir este lead"
           >
-            <FiPhone size={14} /> WhatsApp
-          </a>
-          <a
-            href={`tel:${lead.telefone.replace(/\D/g, '')}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255,255,255,0.06)',
-              color: 'var(--text-primary)',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '0.9rem',
-              textDecoration: 'none',
-              border: '1px solid var(--border-color)',
-              minHeight: '38px'
-            }}
-            title="Ligar para o cliente"
-          >
-            📞
-          </a>
-        </div>
-      )}
+            <FiTrash2 size={15} />
+          </button>
+        )}
+      </div>
 
       {/* SELETOR RÁPIDO DE STATUS NO MOBILE */}
       {isMobile && (

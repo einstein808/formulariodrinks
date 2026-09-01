@@ -30,6 +30,7 @@ export default function LeadDetailModal({
   sendingScript,
   showToast,
   showConfirm,
+  handleDeleteLead,
   // Actions
   handleUpdateFaturamento,
   handleUpdateDesconto,
@@ -495,6 +496,34 @@ export default function LeadDetailModal({
               }}
             >
               💾 Salvar
+            </button>
+          )}
+
+          {handleDeleteLead && (
+            <button
+              onClick={() => {
+                if (selectedLead?.id) {
+                  handleDeleteLead(selectedLead.id);
+                }
+              }}
+              style={{
+                background: 'rgba(244, 67, 54, 0.1)',
+                border: '1px solid rgba(244, 67, 54, 0.4)',
+                color: '#F44336',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                minHeight: '40px',
+                fontWeight: 'bold',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 'auto'
+              }}
+              title="Excluir este lead permanentemente"
+            >
+              🗑️ Excluir Lead
             </button>
           )}
 

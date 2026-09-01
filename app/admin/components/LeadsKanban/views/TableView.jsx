@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiEye } from 'react-icons/fi';
+import { FiEye, FiTrash2 } from 'react-icons/fi';
 import { COLUMNS } from '@/lib/constants';
 import { getFinanceStatusHelper, hasCustosLancados, getLeadStatusHelper } from '../filters';
 
@@ -12,7 +12,8 @@ export default function TableView({
   currentPage,
   setCurrentPage,
   onSelectLead,
-  onStatusChange
+  onStatusChange,
+  onDeleteLead
 }) {
   const limit = itemsPerPage === 'all' ? filteredLeads.length : parseInt(itemsPerPage, 10);
   const totalPages = Math.ceil(filteredLeads.length / limit) || 1;
@@ -127,12 +128,23 @@ export default function TableView({
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <button 
-                        onClick={() => onSelectLead(lead)}
-                        style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}
-                      >
-                        <FiEye size={14} /> Detalhes
-                      </button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <button 
+                          onClick={() => onSelectLead(lead)}
+                          style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}
+                        >
+                          <FiEye size={14} /> Detalhes
+                        </button>
+                        {onDeleteLead && (
+                          <button 
+                            onClick={() => onDeleteLead(lead.id)}
+                            style={{ background: 'rgba(244, 67, 54, 0.08)', border: '1px solid rgba(244, 67, 54, 0.3)', color: '#F44336', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Excluir lead"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

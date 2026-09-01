@@ -4,6 +4,7 @@ import { logMessageToLead } from '@/lib/whatsappService';
 
 export function useLeadOperations({
   leads,
+  setLeads,
   selectedLead,
   setSelectedLead,
   cerimonialistas,
@@ -85,10 +86,13 @@ export function useLeadOperations({
   const handleDeleteLead = async (leadId) => {
     showConfirm("Tem certeza que deseja excluir este lead permanentemente? Essa ação não pode ser desfeita.", async () => {
       try {
-        await remove(ref(db, `leads/${leadId}`));
+        if (setLeads) {
+          setLeads(prev => prev.filter(l => l.id !== leadId));
+        }
         if (selectedLead?.id === leadId) {
           setSelectedLead(null);
         }
+        await remove(ref(db, `leads/${leadId}`));
         showToast("Lead excluído com sucesso!", "success");
       } catch (error) {
         console.error("Erro ao excluir lead:", error);

@@ -9,7 +9,8 @@ export default function KanbanView({
   cerimonialistas,
   onSelectLead,
   onStatusChange,
-  onToggleAbGroup
+  onToggleAbGroup,
+  onDeleteLead
 }) {
   return (
     <>
@@ -102,6 +103,7 @@ export default function KanbanView({
                     onSelectLead={onSelectLead}
                     onStatusChange={onStatusChange}
                     onToggleAbGroup={onToggleAbGroup}
+                    onDeleteLead={onDeleteLead}
                   />
                 ))}
                 {colLeads.length === 0 && (
