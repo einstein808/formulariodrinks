@@ -56,6 +56,9 @@ export default function OrcamentoClient() {
   
 
   const [currentLeadId, setCurrentLeadId] = useState(null)
+  // Ref síncrono para o leadId — evita race condition com estado assíncrono do React
+  // Sempre use leadIdRef.current em lógica síncrona (nextStep, handleSubmit)
+  const leadIdRef = useRef(null)
   const [general, setGeneral] = useState(null)
 
   const [abGroup, setAbGroup] = useState('A')
@@ -202,8 +205,6 @@ export default function OrcamentoClient() {
     tipoEvento: '',
     duracao: 5,
     horarioEvento: '',
-    tiposDrinks: [],
-    drinksEscolhidos: [],
     upsellChopp: false,
     upsellFrozen: false,
     cerimonialista: '',
@@ -212,18 +213,14 @@ export default function OrcamentoClient() {
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
-    try {
-
-      const savedLeadId = localStorage.getItem('CURRENT_LEAD_ID');
-      if (savedLeadId) setCurrentLeadId(savedLeadId);
-    } catch (e) {}
-
     const params = new URLSearchParams(window.location.search);
     const pacoteId = params.get('pacote');
     const refSlug = params.get('ref'); // ?ref= tem prioridade máxima
 
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
+      const savedLeadId = localStorage.getItem('CURRENT_LEAD_ID');
+
       if (raw) {
         const { formData: saved, step: savedStep, savedAt } = JSON.parse(raw);
         if (Date.now() - savedAt < DRAFT_TTL) {
@@ -233,6 +230,10 @@ export default function OrcamentoClient() {
           if (pacoteId) {
             // Veio de link de pacote — restaura sem perguntar
             setFormData(prev => ({ ...prev, pacote: pacoteId, cerimonialista: cerimSlug }));
+            if (savedLeadId) {
+              setCurrentLeadId(savedLeadId);
+              leadIdRef.current = savedLeadId;
+            }
             setCurrentStep(1);
             return;
           }
@@ -240,18 +241,32 @@ export default function OrcamentoClient() {
           if (savedStep > 0) {
             // Aplica cerimonialista imediatamente (independente da escolha do cliente)
             setFormData(prev => ({ ...prev, cerimonialista: cerimSlug }));
-            // Guarda rascunho para o cliente decidir
-            setPendingDraft({ formData: { ...saved, cerimonialista: cerimSlug }, step: Math.min(savedStep, STEPS.length - 1) });
+            // Guarda rascunho para o cliente decidir, com o leadId associado
+            setPendingDraft({
+              formData: { ...saved, cerimonialista: cerimSlug },
+              step: Math.min(savedStep, STEPS.length - 1),
+              leadId: savedLeadId || null
+            });
             return;
           }
         }
+        // Rascunho expirado ou inválido
         localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem('CURRENT_LEAD_ID');
+      } else {
+        // Sem rascunho: limpar qualquer ID de lead antigo para iniciar novo
+        localStorage.removeItem('CURRENT_LEAD_ID');
       }
     } catch (e) {
-      localStorage.removeItem(DRAFT_KEY);
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem('CURRENT_LEAD_ID');
+      } catch (_) {}
     }
 
-    // Sem rascunho — apenas aplicar params da URL
+    // Sem rascunho — apenas aplicar params da URL e garantir estado limpo
+    leadIdRef.current = null;
+    setCurrentLeadId(null);
     setFormData(prev => ({
       ...prev,
       ...(pacoteId ? { pacote: pacoteId } : {}),
@@ -279,17 +294,66 @@ export default function OrcamentoClient() {
     setErrors(prev => ({ ...prev, [field]: '' }))
   }, [])
 
-  const toggleArrayField = useCallback((field, id) => {
-    setFormData(prev => {
-      const current = prev[field]
-      if (current.includes(id)) {
-        return { ...prev, [field]: current.filter(x => x !== id) }
-      }
-      if (field === 'drinksEscolhidos' && current.length >= maxDrinks) return prev
-      return { ...prev, [field]: [...current, id] }
+  /* ---- Helper: salva/atualiza lead no Firebase com retry ---- */
+  const saveLeadToFirebase = useCallback(async (data, existingId = null) => {
+    const cleanData = {}
+    Object.entries(data).forEach(([k, v]) => {
+      if (v !== undefined && k !== 'novaCidade') cleanData[k] = v
     })
-    setErrors(prev => ({ ...prev, [field]: '' }))
+
+    if (!cleanData.status) cleanData.status = 'novo';
+    cleanData.atualizadoEm = Date.now();
+
+    if (existingId) {
+      try {
+        await update(ref(db, `leads/${existingId}`), cleanData)
+      } catch (err) {
+        console.warn('Retry ao atualizar lead...', err)
+        try { await update(ref(db, `leads/${existingId}`), cleanData) } catch (_) {}
+      }
+      return existingId
+    } else {
+      if (!cleanData.criadoEm) cleanData.criadoEm = Date.now();
+      const newRef = await push(ref(db, 'leads'), cleanData)
+      return newRef.key
+    }
   }, [])
+
+  // Auto-captura parcial: salva lead assim que campos mínimos do step 0 são preenchidos
+  // Não espera o usuário clicar "Próximo" — garante captura mesmo em abandono
+  useEffect(() => {
+    if (leadIdRef.current) return // já existe lead
+    if (currentStep !== 0) return // só no step inicial
+    if (isSuccess) return
+
+    const nome = formData.nome.trim()
+    const telefone = (formData.telefone || '').replace(/\D/g, '')
+    const cidade = formData.cidade === 'Outra cidade...' ? formData.novaCidade.trim() : formData.cidade
+
+    // Aguarda pelo menos nome + telefone válido + cidade
+    if (!nome || telefone.length < 10 || !cidade) return
+
+    const timer = setTimeout(async () => {
+      if (leadIdRef.current) return // double-check (outra aba pode ter criado)
+      try {
+        const newId = await saveLeadToFirebase({
+          nome,
+          sobrenome: formData.sobrenome,
+          telefone: formData.telefone,
+          cidade,
+          cerimonialista: formData.cerimonialista,
+          status: 'novo',
+          criadoEm: Date.now(),
+          abGroup: abGroup || 'A',
+        })
+        leadIdRef.current = newId
+        setCurrentLeadId(newId)
+        try { localStorage.setItem('CURRENT_LEAD_ID', newId) } catch (_) {}
+      } catch (_) {}
+    }, 1500) // debounce 1.5s — evita salvar a cada tecla
+
+    return () => clearTimeout(timer)
+  }, [formData.nome, formData.telefone, formData.cidade, formData.novaCidade, formData.sobrenome, formData.cerimonialista, currentStep, isSuccess, abGroup, saveLeadToFirebase])
 
   /* ---- Phone mask ---- */
   const handlePhoneChange = useCallback((e) => {
@@ -358,47 +422,46 @@ export default function OrcamentoClient() {
   const nextStep = useCallback(async () => {
     if (!validateStep(currentStep)) return;
 
-    // Save lead to Firebase after step 0 (personal data collected)
-    if (currentStep === 0 && !currentLeadId) {
+    let finalCity = formData.cidade === 'Outra cidade...'
+      ? formData.novaCidade.trim()
+      : formData.cidade;
+
+    const baseData = {
+      ...formData,
+      cidade: finalCity,
+      status: 'novo',
+      abGroup: abGroup || 'A',
+      atualizadoEm: Date.now(),
+    };
+
+    // Step 0 → 1: criar lead se ainda não existe
+    if (currentStep === 0 && !leadIdRef.current) {
       try {
-        let finalCity = formData.cidade;
-        if (formData.cidade === 'Outra cidade...') finalCity = formData.novaCidade.trim();
-        const leadSnap = {};
-        Object.entries({
-          ...formData,
-          cidade: finalCity,
-          status: 'novo',
+        const newId = await saveLeadToFirebase({
+          ...baseData,
           criadoEm: Date.now(),
-          abGroup: abGroup || 'A',
-        }).forEach(([k, v]) => { if (v !== undefined && k !== 'novaCidade') leadSnap[k] = v; });
-        const newRef = await push(ref(db, 'leads'), leadSnap);
-        setCurrentLeadId(newRef.key);
-        try { localStorage.setItem('CURRENT_LEAD_ID', newRef.key); } catch (_) {}
+        });
+        // Salvar ID de forma síncrona no ref E no estado E no localStorage
+        leadIdRef.current = newId;
+        setCurrentLeadId(newId);
+        try { localStorage.setItem('CURRENT_LEAD_ID', newId); } catch (_) {}
       } catch (err) {
         console.warn('Aviso ao pré-salvar lead:', err);
       }
-    }
-
-    // Update existing lead with latest form data on every step advance
-    if (currentLeadId) {
+    } else if (leadIdRef.current) {
+      // Atualizar lead existente com dados mais recentes
       try {
-        let finalCity = formData.cidade;
-        if (formData.cidade === 'Outra cidade...') finalCity = formData.novaCidade.trim();
-        const updatedData = {};
-        Object.entries({
-          ...formData,
-          cidade: finalCity,
-          atualizadoEm: Date.now(),
-        }).forEach(([k, v]) => { if (v !== undefined && k !== 'novaCidade') updatedData[k] = v; });
-        update(ref(db, `leads/${currentLeadId}`), updatedData).catch(() => {});
-      } catch (_) {}
+        await saveLeadToFirebase(baseData, leadIdRef.current);
+      } catch (err) {
+        console.warn('Aviso ao atualizar lead:', err);
+      }
     }
 
     setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [currentStep, validateStep, formData, currentLeadId, abGroup])
+  }, [currentStep, validateStep, formData, abGroup, saveLeadToFirebase])
 
   const prevStep = useCallback(() => {
     if (window.history.state?.step !== undefined && window.history.state.step > 0) {
@@ -458,13 +521,14 @@ export default function OrcamentoClient() {
         }
       });
 
-      let finalLeadId = currentLeadId;
-      if (currentLeadId) {
-        await update(ref(db, `leads/${currentLeadId}`), leadDataToSave);
+      let finalLeadId = leadIdRef.current
+      if (leadIdRef.current) {
+        await update(ref(db, `leads/${leadIdRef.current}`), leadDataToSave);
       } else {
         leadDataToSave.criadoEm = Date.now();
         const newRef = await push(ref(db, 'leads'), leadDataToSave);
         finalLeadId = newRef.key;
+        leadIdRef.current = newRef.key
         setCurrentLeadId(newRef.key);
       }
       
@@ -479,6 +543,7 @@ export default function OrcamentoClient() {
       try { 
         localStorage.removeItem(DRAFT_KEY);
         localStorage.removeItem('CURRENT_LEAD_ID');
+        leadIdRef.current = null
       } catch (e) {}
     } catch (err) {
       console.error('Erro ao enviar formulário:', err);
@@ -490,14 +555,15 @@ export default function OrcamentoClient() {
 
   const resetForm = useCallback(() => {
     try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
+    leadIdRef.current = null
     setFormData({
       pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '', novaCidade: '',
       convidados: '', dataEvento: '', tipoEvento: '',
       duracao: 5, horarioEvento: '',
-      tiposDrinks: [], drinksEscolhidos: [],
       upsellChopp: false, upsellFrozen: false,
       cerimonialista: '',
     })
+    setCurrentLeadId(null)
     setCurrentStep(0)
     setIsSuccess(false)
     setPendingDraft(null)
@@ -717,7 +783,9 @@ export default function OrcamentoClient() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="dataEvento" className="form-label">Data do Evento</label>
+                <label htmlFor="dataEvento" className="form-label">
+                  Data do Evento <span style={{ color: 'var(--primary)' }}>*</span>
+                </label>
                 <input
                   id="dataEvento"
                   type="date"
@@ -730,7 +798,9 @@ export default function OrcamentoClient() {
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="horarioEvento" className="form-label">Horário de Início</label>
+                <label htmlFor="horarioEvento" className="form-label">
+                  Horário de Início <span style={{ color: 'var(--primary)' }}>*</span>
+                </label>
                 <input
                   id="horarioEvento"
                   type="time"
@@ -744,7 +814,9 @@ export default function OrcamentoClient() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Tipo de Evento</label>
+              <label className="form-label">
+                Tipo de Evento <span style={{ color: 'var(--primary)' }}>*</span>
+              </label>
               <div className="chips-grid">
                 {tiposEvento.map(t => (
                   <button
@@ -802,8 +874,11 @@ export default function OrcamentoClient() {
 
             <div style={{ marginTop: '24px', textAlign: 'center' }}>
               <button type="button" className="btn btn--outline" onClick={() => setShowDrinksModal(true)} style={{ width: '100%' }}>
-                👀 Ver drinks disponíveis
+                🍸 Confira nosso cardápio de drinks
               </button>
+              <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Os drinks serão escolhidos na etapa do contrato
+              </p>
             </div>
 
           </div>
@@ -940,10 +1015,13 @@ export default function OrcamentoClient() {
       {showDrinksModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowDrinksModal(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-color)', maxWidth: 700, width: '100%', maxHeight: '85vh', overflow: 'auto', padding: 32 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-primary)' }}>Drinks Disponíveis</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-primary)' }}>🍸 Cardápio de Drinks</h3>
               <button type="button" onClick={() => setShowDrinksModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
+            <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Apenas visualização — a seleção dos drinks é feita na etapa do contrato.
+            </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
               {/* 🍸 Alcoólicos */}
@@ -1062,6 +1140,10 @@ export default function OrcamentoClient() {
                       onClick={() => {
                         setFormData(pendingDraft.formData);
                         setCurrentStep(Math.min(pendingDraft.step, STEPS.length - 1));
+                        if (pendingDraft.leadId) {
+                          setCurrentLeadId(pendingDraft.leadId);
+                          leadIdRef.current = pendingDraft.leadId;
+                        }
                         setPendingDraft(null);
                       }}
                     >
@@ -1069,7 +1151,16 @@ export default function OrcamentoClient() {
                     </button>
                     <button
                       className="btn btn--secondary"
-                      onClick={() => setPendingDraft(null)}
+                      onClick={() => {
+                        try {
+                          localStorage.removeItem(DRAFT_KEY);
+                          localStorage.removeItem('CURRENT_LEAD_ID');
+                        } catch (_) {}
+                        leadIdRef.current = null;
+                        setCurrentLeadId(null);
+                        setPendingDraft(null);
+                        resetForm();
+                      }}
                       style={{ fontSize: '0.9rem' }}
                     >
                       🔄 Não, começar do zero

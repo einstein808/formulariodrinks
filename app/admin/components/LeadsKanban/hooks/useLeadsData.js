@@ -24,7 +24,11 @@ export function useLeadsData() {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-        leadsArray.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
+        leadsArray.sort((a, b) => {
+          const timeA = new Date(a.criadoEm || a.atualizadoEm || 0).getTime();
+          const timeB = new Date(b.criadoEm || b.atualizadoEm || 0).getTime();
+          return timeB - timeA;
+        });
         
         const updates = {};
         leadsArray.forEach(lead => {
