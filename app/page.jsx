@@ -14,8 +14,8 @@ export const metadata = {
     images: [
       {
         url: 'https://laboratorio.gabryelamaro.com/og-image.jpg',
-        width: 1200,
-        height: 630,
+        width: 1024,
+        height: 768,
         alt: 'Laboratório de Drinks — Um bar de qualidade para sua festa em Juiz de Fora',
       }
     ],
