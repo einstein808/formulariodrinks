@@ -3,13 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { ref, get } from 'firebase/database';
 import { db } from '../lib/firebase';
 import { useRouter } from 'next/navigation';
-import { FiChevronRight } from 'react-icons/fi';
+
 import BackgroundEffects from '../components/BackgroundEffects';
 import HeroSection from '../components/home/HeroSection';
+import BeneficioSection from '../components/home/BeneficioSection';
+import FormatosSection from '../components/home/FormatosSection';
+import DiferenciaisSection from '../components/home/DiferenciaisSection';
+import PacotesResumoSection from '../components/home/PacotesResumoSection';
 import GaleriaSection from '../components/home/GaleriaSection';
 import AvaliacoesSection from '../components/home/AvaliacoesSection';
 import ParceirosBanner from '../components/home/ParceirosBanner';
 import EventoModal from '../components/home/EventoModal';
+import Navbar from '../components/home/Navbar';
 
 export default function HomeClient() {
   const [general, setGeneral] = useState(null);
@@ -100,13 +105,37 @@ export default function HomeClient() {
   };
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 100 }}>
+    <main style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 60 }}>
       <BackgroundEffects />
 
-      {/* 1. Header / Hero */}
-      <HeroSection general={general} />
+      {/* Navbar fixa */}
+      <Navbar general={general} />
 
-      {/* 2. Galeria de Eventos Realizados */}
+      {/* 1. Header / Hero */}
+      {/* hero-offset: no desktop compensa navbar top (56px), no mobile zero (barra fica embaixo) */}
+      <style>{`
+        .hero-offset { padding-top: 56px; }
+        @media (max-width: 767px) { .hero-offset { padding-top: 0; } }
+        main { padding-bottom: 60px !important; }
+        @media (min-width: 768px) { main { padding-bottom: 20px !important; } }
+      `}</style>
+      <div className="hero-offset">
+        <HeroSection general={general} />
+      </div>
+
+      {/* 2. Manifesto do Benefício: "Bar bom, não conta absurda" */}
+      <BeneficioSection />
+
+      {/* 3. Formatos em Destaque: Mini Wedding, Aniversários, Corporativo */}
+      <FormatosSection />
+
+      {/* 4. Diferenciais Racionais: 5 Pilares */}
+      <DiferenciaisSection />
+
+      {/* 5. Comparativo Descomplicado de Pacotes */}
+      <PacotesResumoSection />
+
+      {/* 6. Galeria de Eventos Realizados (Prova Visual) */}
       <GaleriaSection
         galeria={galeria}
         loading={loading}
@@ -116,30 +145,17 @@ export default function HomeClient() {
         formatDate={formatDate}
       />
 
-      {/* 3. Depoimentos (Google Reviews) */}
+      {/* 7. Depoimentos Reais (Google Reviews & WhatsApp) */}
       <AvaliacoesSection
         avaliacoes={avaliacoes}
         general={general}
         loading={loading}
       />
 
-      {/* 4. Banner Guia de Parceiros */}
+      {/* 8. Banner Guia de Parceiros */}
       <ParceirosBanner />
 
-      {/* 5. Fixed CTA Botão Orçamento */}
-      <div style={{ 
-        position: 'fixed', bottom: 0, left: 0, right: 0, padding: 20, 
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 50%, transparent)', 
-        zIndex: 100, display: 'flex', justifyContent: 'center' 
-      }}>
-        <button 
-          onClick={() => router.push('/orcamento')}
-          className="btn btn--primary"
-          style={{ maxWidth: 400, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, boxShadow: '0 4px 20px rgba(203, 161, 83, 0.4)' }}
-        >
-          Faça seu Orçamento Agora <FiChevronRight size={20} />
-        </button>
-      </div>
+
 
       {/* 6. Modal Carrossel de Evento */}
       <EventoModal

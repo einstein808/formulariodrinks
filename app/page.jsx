@@ -1,23 +1,30 @@
 import HomeClient from './HomeClient';
 
 export const metadata = {
-  title: 'Laboratório de Drinks - Barman Juiz de Fora',
-  description: 'Serviço premium de bartender e coquetelaria para casamentos, formaturas e festas em Juiz de Fora e região. Drinks exclusivos, bar móvel completo e experiência inesquecível. Avaliação 5.0 no Google.',
+  title: 'Laboratório de Drinks - Bar de Qualidade para sua Festa em Juiz de Fora',
+  description: 'Um bar de qualidade para sua festa sem gastar uma fortuna. Bar móvel sob medida para mini weddings, aniversários e eventos em Juiz de Fora e região. Drinks bem preparados e avaliação 5.0 no Google.',
   alternates: {
     canonical: 'https://laboratorio.gabryelamaro.com',
   },
   openGraph: {
-    title: 'Laboratório de Drinks - Barman Juiz de Fora',
-    description: 'Serviço premium de barman e coquetelaria para casamentos, formaturas e festas em Juiz de Fora. Drinks exclusivos e experiência inesquecível.',
+    title: 'Laboratório de Drinks — Bar para Eventos em Juiz de Fora',
+    description: 'Drinks bem preparados, atendimento profissional e orçamento transparente para sua festa. Bar móvel para mini weddings e celebrações em Juiz de Fora e região.',
     url: 'https://laboratorio.gabryelamaro.com',
+    type: 'website',
     images: [
       {
-        url: 'https://laboratorio.gabryelamaro.com/logo.webp',
-        width: 800,
-        height: 600,
-        alt: 'Logo Laboratório de Drinks - Barman Juiz de Fora',
+        url: 'https://laboratorio.gabryelamaro.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Laboratório de Drinks — Um bar de qualidade para sua festa em Juiz de Fora',
       }
     ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Laboratório de Drinks — Bar para Eventos em Juiz de Fora',
+    description: 'Drinks bem preparados e orçamento transparente para sua festa em JF e região.',
+    images: ['https://laboratorio.gabryelamaro.com/og-image.jpg'],
   },
 };
 
@@ -26,7 +33,7 @@ const jsonLd = {
   "@type": "FoodService",
   "name": "Laboratório de Drinks",
   "image": "https://laboratorio.gabryelamaro.com/logo.webp",
-  "description": "Serviço premium de bartender e coquetelaria para casamentos, formaturas e festas em Juiz de Fora e região. Drinks exclusivos, bar móvel completo e equipe profissional.",
+  "description": "Bar móvel de coquetelaria para mini weddings, casamentos, aniversários e confraternizações em Juiz de Fora e região. Drinks com frutas frescas e atendimento profissional com orçamento transparente.",
   "url": "https://laboratorio.gabryelamaro.com",
   "telephone": "+5532998696519",
   "priceRange": "$$",
@@ -56,16 +63,8 @@ const jsonLd = {
         "@type": "Offer",
         "itemOffered": {
           "@type": "Service",
-          "name": "Bar para Casamentos",
-          "description": "Serviço completo de bar e coquetelaria para casamentos com drinks exclusivos e atendimento premium."
-        }
-      },
-      {
-        "@type": "Offer",
-        "itemOffered": {
-          "@type": "Service",
-          "name": "Bar para Formaturas",
-          "description": "Bar móvel com drinks modernos e shots criativos para formaturas."
+          "name": "Bar para Mini Weddings e Casamentos",
+          "description": "Serviço de bar móvel elegante e sob medida para mini weddings e casamentos intimistas de 30 a 120 convidados."
         }
       },
       {
@@ -73,15 +72,23 @@ const jsonLd = {
         "itemOffered": {
           "@type": "Service",
           "name": "Bar para Festas e Aniversários",
-          "description": "Drinks personalizados e bar temático para aniversários e festas particulares."
+          "description": "Drinks clássicos e autorais preparados na hora para aniversários, comemorações e festas privadas."
         }
       },
       {
         "@type": "Offer",
         "itemOffered": {
           "@type": "Service",
-          "name": "Bar para Eventos Corporativos",
-          "description": "Estrutura de bar executivo para confraternizações, congressos e lançamentos de produto."
+          "name": "Bar para Eventos Corporativos e Confraternizações",
+          "description": "Estrutura de bar compacta e pontualidade executiva para empresas e confraternizações em Juiz de Fora."
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Mão de Obra de Barmen Profissionais",
+          "description": "Contratação exclusiva de barmen qualificados e kit de coquetelaria para quem já comprou as bebidas."
         }
       }
     ]
@@ -107,46 +114,32 @@ export default function Page() {
       />
       {/* SEO: Static content visible to search engines and AI crawlers */}
       <div className="sr-only" aria-hidden="false">
-        <h1>Laboratório de Drinks - Barman Juiz de Fora</h1>
+        <h1>Laboratório de Drinks - Bar de Qualidade para Festas e Mini Weddings em Juiz de Fora</h1>
         <p>
-          O Laboratório de Drinks oferece serviço premium de bartender e coquetelaria para casamentos, 
-          formaturas, aniversários, festas corporativas e eventos em Juiz de Fora e toda a região da 
-          Zona da Mata Mineira. Nossa equipe profissional de barmen leva até o seu evento um bar móvel 
-          completo com drinks exclusivos, coquetéis clássicos e criações autorais.
+          O Laboratório de Drinks oferece serviço de bar móvel e coquetelaria sob medida para casamentos, 
+          mini weddings, aniversários, confraternizações e eventos em Juiz de Fora e toda a Zona da Mata Mineira. 
+          Nossa proposta é entregar drinks de qualidade e atendimento profissional sem cobrar preços abusivos, 
+          adequando a operação ao tamanho exato do seu evento.
         </p>
-        <h2>Nossos Serviços de Bar para Eventos</h2>
+        <h2>Nossos Formatos de Bar para Eventos</h2>
         <ul>
-          <li>Bar para Casamentos — Carta de drinks sob medida com atendimento premium</li>
-          <li>Bar para Formaturas — Drinks modernos, shots criativos e alta rotatividade</li>
-          <li>Bar para Aniversários — Coquetéis personalizados para todas as idades</li>
-          <li>Bar para Eventos Corporativos — Estrutura executiva para confraternizações</li>
-          <li>Bar para Chá Bar e Debutante — Experiências temáticas e interativas</li>
-          <li>Frozen Experience — Drinks congelados com toque tropical</li>
+          <li>Bar para Mini Weddings — O formato ideal para casamentos de 30 a 120 convidados</li>
+          <li>Bar para Aniversários e Debutantes — Coquetéis refrescantes e agilidade na pista</li>
+          <li>Bar para Confraternizações e Empresas — Pontualidade, equipe discreta e postura executiva</li>
+          <li>Mão de Obra Especializada — Barmen com utensílios para quem já comprou as bebidas</li>
         </ul>
         <h2>Por que escolher o Laboratório de Drinks?</h2>
         <ul>
-          <li>Avaliação 5.0 no Google — Nota máxima de todos os clientes</li>
-          <li>Equipe profissional de barmen uniformizados e treinados</li>
-          <li>Cardápio de drinks exclusivos com insumos premium</li>
-          <li>Bar móvel completo com toda a estrutura necessária</li>
-          <li>Atendimento em Juiz de Fora, Zona da Mata e cidades vizinhas</li>
+          <li>Avaliação 5.0 no Google — Nota máxima concedida por clientes reais</li>
+          <li>Drinks de verdade com frutas frescas e receitas balanceadas</li>
+          <li>Pacotes modulares que respeitam o orçamento da sua celebração</li>
+          <li>Bar móvel compacto e elegante que valoriza o ambiente</li>
+          <li>Orçamento 100% transparente, sem taxas ocultas</li>
         </ul>
-        <h2>Drinks Exclusivos</h2>
+        <h2>Solicite seu Orçamento Online</h2>
         <p>
-          Nosso cardápio conta com mais de 15 drinks exclusivos, incluindo opções alcoólicas, 
-          sem álcool e sofisticadas. Cada drink é preparado com ingredientes premium na hora, 
-          garantindo frescor e qualidade incomparáveis.
-        </p>
-        <h2>Depoimentos de Clientes</h2>
-        <p>
-          Nossos clientes nos avaliam com nota 5.0 no Google. Confira os depoimentos reais 
-          de quem já contratou nosso serviço de bar para casamentos e festas em Juiz de Fora.
-        </p>
-        <h2>Solicite seu Orçamento</h2>
-        <p>
-          Entre em contato e receba um orçamento personalizado para seu evento. 
-          Atendemos casamentos, formaturas, aniversários, confraternizações e eventos corporativos 
-          em Juiz de Fora e região.
+          Faça uma simulação gratuita em menos de 1 minuto e encontre o pacote ideal para seu evento 
+          em Juiz de Fora, Matias Barbosa, Simão Pereira e região.
         </p>
       </div>
       <HomeClient />
