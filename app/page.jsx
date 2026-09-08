@@ -1,14 +1,14 @@
 import HomeClient from './HomeClient';
 
 export const metadata = {
-  title: 'Laboratório de Drinks - Bar de Qualidade para sua Festa em Juiz de Fora',
-  description: 'Um bar de qualidade para sua festa sem gastar uma fortuna. Bar móvel sob medida para mini weddings, aniversários e eventos em Juiz de Fora e região. Drinks bem preparados e avaliação 5.0 no Google.',
+  title: 'Laboratório de Drinks — Você quer um bar bom. Não uma conta absurda.',
+  description: 'Bar móvel para festas em Juiz de Fora. Drinks de verdade, preço proporcional ao tamanho da sua celebração. Mini weddings, aniversários e confraternizações. Avaliação 5.0 no Google.',
   alternates: {
     canonical: 'https://laboratorio.gabryelamaro.com',
   },
   openGraph: {
-    title: 'Laboratório de Drinks — Bar para Eventos em Juiz de Fora',
-    description: 'Drinks bem preparados, atendimento profissional e orçamento transparente para sua festa. Bar móvel para mini weddings e celebrações em Juiz de Fora e região.',
+    title: 'Você quer um bar bom. Não uma conta absurda.',
+    description: 'O Laboratório de Drinks é um bar móvel para festas em Juiz de Fora. Drinks bem preparados, atendimento profissional e preço claro — sem taxas surpresa no final.',
     url: 'https://laboratorio.gabryelamaro.com',
     type: 'website',
     images: [
@@ -22,8 +22,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Laboratório de Drinks — Bar para Eventos em Juiz de Fora',
-    description: 'Drinks bem preparados e orçamento transparente para sua festa em JF e região.',
+    title: 'Você quer um bar bom. Não uma conta absurda.',
+    description: 'Bar móvel em Juiz de Fora. Drinks de verdade, preço proporcional, transparência total. Monte seu orçamento em 1 minuto.',
     images: ['https://laboratorio.gabryelamaro.com/og-image.jpg'],
   },
 };
