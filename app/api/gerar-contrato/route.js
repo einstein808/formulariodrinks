@@ -1,6 +1,48 @@
 import { NextResponse } from 'next/server';
-import { ref, get } from 'firebase/database';
+import { ref, get, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+
+const formatWhatsAppNumber = (phone) => {
+  if (!phone) return null;
+  let clean = String(phone).replace(/\D/g, '');
+  if (!clean) return null;
+
+  // Remove leading 0 if present (e.g. 032998696519)
+  if (clean.startsWith('0')) {
+    clean = clean.substring(1);
+  }
+
+  // If already starts with country code 55
+  if (clean.startsWith('55')) {
+    const dddAndNumber = clean.substring(2);
+    // If DDD (2 digits) + 8 digits = 10 digits
+    if (dddAndNumber.length === 10) {
+      const ddd = dddAndNumber.substring(0, 2);
+      const num = dddAndNumber.substring(2);
+      if (['7', '8', '9'].includes(num.charAt(0))) {
+        return `55${ddd}9${num}`;
+      }
+    }
+    return clean;
+  }
+
+  // If 10 digits: DDD (2) + 8 digits
+  if (clean.length === 10) {
+    const ddd = clean.substring(0, 2);
+    const num = clean.substring(2);
+    if (['7', '8', '9'].includes(num.charAt(0))) {
+      return `55${ddd}9${num}`;
+    }
+    return `55${clean}`;
+  }
+
+  // If 11 digits: DDD (2) + 9 digits
+  if (clean.length === 11) {
+    return `55${clean}`;
+  }
+
+  return clean.length >= 10 ? `55${clean}` : clean;
+};
 
 const formatStaffQty = (count, singular, plural) => {
   if (count <= 0) return '';
@@ -900,15 +942,24 @@ export async function POST(request) {
     const base64Pdf = Buffer.from(pdfBuffer).toString('base64');
 
     // 4. Send PDF to client via Evolution API
-    let cleanNumber = (data.whatsapp || data.numero || '').replace(/\D/g, '');
-    if (!cleanNumber) {
-      return NextResponse.json({ error: 'Número de WhatsApp do cliente inválido' }, { status: 400 });
-    }
+    const rawPhone = data.whatsapp || data.telefone || '';
+    const cleanNumber = formatWhatsAppNumber(rawPhone);
 
-    if (cleanNumber.startsWith('55') && cleanNumber.length >= 12) {
-      // Já tem o código do país 55
-    } else {
-      cleanNumber = '55' + cleanNumber;
+    if (!cleanNumber) {
+      if (data.leadId) {
+        try {
+          await push(ref(db, `leads/${data.leadId}/messages`), {
+            type: 'contrato_whatsapp',
+            success: false,
+            number: rawPhone || 'não informado',
+            error: 'Número de WhatsApp inválido ou ausente.',
+            sentAt: Date.now()
+          });
+        } catch (logErr) {
+          console.error('Erro ao registrar log de telefone inválido:', logErr);
+        }
+      }
+      return NextResponse.json({ error: 'Número de WhatsApp do cliente inválido ou ausente' }, { status: 400 });
     }
 
     const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
@@ -942,12 +993,53 @@ export async function POST(request) {
     if (!evolutionResponse.ok) {
       const evolutionError = await evolutionResponse.text();
       console.error('Evolution API error:', evolutionError);
+
+      if (data.leadId) {
+        try {
+          await push(ref(db, `leads/${data.leadId}/messages`), {
+            type: 'contrato_whatsapp',
+            success: false,
+            number: cleanNumber,
+            error: evolutionError,
+            sentAt: Date.now()
+          });
+        } catch (logErr) {
+          console.error('Erro ao registrar log de erro na Evolution API:', logErr);
+        }
+      }
+
       return NextResponse.json({ error: 'Falha ao enviar contrato via WhatsApp (Evolution API)' }, { status: 502 });
     }
 
-    return NextResponse.json({ success: true });
+    // Sucesso no envio do WhatsApp
+    if (data.leadId) {
+      try {
+        await push(ref(db, `leads/${data.leadId}/messages`), {
+          type: 'contrato_whatsapp',
+          success: true,
+          number: cleanNumber,
+          sentAt: Date.now()
+        });
+      } catch (logErr) {
+        console.error('Erro ao registrar log de sucesso na Evolution API:', logErr);
+      }
+    }
+
+    return NextResponse.json({ success: true, number: cleanNumber });
   } catch (error) {
     console.error('Erro na geração/envio do contrato:', error);
+
+    try {
+      if (typeof data !== 'undefined' && data?.leadId) {
+        await push(ref(db, `leads/${data.leadId}/messages`), {
+          type: 'contrato_whatsapp',
+          success: false,
+          error: error.message,
+          sentAt: Date.now()
+        });
+      }
+    } catch (_) {}
+
     return NextResponse.json({ error: 'Erro interno ao processar e enviar o contrato', details: error.message }, { status: 500 });
   }
 }

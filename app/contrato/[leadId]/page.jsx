@@ -900,6 +900,7 @@ export default function ClienteContratoPage() {
 
       const payload = {
         ...formData,
+        leadId,
         drinks_alcool: mapKeysToNames(formData.drinks_alcool),
         drinks_sem_alcool: mapKeysToNames(formData.drinks_sem_alcool),
         drinks_sofisticados: mapKeysToNames(formData.drinks_sofisticados),
@@ -908,20 +909,27 @@ export default function ClienteContratoPage() {
         ...financials
       };
 
-      const response = await fetch('/api/gerar-contrato', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) throw new Error('Erro ao enviar dados para geração de contrato');
-      
+      // 3. Libera a tela do cliente imediatamente com confirmação instantânea
       setSubmitStatus('success');
       setStep(4);
+
+      // 4. Dispara a geração de PDF e envio pelo WhatsApp em segundo plano
+      try {
+        fetch('/api/gerar-contrato', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          keepalive: true,
+          body: JSON.stringify(payload)
+        }).catch(bgErr => {
+          console.error('Erro em segundo plano ao gerar/enviar contrato:', bgErr);
+        });
+      } catch (errDisparo) {
+        console.error('Erro ao acionar rota de contrato:', errDisparo);
+      }
     } catch(err) {
-      console.error(err);
+      console.error('Erro ao salvar escolhas do contrato:', err);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
