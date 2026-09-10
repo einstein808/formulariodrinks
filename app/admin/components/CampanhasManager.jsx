@@ -382,6 +382,17 @@ export default function CampanhasManager() {
   const filteredLeads = classifiedLeads.filter(l => {
     if (l.optout) return false;
 
+    const isFechadoOuRealizado = l.status === 'fechado' || l.status === 'realizado';
+
+    // Se o segmento selecionado for 'fechado', exibe APENAS quem fechou ou realizou
+    if (segmentoLead === 'fechado') {
+      if (!isFechadoOuRealizado) return false;
+    } else {
+      // Para TODOS os outros segmentos (recentes, esfriando, esfriou, negociacao, novo, todos),
+      // NUNCA incluir contatos que já tenham festa fechada ou realizada!
+      if (isFechadoOuRealizado) return false;
+    }
+
     let matchesSegment = true;
     if (segmentoLead === 'recentes') {
       // Oculta automaticamente quem já tiver histórico de mensagens (Opção B do usuário)
@@ -395,7 +406,10 @@ export default function CampanhasManager() {
     } else if (segmentoLead === 'novo') {
       matchesSegment = l.status === 'novo' || !l.status;
     } else if (segmentoLead === 'fechado') {
-      matchesSegment = l.status === 'fechado' || l.status === 'realizado';
+      matchesSegment = isFechadoOuRealizado;
+    } else if (segmentoLead === 'todos') {
+      // 'todos' considera todos os leads em aberto (não fechados)
+      matchesSegment = true;
     }
 
     const q = searchFilter.toLowerCase().trim();
@@ -446,11 +460,12 @@ export default function CampanhasManager() {
     }
   };
 
-  const countRecentes = classifiedLeads.filter(l => !l.optout && !hasLeadContactHistory(l)).length;
-  const countEsfriando = classifiedLeads.filter(l => l._tempStatus === 'esfriando').length;
-  const countEsfriou = classifiedLeads.filter(l => l._tempStatus === 'esfriou').length;
-  const countNegociacao = classifiedLeads.filter(l => l.status === 'negociacao').length;
-  const countFechados = classifiedLeads.filter(l => l.status === 'fechado' || l.status === 'realizado').length;
+  const countRecentes = classifiedLeads.filter(l => !l.optout && l.status !== 'fechado' && l.status !== 'realizado' && !hasLeadContactHistory(l)).length;
+  const countEsfriando = classifiedLeads.filter(l => !l.optout && l.status !== 'fechado' && l.status !== 'realizado' && l._tempStatus === 'esfriando').length;
+  const countEsfriou = classifiedLeads.filter(l => !l.optout && l.status !== 'fechado' && l.status !== 'realizado' && l._tempStatus === 'esfriou').length;
+  const countNegociacao = classifiedLeads.filter(l => !l.optout && l.status === 'negociacao').length;
+  const countFechados = classifiedLeads.filter(l => !l.optout && (l.status === 'fechado' || l.status === 'realizado')).length;
+  const countAbertos = classifiedLeads.filter(l => !l.optout && l.status !== 'fechado' && l.status !== 'realizado').length;
 
   const aplicarTemplate = (tplKey) => {
     const tpl = TEMPLATES_SUGERIDOS[tplKey];
@@ -1009,7 +1024,7 @@ export default function CampanhasManager() {
                 whiteSpace: 'nowrap'
               }}
             >
-              ✨ Todos ({leads.length})
+              ✨ Todos em Aberto ({countAbertos})
             </button>
           </div>
         </div>
@@ -1394,6 +1409,22 @@ export default function CampanhasManager() {
                         )}
                       </div>
                       
+                      {/* Badge de Fechado / Realizado se estiver na aba de Fechados */}
+                      {publico === 'leads' && segmentoLead === 'fechado' && (
+                        <span style={{
+                          fontSize: '0.68rem',
+                          padding: '3px 7px',
+                          borderRadius: '6px',
+                          fontWeight: 600,
+                          flexShrink: 0,
+                          background: item.status === 'realizado' ? 'rgba(33, 150, 243, 0.18)' : 'rgba(76, 175, 80, 0.18)',
+                          color: item.status === 'realizado' ? '#2196F3' : '#4CAF50',
+                          border: `1px solid ${item.status === 'realizado' ? 'rgba(33, 150, 243, 0.35)' : 'rgba(76, 175, 80, 0.35)'}`
+                        }}>
+                          {item.status === 'realizado' ? '🎉 Realizado' : '🏆 Fechado'}
+                        </span>
+                      )}
+
                       {/* Badge de Campanha Recente */}
                       {hasCampRecente && (
                         <span 

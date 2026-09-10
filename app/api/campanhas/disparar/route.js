@@ -168,7 +168,12 @@ export async function POST(request) {
           if (Array.isArray(leadIds) && leadIds.length > 0) {
             targetItems = allLeads.filter(l => leadIds.includes(l.id));
           } else {
-            targetItems = allLeads;
+            // Se segmento não for fechado, nunca inclui leads com status fechado ou realizado
+            if (segmentoLead === 'fechado') {
+              targetItems = allLeads.filter(l => l.status === 'fechado' || l.status === 'realizado');
+            } else {
+              targetItems = allLeads.filter(l => l.status !== 'fechado' && l.status !== 'realizado');
+            }
           }
         }
       } catch (errSnap) {
