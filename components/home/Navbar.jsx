@@ -93,7 +93,7 @@ export default function Navbar({ general }) {
             boxShadow: '0 2px 12px rgba(203, 161, 83, 0.3)'
           }}
         >
-          Fazer orçamento <FiArrowRight size={14} />
+          Calcular orçamento <FiArrowRight size={14} />
         </button>
       </nav>
     </>

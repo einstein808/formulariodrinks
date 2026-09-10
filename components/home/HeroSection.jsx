@@ -41,44 +41,53 @@ export default function HeroSection({ general }) {
         lineHeight: 1.18,
         fontWeight: 700
       }}>
-        Um bar de qualidade para sua festa, <span style={{ color: 'var(--primary)', display: 'inline-block' }}>sem gastar uma fortuna.</span>
+        Coquetelaria de verdade para o seu evento, <span style={{ color: 'var(--primary)', display: 'inline-block' }}>sem exageros no orçamento.</span>
       </h1>
 
       {/* 4. Subtítulo Racional e Direto */}
       <p style={{ 
-        fontSize: 'clamp(0.95rem, 2.2vw, 1.12rem)', 
+        fontSize: 'clamp(1rem, 2.4vw, 1.2rem)', 
         color: 'var(--text-secondary)', 
-        maxWidth: '620px', 
-        margin: '0 auto 28px', 
-        lineHeight: 1.6 
+        maxWidth: '640px', 
+        margin: '0 auto 24px', 
+        lineHeight: 1.6,
+        fontWeight: 500
       }}>
-        Drinks bem preparados, atendimento profissional e uma experiência que combina com o seu evento. Bar móvel sob medida para mini weddings, aniversários e confraternizações.
+        Bar profissional para festas de <strong style={{ color: 'var(--text-primary)' }}>30 a 150 convidados</strong> em {general?.companyCity || "Juiz de Fora"} e região.
       </p>
 
-      {/* 5. CTA secundário */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+      {/* 5. CTA Principal de Conversão */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 26 }}>
         <a
-          href="#pacotes"
-          className="btn btn--outline"
+          href="/orcamento"
+          className="btn btn--primary"
           style={{ 
-            fontSize: '0.95rem', 
-            padding: '13px 22px', 
+            fontSize: '1.05rem', 
+            padding: '16px 32px', 
             textDecoration: 'none',
-            color: 'var(--text-primary)',
-            borderColor: 'rgba(255,255,255,0.18)'
+            color: '#0a100d',
+            fontWeight: 700,
+            boxShadow: '0 4px 24px rgba(203, 161, 83, 0.35)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            borderRadius: 12
           }}
         >
-          Conhecer pacotes ↓
+          Calcule seu orçamento em menos de 1 minuto →
         </a>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          Informe os dados da sua festa e veja as opções disponíveis para o seu evento.
+        </span>
       </div>
 
       {/* 6. Micro-chancelas de confiança */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', alignItems: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <FiCheckCircle size={14} style={{ color: 'var(--primary)' }} /> Cálculo em menos de 1 minuto
+          <FiCheckCircle size={15} style={{ color: 'var(--primary)' }} /> Seu orçamento em menos de 1 minuto
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <FiCheckCircle size={14} style={{ color: 'var(--primary)' }} /> Preço claro e sem taxas ocultas
+          <FiCheckCircle size={15} style={{ color: 'var(--primary)' }} /> Sem compromisso e sem taxas escondidas
         </span>
       </div>
     </header>

@@ -1100,14 +1100,21 @@ export default function OrcamentoClient() {
             src={general?.logoUrl || "/logo.webp"} 
             alt="Logo" 
             style={{ 
-              width: 140, 
+              width: 130, 
               height: 'auto', 
-              marginBottom: 24, 
+              marginBottom: 18, 
               filter: 'drop-shadow(0 0 20px rgba(203, 161, 83, 0.4))' 
             }} 
           />
-          <h1 className="header__title">{general?.companyName || "Laboratório de Drinks"}</h1>
-          <p className="header__subtitle">{general?.siteSubtitle || "Desperte a química perfeita no seu evento com drinks inovadores"}</p>
+          <h1 className="header__title" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.2rem)', margin: '0 0 10px 0' }}>
+            Seu orçamento em menos de 1 minuto
+          </h1>
+          <p className="header__subtitle" style={{ maxWidth: 580, margin: '0 auto 12px', fontSize: '0.95rem', lineHeight: 1.5 }}>
+            Informe os detalhes da sua festa e descubra quais pacotes se encaixam no seu evento.
+          </p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.84rem', color: 'var(--primary)', fontWeight: 600, padding: '4px 12px', background: 'rgba(203, 161, 83, 0.08)', borderRadius: 20, border: '1px solid rgba(203, 161, 83, 0.2)' }}>
+            ✓ Sem compromisso e sem taxas escondidas
+          </div>
         </header>
 
         {!isSuccess ? (

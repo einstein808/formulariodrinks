@@ -37,17 +37,15 @@ export default function BeneficioSection() {
           Você quer um bar bom. <span style={{ color: 'var(--primary)' }}>Não uma conta absurda.</span>
         </h2>
 
-        {/* Texto Manifesto */}
+        {/* Texto Manifesto Encurtado e Direto */}
         <p style={{
-          fontSize: 'clamp(0.95rem, 2vw, 1.08rem)',
+          fontSize: 'clamp(0.98rem, 2.1vw, 1.12rem)',
           color: 'var(--text-secondary)',
-          lineHeight: 1.65,
-          maxWidth: '680px',
-          margin: '0 auto 28px'
+          lineHeight: 1.6,
+          maxWidth: '640px',
+          margin: '0 auto 24px'
         }}>
-          Seu evento não precisa de um orçamento gigantesco para oferecer coquetéis de verdade aos convidados. 
-          O <strong>Laboratório de Drinks</strong> foi planejado para quem busca coquetelaria caprichada, 
-          apresentação bonita e atendimento profissional, sem pagar por estruturas inflacionadas que não fazem sentido para o tamanho da sua celebração.
+          Somos <strong style={{ color: 'var(--text-primary)' }}>especialistas em eventos de 30 a 150 convidados</strong>. Você tem coquetelaria de verdade, atendimento rápido e um bar impecável — sem precisar pagar por estruturas pesadas e inflacionadas que não fazem sentido para a sua festa.
         </p>
 
         {/* Comparativo Prático Rápido */}
@@ -63,15 +61,15 @@ export default function BeneficioSection() {
             background: 'rgba(255, 255, 255, 0.02)',
             border: '1px solid rgba(255, 255, 255, 0.06)',
             borderRadius: 'var(--radius-md)',
-            padding: '16px 18px'
+            padding: '18px 20px'
           }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e57373', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <FiXCircle size={16} /> O que encarece outros buffets:
+            <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#e57373', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <FiXCircle size={16} /> O que você evita:
             </span>
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              <li>Estruturas pesadas que ocupam metade do salão</li>
-              <li>Exigência de pacote fechado para 200+ pessoas</li>
-              <li>Orçamentos vagos com taxas que aparecem no final</li>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              <li>Estruturas gigantes que roubam espaço da pista</li>
+              <li>Exigência de contratos mínimos para 200+ pessoas</li>
+              <li>Preocupação e estresse comprando insumos no mercado</li>
             </ul>
           </div>
 
@@ -80,15 +78,16 @@ export default function BeneficioSection() {
             background: 'rgba(203, 161, 83, 0.05)',
             border: '1px solid rgba(203, 161, 83, 0.25)',
             borderRadius: 'var(--radius-md)',
-            padding: '16px 18px'
+            padding: '18px 20px'
           }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <FiCheck size={16} /> O jeito do Laboratório:
+            <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <FiCheck size={16} /> O que você ganha com o Laboratório:
             </span>
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-              <li>Bar móvel elegante, compacto e funcional</li>
-              <li>Pacotes flexíveis para festas pequenas e médias</li>
-              <li>Preço transparente por pessoa ou mão de obra</li>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
+              <li><strong>Drinks bem preparados</strong> com frutas frescas e dosagem certa</li>
+              <li><strong>Atendimento rápido</strong> e simpático, sem filas no balcão</li>
+              <li><strong>Bar bonito e organizado</strong> que valoriza as fotos da festa</li>
+              <li><strong>Zero dor de cabeça:</strong> cuidamos de tudo ou te damos a lista exata</li>
             </ul>
           </div>
         </div>

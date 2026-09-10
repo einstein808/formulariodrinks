@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { FiCalendar, FiMapPin } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiUsers } from 'react-icons/fi';
 
 export default function EventoCard({ evento, onOpen, formatDate, priority = false }) {
   const todasFotos = [
@@ -139,6 +139,13 @@ export default function EventoCard({ evento, onOpen, formatDate, priority = fals
         {/* Gradiente e badge */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 50%, transparent 100%)', pointerEvents: 'none' }} />
 
+        {/* Badge de convidados / porte do evento */}
+        {evento.convidados && (
+          <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(12, 22, 16, 0.85)', backdropFilter: 'blur(10px)', color: 'var(--primary)', padding: '4px 10px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, border: '1px solid rgba(203, 161, 83, 0.3)' }}>
+            👥 {evento.convidados} convidados
+          </div>
+        )}
+
         {totalMidias > 0 && (
           <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', color: '#FFF', padding: '4px 10px', borderRadius: 20, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 5, border: '1px solid rgba(255,255,255,0.12)' }}>
             🖼️ {totalMidias}{temVideo ? ' & 🎬' : ''}
@@ -173,6 +180,12 @@ export default function EventoCard({ evento, onOpen, formatDate, priority = fals
       <div style={{ padding: '16px 20px' }}>
         <h3 style={{ margin: '0 0 10px 0', fontSize: '1.05rem', color: '#FFF', fontFamily: 'var(--font-cinzel), serif' }}>{evento.titulo}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {evento.convidados && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.83rem', color: 'var(--primary)', fontWeight: 600 }}>
+              <FiUsers size={13} color="var(--primary)" />
+              <span>{evento.convidados} convidados</span>
+            </div>
+          )}
           {evento.data && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
               <FiCalendar size={13} color="var(--primary)" />

@@ -42,7 +42,7 @@ const fallbacks = {
   debutante: {
     label: 'Debutante',
     icon: '👑',
-    desc: 'Os 15 anos merecem um bar dos sonhos. Desenvolvemos uma linha exclusiva de coquetéis sem álcool super coloridos, milkshakes gourmets e drinks com efeitos visuais incríveis (alquimia da fumaça e espumas artesanais) para os jovens, além de uma carta clássica premium para os adultos.'
+    desc: 'Os 15 anos merecem um bar dos sonhos. Desenvolvemos uma linha exclusiva de coquetéis sem álcool super coloridos, milkshakes artesanais e drinks com efeitos visuais incríveis (alquimia da fumaça e espumas artesanais) para os jovens, além de uma carta clássica premium para os adultos.'
   }
 };
 

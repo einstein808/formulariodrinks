@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, set, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+import { cleanPhoneForWhatsApp } from '../../../lib/utils';
 import { 
   FiSend, FiImage, FiInstagram, FiFileText, FiClock, FiAlertCircle, 
   FiCheckCircle, FiXCircle, FiUsers, FiCheck, FiX, FiZap, FiSearch,
@@ -15,10 +16,26 @@ const MESES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 function diasDesde(isoString) {
   if (!isoString) return null;
   const diff = Date.now() - new Date(isoString).getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return 'Sem data';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHours < 1) return 'Agora mesmo';
+  if (diffHours < 24) return `${diffHours}h atrás`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d atrás`;
 }
 
 function processSpintax(text) {
@@ -33,6 +50,15 @@ function processSpintax(text) {
     spintaxRegex.lastIndex = 0;
   }
   return result;
+}
+
+function hasLeadContactHistory(lead) {
+  if (!lead) return false;
+  if (lead.ultimoContato) return true;
+  if (lead.messages && typeof lead.messages === 'object' && Object.keys(lead.messages).length > 0) {
+    return true;
+  }
+  return false;
 }
 
 function getLeadLastContactDays(lead) {
@@ -62,7 +88,70 @@ function formatDateBr(dateStr) {
   return dateStr;
 }
 
+function interpolarParceiro(template, parceiro, categoriasList = []) {
+  const pCats = Array.isArray(parceiro.categorias) 
+    ? parceiro.categorias 
+    : (parceiro.categoria ? [parceiro.categoria] : []);
+  
+  const catNames = pCats.map(cSlug => {
+    const found = categoriasList.find(c => c.slug === cSlug);
+    return found ? found.nome : cSlug;
+  }).join(', ');
+
+  const currentMonth = MESES[new Date().getMonth()];
+
+  let raw = (template || '')
+    .replace(/\{\{nome\}\}/gi, parceiro.nome || '')
+    .replace(/\{\{categorias\}\}/gi, catNames || 'Parceiro')
+    .replace(/\{\{categoria\}\}/gi, catNames || 'Parceiro')
+    .replace(/\{\{mes\}\}/gi, currentMonth);
+
+  return processSpintax(raw);
+}
+
+function interpolarLead(template, lead) {
+  const currentMonth = MESES[new Date().getMonth()];
+  const primeiroNome = (lead.nome || '').trim().split(' ')[0] || 'Cliente';
+  const dataFormatada = formatDateBr(lead.dataEvento);
+
+  let raw = (template || '')
+    .replace(/\{\{nome\}\}/gi, primeiroNome)
+    .replace(/\{\{nomeCompleto\}\}/gi, `${lead.nome || ''} ${lead.sobrenome || ''}`.trim())
+    .replace(/\{\{tipoEvento\}\}/gi, lead.tipoEvento || 'evento')
+    .replace(/\{\{dataEvento\}\}/gi, dataFormatada || 'sua data')
+    .replace(/\{\{cidade\}\}/gi, lead.cidade || 'sua região')
+    .replace(/\{\{pacote\}\}/gi, lead.pacote || 'personalizado')
+    .replace(/\{\{convidados\}\}/gi, (lead.convidados || '').toString())
+    .replace(/\{\{mes\}\}/gi, currentMonth);
+
+  return processSpintax(raw);
+}
+
+async function simulateTypingPresence(baseUrl, instance, apiKey, number, durationMs = 2500) {
+  try {
+    const presenceEndpoint = `${baseUrl}/chat/sendPresence/${instance}`;
+    await fetch(presenceEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': apiKey
+      },
+      body: JSON.stringify({
+        number,
+        presence: 'composing',
+        delay: durationMs
+      })
+    });
+  } catch (err) {
+    console.warn('Presença de digitação ignorada:', err.message);
+  }
+}
+
 const TEMPLATES_SUGERIDOS = {
+  leads_recentes: {
+    label: '🟢 Follow-up para Contatos Recentes (Sem Contato)',
+    text: "{Olá|Oi|Oie}, {{nome}}! {Tudo bem|Como vai você}? 😊\n\nVi que você solicitou um orçamento recentemente para o seu {{tipoEvento}} em {{dataEvento}}!\n\nConseguiu dar uma olhada na proposta? Me avisa se ficou com alguma dúvida sobre os drinks ou se gostaria de personalizar o cardápio! 🍹🍸"
+  },
   leads_esfriando: {
     label: '🟡 Reaquecer Leads Esfriando (7-14 dias)',
     text: "{Olá|Oi|Oie}, {{nome}}! {Tudo bem|Tudo certo por aí}? 😊\n\n{Passando para saber se você conseguiu dar uma olhada na|Queria ver se você conseguiu avaliar a} nossa proposta de coquetelaria para o seu {{tipoEvento}} em {{dataEvento}}!\n\nNossa agenda para esse período {já está bem concorrida|já está com alta procura}. Se quiser ajustar {algum drink|os coquetéis} ou o valor do pacote {{pacote}}, consigo uma {condição especial|proposta exclusiva} para fecharmos {ainda essa semana|nos próximos dias}! 🍹🍸\n\n{Podemos conversar|Quer que eu te mande um cardápio atualizado}?"
@@ -94,12 +183,13 @@ export default function CampanhasManager() {
   const [loading, setLoading] = useState(true);
 
   // Segmentação Leads
-  const [segmentoLead, setSegmentoLead] = useState('esfriando');
+  const [segmentoLead, setSegmentoLead] = useState('recentes');
   const [searchFilter, setSearchFilter] = useState('');
+  const [evolutionApi, setEvolutionApi] = useState(null);
 
   // Form states
   const [tipo, setTipo] = useState('texto');
-  const [mensagem, setMensagem] = useState(TEMPLATES_SUGERIDOS.leads_esfriando.text);
+  const [mensagem, setMensagem] = useState(TEMPLATES_SUGERIDOS.leads_recentes.text);
   const [midia, setMidia] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [previewSeed, setPreviewSeed] = useState(0);
@@ -151,57 +241,87 @@ export default function CampanhasManager() {
 
   // Firebase Listeners
   useEffect(() => {
-    const unsubLeads = onValue(ref(db, 'leads'), (snap) => {
-      if (snap.exists()) {
-        const data = snap.val();
-        const list = Object.entries(data).map(([id, item]) => ({ id, ...item }));
-        list.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
-        setLeads(list);
-      } else {
-        setLeads([]);
+    const unsubLeads = onValue(
+      ref(db, 'leads'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.val();
+          const list = Object.entries(data).map(([id, item]) => ({ id, ...item }));
+          list.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
+          setLeads(list);
+        } else {
+          setLeads([]);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.warn('Aviso: Falha ao carregar leads:', err?.message);
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
-    const unsubParceiros = onValue(ref(db, 'config/cerimonialistas'), (snap) => {
-      if (snap.exists()) {
-        const data = snap.val();
-        const list = Object.entries(data)
-          .map(([slug, item]) => ({ slug, ...item }))
-          .filter(p => p.ativo !== false);
-        list.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-        setParceiros(list);
-      } else {
-        setParceiros([]);
-      }
-    });
+    const unsubParceiros = onValue(
+      ref(db, 'config/cerimonialistas'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.val();
+          const list = Object.entries(data)
+            .map(([slug, item]) => ({ slug, ...item }))
+            .filter(p => p.ativo !== false);
+          list.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+          setParceiros(list);
+        } else {
+          setParceiros([]);
+        }
+      },
+      (err) => console.warn('Aviso: Falha ao carregar parceiros:', err?.message)
+    );
 
-    const unsubCategorias = onValue(ref(db, 'config/categorias-parceiros'), (snap) => {
-      if (snap.exists()) {
-        const data = snap.val();
-        const list = Object.entries(data).map(([slug, item]) => ({ slug, ...item }));
-        setCategorias(list);
-      } else {
-        setCategorias([]);
-      }
-    });
+    const unsubCategorias = onValue(
+      ref(db, 'config/categorias-parceiros'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.val();
+          const list = Object.entries(data).map(([slug, item]) => ({ slug, ...item }));
+          setCategorias(list);
+        } else {
+          setCategorias([]);
+        }
+      },
+      (err) => console.warn('Aviso: Falha ao carregar categorias:', err?.message)
+    );
 
-    const unsubCampanhas = onValue(ref(db, 'campanhas'), (snap) => {
-      if (snap.exists()) {
-        const data = snap.val();
-        const list = Object.entries(data).map(([id, item]) => ({ id, ...item }));
-        list.sort((a, b) => new Date(b.criadaEm || 0) - new Date(a.criadaEm || 0));
-        setCampanhas(list);
-      } else {
-        setCampanhas([]);
-      }
-    });
+    const unsubCampanhas = onValue(
+      ref(db, 'config/campanhas'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.val();
+          const list = Object.entries(data).map(([id, item]) => ({ id, ...item }));
+          list.sort((a, b) => new Date(b.criadaEm || 0) - new Date(a.criadaEm || 0));
+          setCampanhas(list);
+        } else {
+          setCampanhas([]);
+        }
+      },
+      (err) => console.warn('Aviso: Falha ao carregar histórico de campanhas:', err?.message)
+    );
+
+    const unsubEvolution = onValue(
+      ref(db, 'config/evolutionApi'),
+      (snap) => {
+        if (snap.exists()) {
+          setEvolutionApi(snap.val());
+        }
+      },
+      (err) => console.warn('Aviso: Falha ao carregar evolutionApi:', err?.message)
+    );
 
     return () => {
       unsubLeads();
       unsubParceiros();
       unsubCategorias();
       unsubCampanhas();
+      unsubEvolution();
     };
   }, []);
 
@@ -235,7 +355,10 @@ export default function CampanhasManager() {
     if (l.optout) return false;
 
     let matchesSegment = true;
-    if (segmentoLead === 'esfriando') {
+    if (segmentoLead === 'recentes') {
+      // Oculta automaticamente quem já tiver histórico de mensagens (Opção B do usuário)
+      matchesSegment = !hasLeadContactHistory(l);
+    } else if (segmentoLead === 'esfriando') {
       matchesSegment = l._tempStatus === 'esfriando';
     } else if (segmentoLead === 'esfriou') {
       matchesSegment = l._tempStatus === 'esfriou';
@@ -256,6 +379,11 @@ export default function CampanhasManager() {
 
     return matchesSegment && matchesSearch;
   });
+
+  // Ordena por data de criação desc se for o segmento de recentes
+  if (segmentoLead === 'recentes') {
+    filteredLeads.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
+  }
 
   const currentTargetItems = publico === 'leads' ? filteredLeads : parceiros;
 
@@ -283,6 +411,7 @@ export default function CampanhasManager() {
     }
   };
 
+  const countRecentes = classifiedLeads.filter(l => !l.optout && !hasLeadContactHistory(l)).length;
   const countEsfriando = classifiedLeads.filter(l => l._tempStatus === 'esfriando').length;
   const countEsfriou = classifiedLeads.filter(l => l._tempStatus === 'esfriou').length;
   const countNegociacao = classifiedLeads.filter(l => l.status === 'negociacao').length;
@@ -375,30 +504,215 @@ export default function CampanhasManager() {
         setProgresso({ total: count, sucesso: 0, erro: 0, status: 'Iniciando envio humanizado...' });
 
         try {
-          const payload = {
-            mensagem,
-            tipo,
-            midia: midia.trim(),
-            publico,
-            ...(publico === 'leads' ? { leadIds: selectedIds, segmentoLead } : { parceiroSlugs: selectedIds })
-          };
+          const evUrl = evolutionApi?.url || process.env.NEXT_PUBLIC_WPP_API_URL || 'https://api.gabryelamaro.com';
+          const evKey = evolutionApi?.apikey || process.env.NEXT_PUBLIC_WPP_API_KEY || '';
+          const evInstance = evolutionApi?.instance || 'BarmanJF';
 
-          const res = await fetch('/api/campanhas/disparar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+          if (!evUrl || !evKey || !evInstance) {
+            showToast('Evolution API não configurada corretamente.', 'error');
+            setDisparando(false);
+            return;
+          }
+
+          const baseUrl = evUrl.endsWith('/') ? evUrl.slice(0, -1) : evUrl;
+          const instance = evInstance;
+          const apiKey = evKey;
+
+          const isLeads = publico === 'leads';
+          const targetList = currentTargetItems.filter(item => {
+            const id = isLeads ? item.id : item.slug;
+            return selectedIds.includes(id);
           });
 
-          const data = await res.json();
+          const campanhaId = `camp_${Date.now()}`;
+          const agoraIso = new Date().toISOString();
 
-          if (res.ok && data.ok) {
-            showToast(`Campanha finalizada! ${data.sucesso} enviadas com sucesso, ${data.erro} falhas.`, 'success');
-          } else {
-            showToast(data.error || 'Erro ao realizar disparo da campanha', 'error');
+          // Registra início da campanha no Firebase com sessão autenticada em config/campanhas
+          try {
+            await set(ref(db, `config/campanhas/${campanhaId}`), {
+              id: campanhaId,
+              publico: isLeads ? 'leads' : 'parceiros',
+              segmentoLead: isLeads ? segmentoLead : null,
+              mensagem,
+              tipo,
+              midia: midia ? midia.trim() : '',
+              criadaEm: agoraIso,
+              status: 'em_andamento',
+              antiBan: {
+                spintaxAtivo: true,
+                typingSimulated: true,
+                jitterDelay: '4s-7s + pausas de lote'
+              },
+              total: targetList.length,
+              sucesso: 0,
+              erro: 0,
+              resultados: {}
+            });
+          } catch (errDb) {
+            console.warn('Aviso: Registro no Firebase ignorado:', errDb?.message);
           }
+
+          let sucessoCount = 0;
+          let erroCount = 0;
+          const resultados = {};
+
+          for (let i = 0; i < targetList.length; i++) {
+            const item = targetList[i];
+            const rawPhone = isLeads ? (item.telefone || item.whatsapp || '') : (item.whatsapp || '');
+            const cleaned = cleanPhoneForWhatsApp(rawPhone);
+            const itemKey = isLeads ? item.id : item.slug;
+            const itemNome = isLeads ? `${item.nome || ''} ${item.sobrenome || ''}`.trim() : item.nome;
+
+            setProgresso({
+              total: targetList.length,
+              sucesso: sucessoCount,
+              erro: erroCount,
+              status: `Enviando para ${itemNome} (${i + 1}/${targetList.length})...`
+            });
+
+            if (!cleaned || cleaned.length < 10) {
+              erroCount++;
+              resultados[itemKey] = {
+                nome: itemNome,
+                success: false,
+                error: 'Número de telefone inválido ou incompleto'
+              };
+              continue;
+            }
+
+            // 1. Interpolação de texto + Spintax
+            const textPersonalizado = isLeads
+              ? interpolarLead(mensagem, item)
+              : interpolarParceiro(mensagem, item, categorias);
+
+            // 2. Simulação de digitação humana (2.0s a 3.5s)
+            const typingDuration = getRandomInt(2000, 3500);
+            await simulateTypingPresence(baseUrl, instance, apiKey, cleaned, typingDuration);
+            await sleep(typingDuration);
+
+            // 3. Montagem do payload de envio
+            let sendEndpoint = `${baseUrl}/message/sendText/${instance}`;
+            let sendPayload = {
+              number: cleaned,
+              text: textPersonalizado
+            };
+
+            if (tipo === 'imagem' && midia.trim()) {
+              sendEndpoint = `${baseUrl}/message/sendMedia/${instance}`;
+              sendPayload = {
+                number: cleaned,
+                mediatype: 'image',
+                media: midia.trim(),
+                caption: textPersonalizado
+              };
+            } else if (tipo === 'instagram' && midia.trim()) {
+              sendPayload.text = `${textPersonalizado}\n\n👉 Confira nossa publicação: ${midia.trim()}`;
+            }
+
+            try {
+              const response = await fetch(sendEndpoint, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': apiKey
+                },
+                body: JSON.stringify(sendPayload)
+              });
+
+              if (response.ok) {
+                sucessoCount++;
+                const updateTime = new Date().toISOString();
+                resultados[itemKey] = {
+                  nome: itemNome,
+                  success: true,
+                  sentAt: updateTime
+                };
+
+                if (isLeads) {
+                  await update(ref(db, `leads/${item.id}`), {
+                    ultimoContato: updateTime
+                  });
+                  await push(ref(db, `leads/${item.id}/messages`), {
+                    type: 'campanha_whatsapp',
+                    number: cleaned,
+                    success: true,
+                    text: textPersonalizado,
+                    sentAt: updateTime
+                  });
+                } else {
+                  await set(ref(db, `config/cerimonialistas/${item.slug}/ultimoContato`), updateTime);
+                }
+              } else {
+                erroCount++;
+                const errText = await response.text();
+                resultados[itemKey] = {
+                  nome: itemNome,
+                  success: false,
+                  error: errText || 'Erro retornado pela Evolution API'
+                };
+              }
+            } catch (err) {
+              erroCount++;
+              resultados[itemKey] = {
+                nome: itemNome,
+                success: false,
+                error: err.message || 'Falha de conexão com Evolution API'
+              };
+            }
+
+            // Atualiza progresso da campanha em tempo real no Firebase (config/campanhas)
+            try {
+              await update(ref(db, `config/campanhas/${campanhaId}`), {
+                sucesso: sucessoCount,
+                erro: erroCount,
+                [`resultados/${itemKey}`]: resultados[itemKey]
+              });
+            } catch (errUpd) {
+              console.warn('Aviso: Atualização de progresso ignorada:', errUpd?.message);
+            }
+
+            setProgresso({
+              total: targetList.length,
+              sucesso: sucessoCount,
+              erro: erroCount,
+              status: `Enviado para ${itemNome}! (${i + 1}/${targetList.length})`
+            });
+
+            // 4. Jitter delay humanizado entre envios (4s a 7s)
+            if (i < targetList.length - 1) {
+              setProgresso(prev => ({
+                ...prev,
+                status: `Aguardando intervalo anti-ban (${i + 1}/${targetList.length})...`
+              }));
+              const humanDelay = getRandomInt(4000, 7000);
+              await sleep(humanDelay);
+
+              // 5. Pausa de resfriamento a cada 8 envios
+              if ((i + 1) % 8 === 0) {
+                setProgresso(prev => ({
+                  ...prev,
+                  status: `Resfriando conexão (lote de 8 mensagens)... (${i + 1}/${targetList.length})`
+                }));
+                const batchCoolingPause = getRandomInt(15000, 25000);
+                await sleep(batchCoolingPause);
+              }
+            }
+          }
+
+          // Finaliza campanha no Firebase
+          try {
+            await update(ref(db, `config/campanhas/${campanhaId}`), {
+              status: 'concluida',
+              concluidaEm: new Date().toISOString()
+            });
+          } catch (errFin) {
+            console.warn('Aviso: Finalização no Firebase ignorada:', errFin?.message);
+          }
+
+          showToast(`Campanha finalizada! ${sucessoCount} enviadas com sucesso, ${erroCount} falhas.`, 'success');
         } catch (err) {
           console.error('Erro no disparo:', err);
-          showToast('Erro de conexão ao disparar campanha', 'error');
+          showToast(`Erro ao disparar campanha: ${err.message}`, 'error');
         } finally {
           setDisparando(false);
           setProgresso({ total: 0, sucesso: 0, erro: 0, status: '' });
@@ -533,6 +847,28 @@ export default function CampanhasManager() {
           </div>
 
           <div className="admin-campaign-segments-scroll">
+            <button
+              onClick={() => {
+                setSegmentoLead('recentes');
+                aplicarTemplate('leads_recentes');
+              }}
+              style={{
+                padding: '8px 14px',
+                minHeight: '40px',
+                borderRadius: '20px',
+                border: `1px solid ${segmentoLead === 'recentes' ? '#4CAF50' : 'var(--border-color)'}`,
+                background: segmentoLead === 'recentes' ? 'rgba(76, 175, 80, 0.18)' : 'var(--bg-input)',
+                color: segmentoLead === 'recentes' ? '#4CAF50' : 'var(--text-secondary)',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                flexShrink: 0,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              🟢 Recentes ({countRecentes}) <span style={{ opacity: 0.7, fontSize: '0.74rem' }}>sem contato</span>
+            </button>
+
             <button
               onClick={() => {
                 setSegmentoLead('esfriando');
@@ -974,10 +1310,10 @@ export default function CampanhasManager() {
                         borderRadius: '6px',
                         fontWeight: 600,
                         flexShrink: 0,
-                        background: days === null || days >= 15 ? 'rgba(0, 229, 255, 0.15)' : (days >= 7 ? 'rgba(255, 213, 79, 0.15)' : 'rgba(76, 175, 80, 0.15)'),
-                        color: days === null || days >= 15 ? '#00E5FF' : (days >= 7 ? '#FFD54F' : '#4CAF50')
+                        background: segmentoLead === 'recentes' ? 'rgba(76, 175, 80, 0.15)' : (days === null || days >= 15 ? 'rgba(0, 229, 255, 0.15)' : (days >= 7 ? 'rgba(255, 213, 79, 0.15)' : 'rgba(76, 175, 80, 0.15)')),
+                        color: segmentoLead === 'recentes' ? '#4CAF50' : (days === null || days >= 15 ? '#00E5FF' : (days >= 7 ? '#FFD54F' : '#4CAF50'))
                       }}>
-                        {days === null ? 'Sem contato' : `${days}d`}
+                        {segmentoLead === 'recentes' ? formatTimeAgo(item.criadoEm) : (days === null ? 'Sem contato' : `${days}d`)}
                       </span>
                     </label>
                   );
@@ -1008,7 +1344,7 @@ export default function CampanhasManager() {
             {disparando ? (
               <>
                 <div className="btn__spinner" />
-                <span>Enviando ({progresso.status})...</span>
+                <span>Disparando Campanha...</span>
               </>
             ) : (
               <>
@@ -1017,6 +1353,34 @@ export default function CampanhasManager() {
               </>
             )}
           </button>
+
+          {/* Barra de Progresso em Tempo Real */}
+          {disparando && (
+            <div style={{
+              background: 'rgba(203, 161, 83, 0.1)',
+              border: '1px solid rgba(203, 161, 83, 0.3)',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginTop: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '6px' }}>
+                <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{progresso.status}</span>
+                <span style={{ color: 'var(--text-muted)' }}>{progresso.sucesso + progresso.erro} / {progresso.total}</span>
+              </div>
+              <div style={{ width: '100%', height: '8px', background: 'var(--bg-card)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${progresso.total > 0 ? ((progresso.sucesso + progresso.erro) / progresso.total) * 100 : 0}%`,
+                  height: '100%',
+                  background: 'var(--primary)',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.75rem' }}>
+                <span style={{ color: '#4CAF50' }}>✅ {progresso.sucesso} enviadas</span>
+                {progresso.erro > 0 && <span style={{ color: '#F44336' }}>❌ {progresso.erro} falhas</span>}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Painel de Preview ao Vivo (Estilo WhatsApp) */}

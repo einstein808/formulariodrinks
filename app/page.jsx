@@ -1,14 +1,14 @@
 import HomeClient from './HomeClient';
 
 export const metadata = {
-  title: 'Laboratório de Drinks — Você quer um bar bom. Não uma conta absurda.',
-  description: 'Bar móvel para festas em Juiz de Fora. Drinks de verdade, preço proporcional ao tamanho da sua celebração. Mini weddings, aniversários e confraternizações. Avaliação 5.0 no Google.',
+  title: 'Laboratório de Drinks — Bar para festas de 30 a 150 convidados em Juiz de Fora',
+  description: 'Bar profissional para festas de 30 a 150 convidados em Juiz de Fora e região. Coquetelaria de verdade, frutas frescas e atendimento ágil. Calcule seu orçamento em menos de 1 minuto.',
   alternates: {
     canonical: 'https://laboratorio.gabryelamaro.com',
   },
   openGraph: {
-    title: 'Você quer um bar bom. Não uma conta absurda.',
-    description: 'O Laboratório de Drinks é um bar móvel para festas em Juiz de Fora. Drinks bem preparados, atendimento profissional e preço claro — sem taxas surpresa no final.',
+    title: 'Coquetelaria de verdade para o seu evento, sem exageros no orçamento.',
+    description: 'Bar profissional para festas de 30 a 150 convidados em Juiz de Fora e região. Drinks bem preparados, atendimento ágil e orçamento em menos de 1 minuto.',
     url: 'https://laboratorio.gabryelamaro.com',
     type: 'website',
     images: [
@@ -22,8 +22,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Você quer um bar bom. Não uma conta absurda.',
-    description: 'Bar móvel em Juiz de Fora. Drinks de verdade, preço proporcional, transparência total. Monte seu orçamento em 1 minuto.',
+    title: 'Coquetelaria de verdade para o seu evento, sem exageros no orçamento.',
+    description: 'Bar profissional para festas de 30 a 150 convidados em Juiz de Fora. Coquetelaria artesanal, frutas frescas e atendimento ágil. Orçamento em 1 minuto.',
     images: ['https://laboratorio.gabryelamaro.com/og-image.jpg'],
   },
 };
@@ -123,23 +123,22 @@ export default function Page() {
         </p>
         <h2>Nossos Formatos de Bar para Eventos</h2>
         <ul>
-          <li>Bar para Mini Weddings — O formato ideal para casamentos de 30 a 120 convidados</li>
-          <li>Bar para Aniversários e Debutantes — Coquetéis refrescantes e agilidade na pista</li>
-          <li>Bar para Confraternizações e Empresas — Pontualidade, equipe discreta e postura executiva</li>
-          <li>Mão de Obra Especializada — Barmen com utensílios para quem já comprou as bebidas</li>
+          <li>Bar para Mini Weddings e Casamentos — O formato ideal para celebrações de 30 a 120 convidados</li>
+          <li>Bar para Aniversários e Festas Privadas — Coquetéis refrescantes e agilidade na pista para 30 a 150 convidados</li>
+          <li>Bar para Confraternizações e Eventos — Estrutura compacta, drinks refinados e zero dor de cabeça com compras</li>
+          <li>Mão de Obra Especializada — Para quem já comprou as bebidas e quer deixar o bar por nossa conta</li>
         </ul>
         <h2>Por que escolher o Laboratório de Drinks?</h2>
         <ul>
-          <li>Avaliação 5.0 no Google — Nota máxima concedida por clientes reais</li>
-          <li>Drinks de verdade com frutas frescas e receitas balanceadas</li>
-          <li>Pacotes modulares que respeitam o orçamento da sua celebração</li>
-          <li>Bar móvel compacto e elegante que valoriza o ambiente</li>
-          <li>Orçamento 100% transparente, sem taxas ocultas</li>
+          <li>Avaliação 5.0 no Google Reviews — Nota máxima concedida por clientes reais</li>
+          <li>Drinks de verdade preparados na hora com frutas frescas e xaropes artesanais</li>
+          <li>Carta com coquetéis consagrados: Caipirinha, Fitzgerald, Moscow Mule, Piña Colada e Mojito</li>
+          <li>Especialistas em eventos de 30 a 150 convidados</li>
+          <li>Seu orçamento em menos de 1 minuto, sem compromisso e sem taxas escondidas</li>
         </ul>
-        <h2>Solicite seu Orçamento Online</h2>
+        <h2>Calcule seu Orçamento Online</h2>
         <p>
-          Faça uma simulação gratuita em menos de 1 minuto e encontre o pacote ideal para seu evento 
-          em Juiz de Fora, Matias Barbosa, Simão Pereira e região.
+          Informe os detalhes da sua festa e descubra quais pacotes se encaixam no seu evento em menos de 1 minuto.
         </p>
       </div>
       <HomeClient />

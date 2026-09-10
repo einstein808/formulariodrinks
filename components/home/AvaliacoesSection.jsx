@@ -7,25 +7,34 @@ import { FiStar } from 'react-icons/fi';
 const defaultReviews = [
   {
     id: 'default-1',
-    nome: 'Mariana Silva',
+    nome: 'Carolina Mendes',
     pacote: 'Laboratório',
-    feedback: 'Sem dúvidas a melhor escolha para o nosso casamento! Os drinks autorais fizeram muito sucesso e a equipe foi extremamente ágil e simpática. Nota 1000!',
+    cidade: 'Juiz de Fora',
+    tipoEvento: 'Casamento',
+    convidados: '100 convidados',
+    feedback: 'Os drinks estavam excelentes e o atendimento foi impecável. Todos os convidados elogiaram a apresentação e o sabor da carta!',
     stars: 5,
     printUrl: ''
   },
   {
     id: 'default-2',
-    nome: 'Lucas Oliveira',
-    pacote: 'Reatividade',
-    feedback: 'Super profissionais! Contratei para meu aniversário e todos os convidados elogiaram a qualidade dos insumos e a organização do bar. Recomendo!',
+    nome: 'Lucas Ramos',
+    pacote: 'Experimento',
+    cidade: 'Juiz de Fora',
+    tipoEvento: 'Aniversário',
+    convidados: '50 convidados',
+    feedback: 'A melhor escolha para a minha festa de 50 pessoas. Moscow Mule e Caipirinha perfeitos, equipe ágil e zero filas no balcão.',
     stars: 5,
     printUrl: ''
   },
   {
     id: 'default-3',
-    nome: 'Juliana Mendes',
-    pacote: 'Experimento',
-    feedback: 'Apresentação impecável e atendimento de primeira. A caipirinha gourmet e o Moscow Mule estavam divinos. Já quero para o próximo evento!',
+    nome: 'Mariana Duarte',
+    pacote: 'Mão de Obra',
+    cidade: 'Juiz de Fora',
+    tipoEvento: 'Confraternização',
+    convidados: '80 convidados',
+    feedback: 'Super organizados! A consultoria da lista de compras foi certeira, não sobrou nem faltou nada. Bar bonito e profissionais nota 10.',
     stars: 5,
     printUrl: ''
   }
@@ -48,19 +57,28 @@ export default function AvaliacoesSection({
   if (reviewsToDisplay.length === 0 && !loading) return null;
 
   return (
-    <section style={{ position: 'relative', zIndex: 10, padding: '36px 16px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
-      <div style={{ maxWidth: 850, margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.3rem, 4vw, 1.6rem)', color: '#FFF', textAlign: 'center', margin: 0, letterSpacing: '0.03em' }}>
-            O Melhor Serviço de Bartender de {general?.companyCity || 'JF'}
+    <section style={{ position: 'relative', zIndex: 10, padding: '40px 16px', background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 28, textAlign: 'center' }}>
+          <span style={{
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            color: 'var(--primary)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
+          }}>
+            Prova Social & Experiências Reais
+          </span>
+          <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.35rem, 4vw, 1.8rem)', color: '#FFF', margin: 0, letterSpacing: '0.02em' }}>
+            Quem contratou, recomenda
           </h2>
           
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255, 255, 255, 0.02)', padding: '8px 16px', borderRadius: 24, border: '1px solid var(--border-color)' }}>
-            <img src="/google-logo.svg" alt="Google" style={{ width: 20, height: 20 }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255, 255, 255, 0.03)', padding: '6px 14px', borderRadius: 24, border: '1px solid var(--border-color)' }}>
+            <img src="/google-logo.svg" alt="Google" style={{ width: 18, height: 18 }} />
             <div style={{ display: 'flex', gap: 3 }}>
-              {[1,2,3,4,5].map(s => <FiStar key={s} size={18} fill="#FFC107" color="#FFC107" />)}
+              {[1,2,3,4,5].map(s => <FiStar key={s} size={16} fill="#FFC107" color="#FFC107" />)}
             </div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>Avaliação Google 5.0 de 5</span>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>Nota máxima 5.0 no Google Reviews</span>
           </div>
         </div>
 
@@ -102,11 +120,19 @@ export default function AvaliacoesSection({
                   </div>
                 </div>
               ) : ava.printUrl ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', width: '100%' }}>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.08)', flex: 1, minHeight: '180px', maxHeight: '220px', height: 200, width: '100%', position: 'relative', background: '#0a0a0a' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', width: '100%' }}>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {[...Array(ava.stars || 5)].map((_, i) => <FiStar key={i} size={15} fill="#FFC107" color="#FFC107" />)}
+                  </div>
+                  {ava.feedback && ava.feedback !== 'Redirecionado para Google Reviews' && (
+                    <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, fontSize: '0.88rem', lineHeight: 1.5 }}>
+                      "{ava.feedback}"
+                    </p>
+                  )}
+                  <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(203, 161, 83, 0.15)', height: 160, width: '100%', position: 'relative', background: '#0a0a0a' }}>
                     <Image 
                       src={ava.printUrl} 
-                      alt={`Print do depoimento do cliente ${ava.nome} avaliando o Laboratório de Drinks com 5 estrelas`} 
+                      alt={`Print do depoimento de ${ava.nome}`} 
                       fill
                       sizes="(max-width: 768px) 280px, 320px"
                       loading="lazy"
@@ -115,36 +141,35 @@ export default function AvaliacoesSection({
                       style={{ objectFit: 'contain' }} 
                     />
                   </div>
-                  {ava.feedback && ava.feedback !== 'Redirecionado para Google Reviews' && (
-                    <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, fontSize: '0.85rem', lineHeight: 1.4, textAlign: 'center' }}>
-                      "{ava.feedback}"
-                    </p>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 'auto', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     <div style={{ width: 32, height: 32, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold', fontSize: '0.8rem' }}>
                       {ava.nome ? ava.nome.trim().charAt(0).toUpperCase() : 'C'}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '0.85rem' }}>{(ava.nome || '').trim().split(' ')[0]}</div>
-                       {ava.pacote && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>}
+                      <div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '0.84rem' }}>{ava.nome || 'Cliente'}</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        {ava.tipoEvento ? `${ava.tipoEvento} em ` : ''}{ava.cidade || 'Juiz de Fora'}{ava.convidados ? ` (${ava.convidados})` : ''}
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%', minHeight: 160 }}>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {[...Array(ava.stars || 5)].map((_, i) => <FiStar key={i} size={18} fill="#FFC107" color="#FFC107" />)}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%', minHeight: 170 }}>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {[...Array(ava.stars || 5)].map((_, i) => <FiStar key={i} size={16} fill="#FFC107" color="#FFC107" />)}
                   </div>
-                  <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, flex: 1, lineHeight: 1.5, fontSize: '0.9rem' }}>
+                  <p style={{ fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, flex: 1, lineHeight: 1.55, fontSize: '0.92rem' }}>
                     "{ava.feedback}"
                   </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto', paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     <div style={{ width: 36, height: 36, background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
                       {ava.nome ? ava.nome.trim().charAt(0).toUpperCase() : 'C'}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>{(ava.nome || '').trim().split(' ')[0]}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Evento com Pacote {ava.pacote}</div>
+                      <div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '0.88rem' }}>{ava.nome || 'Cliente'}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        {ava.tipoEvento ? `${ava.tipoEvento} em ` : ''}{ava.cidade || 'Juiz de Fora'}{ava.convidados ? ` (${ava.convidados})` : (ava.pacote ? ` • Pacote ${ava.pacote}` : '')}
+                      </div>
                     </div>
                   </div>
                 </div>

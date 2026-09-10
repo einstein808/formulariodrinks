@@ -20,49 +20,89 @@ export function useLeadsData() {
 
   useEffect(() => {
     const leadsRef = ref(db, 'leads');
-    const unsubscribeLeads = onValue(leadsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-        leadsArray.sort((a, b) => {
-          const timeA = new Date(a.criadoEm || a.atualizadoEm || 0).getTime();
-          const timeB = new Date(b.criadoEm || b.atualizadoEm || 0).getTime();
-          return timeB - timeA;
-        });
-        
-        const updates = {};
-        leadsArray.forEach(lead => {
-          const custos = lead?.financeiro?.custos;
-          if (!custos) return;
-          Object.entries(custos).forEach(([cid, c]) => {
-            const q = parseFloat(c.quantidade) || 0;
-            const u = parseFloat(c.valorUnitario) || 0;
-            const v = parseFloat(c.valor) || 0;
-            if (q > 0 && u > 0) {
-              const correctVal = q * u;
-              if (Math.abs(v - correctVal) > 0.01) {
-                updates[`leads/${lead.id}/financeiro/custos/${cid}/valor`] = correctVal;
-                c.valor = correctVal;
+    const unsubscribeLeads = onValue(
+      leadsRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+          leadsArray.sort((a, b) => {
+            const timeA = new Date(a.criadoEm || a.atualizadoEm || 0).getTime();
+            const timeB = new Date(b.criadoEm || b.atualizadoEm || 0).getTime();
+            return timeB - timeA;
+          });
+
+          // Data de hoje no fuso de São Paulo (YYYY-MM-DD)
+          const todayStr = (() => {
+            try {
+              return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).format(new Date());
+            } catch (_) {
+              return new Date().toISOString().slice(0, 10);
+            }
+          })();
+
+          const updates = {};
+          leadsArray.forEach(lead => {
+            // Se a data do evento já passou de hoje e não está fechado/realizado/perdido, move automaticamente para 'perdido'
+            if (lead.dataEvento && typeof lead.dataEvento === 'string') {
+              const dateStr = lead.dataEvento.trim().slice(0, 10);
+              if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr) && dateStr < todayStr) {
+                const currentStatus = lead.status || 'novo';
+                if (currentStatus !== 'perdido' && currentStatus !== 'fechado' && currentStatus !== 'realizado') {
+                  updates[`leads/${lead.id}/status`] = 'perdido';
+                  updates[`leads/${lead.id}/statusMotivo`] = 'Data do evento ultrapassada';
+                  updates[`leads/${lead.id}/atualizadoEm`] = new Date().toISOString();
+                  lead.status = 'perdido';
+                  lead.statusMotivo = 'Data do evento ultrapassada';
+                }
               }
             }
-          });
-        });
-        if (Object.keys(updates).length > 0) {
-          update(ref(db), updates).catch(() => {});
-        }
 
-        setLeads(leadsArray);
-      } else {
-        setLeads([]);
+            const custos = lead?.financeiro?.custos;
+            if (!custos) return;
+            Object.entries(custos).forEach(([cid, c]) => {
+              const q = parseFloat(c.quantidade) || 0;
+              const u = parseFloat(c.valorUnitario) || 0;
+              const v = parseFloat(c.valor) || 0;
+              if (q > 0 && u > 0) {
+                const correctVal = q * u;
+                if (Math.abs(v - correctVal) > 0.01) {
+                  updates[`leads/${lead.id}/financeiro/custos/${cid}/valor`] = correctVal;
+                  c.valor = correctVal;
+                }
+              }
+            });
+          });
+          if (Object.keys(updates).length > 0) {
+            update(ref(db), updates).catch((err) => {
+              console.warn('Falha ao atualizar leads no Firebase:', err?.message);
+            });
+          }
+
+          setLeads(leadsArray);
+        } else {
+          setLeads([]);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.warn('Aviso: Falha ao carregar leads:', err?.message);
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
     const configRef = ref(db, 'config');
-    const unsubscribeConfig = onValue(configRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
+    const unsubscribeConfig = onValue(
+      configRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          if (data.evolutionApi) setEvolutionApi(data.evolutionApi);
         if (data.scripts) setScripts(data.scripts);
         if (data.general) setGeneralConfigs(data.general);
         if (data.cerimonialistas) setCerimonialistas(data.cerimonialistas);
@@ -90,6 +130,8 @@ export function useLeadsData() {
           setCustosCategorias(CUSTOS_CATEGORIAS_DEFAULT);
         }
       }
+    }, (err) => {
+      console.warn('Aviso: Falha ao carregar config:', err?.message);
     });
 
     return () => {

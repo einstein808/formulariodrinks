@@ -8,6 +8,7 @@ import BackgroundEffects from '../components/BackgroundEffects';
 import HeroSection from '../components/home/HeroSection';
 import BeneficioSection from '../components/home/BeneficioSection';
 import FormatosSection from '../components/home/FormatosSection';
+import CartaDrinksSection from '../components/home/CartaDrinksSection';
 import DiferenciaisSection from '../components/home/DiferenciaisSection';
 import PacotesResumoSection from '../components/home/PacotesResumoSection';
 import GaleriaSection from '../components/home/GaleriaSection';
@@ -129,10 +130,13 @@ export default function HomeClient() {
       {/* 3. Formatos em Destaque: Mini Wedding, Aniversários, Corporativo */}
       <FormatosSection />
 
-      {/* 4. Diferenciais Racionais: 5 Pilares */}
+      {/* 4. A Coquetelaria do Laboratório: Drinks Reais e Preparos Artesanais */}
+      <CartaDrinksSection />
+
+      {/* 5. Diferenciais Racionais: 5 Pilares */}
       <DiferenciaisSection />
 
-      {/* 5. Comparativo Descomplicado de Pacotes */}
+      {/* 6. Comparativo Descomplicado de Formatos / Pacotes */}
       <PacotesResumoSection />
 
       {/* 6. Galeria de Eventos Realizados (Prova Visual) */}

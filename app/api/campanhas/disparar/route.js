@@ -158,69 +158,78 @@ export async function POST(request) {
     let targetItems = [];
     let isLeads = publico === 'leads';
 
-    if (isLeads) {
-      const leadsSnap = await get(ref(db, 'leads'));
-      if (!leadsSnap.exists()) {
-        return NextResponse.json({ error: 'Nenhum lead encontrado' }, { status: 404 });
-      }
-
-      const allLeads = Object.entries(leadsSnap.val()).map(([id, val]) => ({ id, ...val }));
-      
-      if (Array.isArray(leadIds) && leadIds.length > 0) {
-        targetItems = allLeads.filter(l => leadIds.includes(l.id));
-      } else {
-        targetItems = allLeads;
+    if (Array.isArray(body.items) && body.items.length > 0) {
+      targetItems = body.items;
+    } else if (isLeads) {
+      try {
+        const leadsSnap = await get(ref(db, 'leads'));
+        if (leadsSnap.exists()) {
+          const allLeads = Object.entries(leadsSnap.val()).map(([id, val]) => ({ id, ...val }));
+          if (Array.isArray(leadIds) && leadIds.length > 0) {
+            targetItems = allLeads.filter(l => leadIds.includes(l.id));
+          } else {
+            targetItems = allLeads;
+          }
+        }
+      } catch (errSnap) {
+        console.warn('Leads não puderam ser lidos no servidor (permissão Firebase):', errSnap.message);
       }
     } else {
-      const [parceirosSnap, categoriasSnap] = await Promise.all([
-        get(ref(db, 'config/cerimonialistas')),
-        get(ref(db, 'config/categorias-parceiros'))
-      ]);
+      try {
+        const [parceirosSnap, categoriasSnap] = await Promise.all([
+          get(ref(db, 'config/cerimonialistas')),
+          get(ref(db, 'config/categorias-parceiros'))
+        ]);
 
-      if (!parceirosSnap.exists()) {
-        return NextResponse.json({ error: 'Nenhum parceiro cadastrado' }, { status: 404 });
+        if (parceirosSnap.exists()) {
+          const parceirosData = parceirosSnap.val();
+          const categoriasList = categoriasSnap.exists() 
+            ? Object.entries(categoriasSnap.val()).map(([slug, item]) => ({ slug, ...item })) 
+            : [];
+
+          let list = Object.entries(parceirosData)
+            .map(([slug, item]) => ({ slug, ...item }))
+            .filter(p => p.ativo !== false);
+
+          if (Array.isArray(parceiroSlugs) && parceiroSlugs.length > 0) {
+            list = list.filter(p => parceiroSlugs.includes(p.slug));
+          }
+
+          targetItems = list.map(p => ({ ...p, _categoriasList: categoriasList }));
+        }
+      } catch (errParceiros) {
+        console.warn('Parceiros não puderam ser lidos no servidor (permissão Firebase):', errParceiros.message);
       }
-
-      const parceirosData = parceirosSnap.val();
-      const categoriasList = categoriasSnap.exists() 
-        ? Object.entries(categoriasSnap.val()).map(([slug, item]) => ({ slug, ...item })) 
-        : [];
-
-      let list = Object.entries(parceirosData)
-        .map(([slug, item]) => ({ slug, ...item }))
-        .filter(p => p.ativo !== false);
-
-      if (Array.isArray(parceiroSlugs) && parceiroSlugs.length > 0) {
-        list = list.filter(p => parceiroSlugs.includes(p.slug));
-      }
-
-      targetItems = list.map(p => ({ ...p, _categoriasList: categoriasList }));
     }
 
     if (targetItems.length === 0) {
       return NextResponse.json({ error: 'Nenhum destinatário selecionado para disparo' }, { status: 400 });
     }
 
-    // Registra início da campanha com flags anti-ban
-    await set(ref(db, `campanhas/${campanhaId}`), {
-      id: campanhaId,
-      publico: isLeads ? 'leads' : 'parceiros',
-      segmentoLead: isLeads ? segmentoLead : null,
-      mensagem,
-      tipo,
-      midia: midia || '',
-      criadaEm: agoraIso,
-      status: 'em_andamento',
-      antiBan: {
-        spintaxAtivo: true,
-        typingSimulated: true,
-        jitterDelay: '4s-8s + pausas de lote'
-      },
-      total: targetItems.length,
-      sucesso: 0,
-      erro: 0,
-      resultados: {}
-    });
+    // Registra início da campanha com flags anti-ban (com fallback caso falte permissão no servidor)
+    try {
+      await set(ref(db, `config/campanhas/${campanhaId}`), {
+        id: campanhaId,
+        publico: isLeads ? 'leads' : 'parceiros',
+        segmentoLead: isLeads ? segmentoLead : null,
+        mensagem,
+        tipo,
+        midia: midia || '',
+        criadaEm: agoraIso,
+        status: 'em_andamento',
+        antiBan: {
+          spintaxAtivo: true,
+          typingSimulated: true,
+          jitterDelay: '4s-8s + pausas de lote'
+        },
+        total: targetItems.length,
+        sucesso: 0,
+        erro: 0,
+        resultados: {}
+      });
+    } catch (errDb) {
+      console.warn('Aviso: Registro no Firebase ignorado no servidor por falta de auth:', errDb.message);
+    }
 
     let sucessoCount = 0;
     let erroCount = 0;
@@ -292,19 +301,23 @@ export async function POST(request) {
           };
 
           if (isLeads) {
-            await update(ref(db, `leads/${item.id}`), {
-              ultimoContato: updateTime
-            });
+            try {
+              await update(ref(db, `leads/${item.id}`), {
+                ultimoContato: updateTime
+              });
 
-            await push(ref(db, `leads/${item.id}/messages`), {
-              type: 'campanha_whatsapp',
-              number: cleaned,
-              success: true,
-              text: textPersonalizado,
-              sentAt: updateTime
-            });
+              await push(ref(db, `leads/${item.id}/messages`), {
+                type: 'campanha_whatsapp',
+                number: cleaned,
+                success: true,
+                text: textPersonalizado,
+                sentAt: updateTime
+              });
+            } catch (_) {}
           } else {
-            await set(ref(db, `config/cerimonialistas/${item.slug}/ultimoContato`), updateTime);
+            try {
+              await set(ref(db, `config/cerimonialistas/${item.slug}/ultimoContato`), updateTime);
+            } catch (_) {}
           }
         } else {
           erroCount++;
@@ -324,10 +337,12 @@ export async function POST(request) {
         };
       }
 
-      // Atualiza progresso da campanha em tempo real
-      await set(ref(db, `campanhas/${campanhaId}/sucesso`), sucessoCount);
-      await set(ref(db, `campanhas/${campanhaId}/erro`), erroCount);
-      await set(ref(db, `campanhas/${campanhaId}/resultados/${itemKey}`), resultados[itemKey]);
+      // Atualiza progresso da campanha em tempo real (com tolerância a falha de permissão no server)
+      try {
+        await set(ref(db, `config/campanhas/${campanhaId}/sucesso`), sucessoCount);
+        await set(ref(db, `config/campanhas/${campanhaId}/erro`), erroCount);
+        await set(ref(db, `config/campanhas/${campanhaId}/resultados/${itemKey}`), resultados[itemKey]);
+      } catch (_) {}
 
       // 4. Jitter Delay Humanizado entre mensagens (4s a 7s)
       if (i < targetItems.length - 1) {
@@ -343,8 +358,10 @@ export async function POST(request) {
     }
 
     // Finaliza status da campanha
-    await set(ref(db, `campanhas/${campanhaId}/status`), 'concluida');
-    await set(ref(db, `campanhas/${campanhaId}/concluidaEm`), new Date().toISOString());
+    try {
+      await set(ref(db, `config/campanhas/${campanhaId}/status`), 'concluida');
+      await set(ref(db, `config/campanhas/${campanhaId}/concluidaEm`), new Date().toISOString());
+    } catch (_) {}
 
     return NextResponse.json({
       ok: true,

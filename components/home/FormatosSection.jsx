@@ -10,23 +10,23 @@ const FORMATOS = [
     titulo: 'Mini Weddings & Casamentos',
     faixa: 'Ideal para 30 a 120 convidados',
     descricao: 'A sofisticação e o encanto que seu casamento merece, com uma carta de drinks equilibrada e custo proporcional ao tamanho da sua celebração.',
-    destaques: ['Carta com drinks clássicos e autorais', 'Balcão refinado que compõe a decoração', 'Atendimento atencioso e sem filas']
+    destaques: ['Carta com drinks clássicos e autorais', 'Bar bonito e elegante que compõe a decoração', 'Atendimento atencioso e sem filas']
   },
   {
     id: 'aniversario',
-    badge: 'Aniversários & Festas',
+    badge: 'Aniversários & Festas Privadas',
     titulo: 'Aniversários & Festas Privadas',
-    faixa: 'Para celebrar com quem importa',
-    descricao: 'Coquetéis preparados na hora que mantêm a pista de dança cheia do início ao fim, com opções alcoólicas marcantes e mocktails sem álcool refrescantes.',
-    destaques: ['Drinks refrescantes com frutas frescas', 'Agilidade e simpatia no atendimento', 'Opções sem álcool para todas as idades']
+    faixa: 'Para celebrar de 30 a 150 pessoas',
+    descricao: 'Coquetéis preparados na hora que mantêm a festa animada do início ao fim, com opções alcoólicas marcantes e opções sem álcool refrescantes.',
+    destaques: ['Drinks refrescantes com frutas frescas', 'Atendimento rápido e equipe simpática', 'Tudo organizado para você curtir sem preocupação']
   },
   {
     id: 'corporativo',
     badge: 'Confraternizações & Empresas',
-    titulo: 'Confraternizações & Empresas',
-    faixa: 'De pequenos encontros a lançamentos',
-    descricao: 'Estrutura compacta, barmen alinhados e postura executiva para receber seus parceiros, colaboradores ou clientes com excelência e nota fiscal.',
-    destaques: ['Pontualidade britânica na montagem', 'Barmen uniformizados e discretos', 'Emissão rápida de contrato e recibo']
+    titulo: 'Confraternizações & Eventos',
+    faixa: 'De 30 a 150 convidados',
+    descricao: 'Estrutura compacta, coquetelaria refinada e operação organizada para surpreender seus convidados sem nenhuma dor de cabeça com compras.',
+    destaques: ['Drinks bem dosados e de alta saída', 'Bar moderno e funcional sem tomar espaço', 'Você não precisa se preocupar com as compras']
   }
 ];
 
@@ -54,8 +54,8 @@ export default function FormatosSection() {
         }}>
           O tamanho certo para a sua celebração
         </h2>
-        <p style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: 'var(--text-secondary)', maxWidth: 580, margin: '0 auto' }}>
-          Não importa se você espera 30 ou 150 convidados: montamos uma operação que se encaixa perfeitamente no seu espaço e no seu bolso.
+        <p style={{ fontSize: 'clamp(0.92rem, 2.1vw, 1.05rem)', color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>Especialistas em eventos pequenos e médios, de 30 a 150 convidados.</strong> Montamos uma operação elegante que se encaixa perfeitamente no seu espaço e no seu orçamento.
         </p>
       </div>
 

@@ -6,15 +6,15 @@ import { FiCheck, FiArrowRight } from 'react-icons/fi';
 const PACOTES_RESUMO = [
   {
     id: 'mao-de-obra',
-    badge: 'Máxima Economia',
+    badge: 'Mão de Obra Especializada',
     nome: 'Mão de Obra Especializada',
-    tagline: 'Para quem prefere comprar as próprias bebidas',
-    descricao: 'Você adquire as bebidas com antecedência (com nossa consultoria gratuita de lista de compras) e nós entramos com os barmen experientes e todos os utensílios.',
+    tagline: 'Para quem já comprou as bebidas e quer deixar o bar por nossa conta',
+    descricao: 'Você adquire as bebidas (com nossa consultoria e lista exata de compras) e nós entramos com os barmen experientes, utensílios completos e total organização.',
     features: [
       'Barmen profissionais uniformizados',
-      'Kit completo de coqueteleiras e dosadores',
-      'Consultoria para quantidade de insumos',
-      'Até 5 horas de evento'
+      'Kit completo de coqueteleiras, dosadores e barware',
+      'Consultoria e lista exata para você economizar',
+      'Até 5 horas de evento com atendimento ágil'
     ],
     destaque: false
   },
@@ -25,9 +25,9 @@ const PACOTES_RESUMO = [
     tagline: 'Para quem quer tranquilidade sem gastar muito',
     descricao: 'O formato clássico com tudo incluso para você não se preocupar com nada no supermercado. 4 opções consagradas de drinks com excelente rotatividade.',
     features: [
-      '4 opções de drinks queridos por todos',
-      'Todos os insumos e frutas frescas inclusos',
-      'Equipe completa e bar móvel',
+      '4 opções de drinks (Caipirinha, Fitzgerald, Mojito e mocktail)',
+      'Frutas frescas do dia e insumos inclusos',
+      'Equipe completa com bar móvel elegante',
       'Gelo, copos e canudos biodegradáveis'
     ],
     destaque: false
@@ -39,9 +39,9 @@ const PACOTES_RESUMO = [
     tagline: 'O equilíbrio perfeito entre clássico e autoral',
     descricao: 'Ideal para casamentos e grandes comemorações. 5 opções de drinks com apresentações marcantes, xaropes artesanais e coquetéis autorais da casa.',
     features: [
-      '5 opções de drinks (inclui autorais)',
+      '5 opções de drinks (inclui Moscow Mule com espuma própria)',
+      'Xaropes artesanais e cordiais produzidos por nós',
       'Taças e copos especiais para cada coquetel',
-      'Apresentação cênica no balcão',
       'Insumos e destilados selecionados'
     ],
     destaque: true
@@ -50,13 +50,13 @@ const PACOTES_RESUMO = [
     id: 'reatividade',
     badge: 'Experiência Completa',
     nome: 'Pacote Reatividade',
-    tagline: 'Para quem deseja coquetelaria cênica',
-    descricao: 'O menu mais completo para impressionar os paladares mais exigentes, com 6 opções de drinks e destilados renomados.',
+    tagline: 'Para quem deseja coquetelaria cênica e marcante',
+    descricao: 'O menu mais completo para impressionar os paladares mais exigentes, com 6 opções de drinks sofisticados e finalizações aromáticas.',
     features: [
-      '6 opções de drinks sofisticados',
+      '6 opções de drinks com botânicos e defumação',
       'Destilados e tônicas selecionadas',
-      'Decorações botânicas e defumação',
-      'Operação ampliada de barmen'
+      'Apresentação cênica com taças especiais',
+      'Operação ampliada com alta agilidade'
     ],
     destaque: false
   }
@@ -75,7 +75,7 @@ export default function PacotesResumoSection() {
           letterSpacing: '0.08em',
           textTransform: 'uppercase'
         }}>
-          Nossos Pacotes
+          Nossos Formatos
         </span>
         <h2 style={{
           fontFamily: 'var(--font-cinzel), serif',
@@ -84,10 +84,10 @@ export default function PacotesResumoSection() {
           margin: '8px 0 12px 0',
           lineHeight: 1.25
         }}>
-          Qual experiência combina com a sua festa?
+          Escolha como você quer contratar
         </h2>
-        <p style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto' }}>
-          Desde opções enxutas até o open bar completo. Escolha o modelo que melhor se encaixa no seu planejamento e simule valores em tempo real.
+        <p style={{ fontSize: 'clamp(0.92rem, 2vw, 1.05rem)', color: 'var(--text-secondary)', maxWidth: 640, margin: '0 auto' }}>
+          Encontre o formato ideal para sua celebração de 30 a 150 convidados. Desde a mão de obra especializada até o open bar completo.
         </p>
       </div>
 
