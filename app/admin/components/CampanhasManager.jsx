@@ -81,6 +81,28 @@ function getLeadLastContactDays(lead) {
   return null;
 }
 
+function getLeadLastCampaignInfo(lead) {
+  if (!lead) return { received: false, date: null, daysAgo: null };
+  let lastDate = null;
+  if (lead.ultimaCampanhaEm) {
+    const d = new Date(lead.ultimaCampanhaEm);
+    if (!isNaN(d.getTime())) lastDate = d;
+  }
+  if (lead.messages && typeof lead.messages === 'object') {
+    Object.values(lead.messages).forEach(m => {
+      if (m && m.type === 'campanha_whatsapp' && m.sentAt) {
+        const d = new Date(m.sentAt);
+        if (!isNaN(d.getTime()) && (!lastDate || d > lastDate)) {
+          lastDate = d;
+        }
+      }
+    });
+  }
+  if (!lastDate) return { received: false, date: null, daysAgo: null };
+  const daysAgo = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+  return { received: true, date: lastDate.toISOString(), daysAgo: Math.max(0, daysAgo) };
+}
+
 function formatDateBr(dateStr) {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -193,6 +215,10 @@ export default function CampanhasManager() {
   const [midia, setMidia] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [previewSeed, setPreviewSeed] = useState(0);
+
+  // Anti-repetição de campanha para leads
+  const [excluirCampanhaRecente, setExcluirCampanhaRecente] = useState(true);
+  const [diasCampanhaRecente, setDiasCampanhaRecente] = useState(15);
 
   // Mobile View Switcher (Editor vs Preview on small devices)
   const [mobileActiveTab, setMobileActiveTab] = useState('editor'); // 'editor' | 'preview'
@@ -328,6 +354,7 @@ export default function CampanhasManager() {
   // Classificação dos Leads
   const classifiedLeads = leads.map(l => {
     const days = getLeadLastContactDays(l);
+    const campaignInfo = getLeadLastCampaignInfo(l);
     let tempStatus = 'normal';
 
     if (l.status === 'perdido') {
@@ -347,6 +374,7 @@ export default function CampanhasManager() {
     return {
       ...l,
       _daysWithoutContact: days,
+      _campaignInfo: campaignInfo,
       _tempStatus: tempStatus
     };
   });
@@ -387,13 +415,20 @@ export default function CampanhasManager() {
 
   const currentTargetItems = publico === 'leads' ? filteredLeads : parceiros;
 
+  const isLeadCampaignExcluded = (lead) => {
+    if (!excluirCampanhaRecente) return false;
+    if (!lead._campaignInfo || !lead._campaignInfo.received) return false;
+    if (diasCampanhaRecente === 0) return true; // Sempre excluir quem já recebeu
+    return lead._campaignInfo.daysAgo !== null && lead._campaignInfo.daysAgo <= diasCampanhaRecente;
+  };
+
   useEffect(() => {
     if (publico === 'leads') {
-      setSelectedIds(filteredLeads.map(l => l.id));
+      setSelectedIds(filteredLeads.filter(l => !isLeadCampaignExcluded(l)).map(l => l.id));
     } else {
       setSelectedIds(parceiros.map(p => p.slug));
     }
-  }, [publico, segmentoLead, searchFilter, leads.length, parceiros.length]);
+  }, [publico, segmentoLead, searchFilter, leads.length, parceiros.length, excluirCampanhaRecente, diasCampanhaRecente]);
 
   const toggleItemSelection = (id) => {
     if (selectedIds.includes(id)) {
@@ -630,7 +665,8 @@ export default function CampanhasManager() {
 
                 if (isLeads) {
                   await update(ref(db, `leads/${item.id}`), {
-                    ultimoContato: updateTime
+                    ultimoContato: updateTime,
+                    ultimaCampanhaEm: updateTime
                   });
                   await push(ref(db, `leads/${item.id}/messages`), {
                     type: 'campanha_whatsapp',
@@ -1248,6 +1284,57 @@ export default function CampanhasManager() {
               </div>
             </div>
 
+            {/* Controle Anti-Repetição de Campanha para Leads */}
+            {publico === 'leads' && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px',
+                padding: '8px 12px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                background: 'rgba(255, 152, 0, 0.08)',
+                border: '1px solid rgba(255, 152, 0, 0.25)',
+                fontSize: '0.8rem'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none', color: 'var(--text-primary)' }}>
+                  <input
+                    type="checkbox"
+                    checked={excluirCampanhaRecente}
+                    onChange={(e) => setExcluirCampanhaRecente(e.target.checked)}
+                    style={{ accentColor: '#FF9800', width: '16px', height: '16px' }}
+                  />
+                  <span>Não reenviar para quem já recebeu campanha recente</span>
+                </label>
+
+                {excluirCampanhaRecente && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Nos últimos:</span>
+                    <select
+                      value={diasCampanhaRecente}
+                      onChange={(e) => setDiasCampanhaRecente(Number(e.target.value))}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value={7}>7 dias</option>
+                      <option value={15}>15 dias</option>
+                      <option value={30}>30 dias</option>
+                      <option value={0}>Sempre (qualquer data)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{
               maxHeight: '190px',
               overflowY: 'auto',
@@ -1269,6 +1356,8 @@ export default function CampanhasManager() {
                   const itemId = item.id || item.slug;
                   const isSelected = selectedIds.includes(itemId);
                   const days = publico === 'leads' ? item._daysWithoutContact : diasDesde(item.ultimoContato);
+                  const campInfo = publico === 'leads' ? item._campaignInfo : null;
+                  const hasCampRecente = campInfo && campInfo.received;
 
                   return (
                     <label
@@ -1284,7 +1373,8 @@ export default function CampanhasManager() {
                         cursor: 'pointer',
                         fontSize: '0.85rem',
                         userSelect: 'none',
-                        WebkitTapHighlightColor: 'transparent'
+                        WebkitTapHighlightColor: 'transparent',
+                        opacity: hasCampRecente && isLeadCampaignExcluded(item) && !isSelected ? 0.7 : 1
                       }}
                     >
                       <input
@@ -1304,6 +1394,28 @@ export default function CampanhasManager() {
                         )}
                       </div>
                       
+                      {/* Badge de Campanha Recente */}
+                      {hasCampRecente && (
+                        <span 
+                          title={`Já recebeu disparo de campanha ${campInfo.daysAgo === 0 ? 'hoje' : `há ${campInfo.daysAgo} dias`}`}
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '3px 7px',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            flexShrink: 0,
+                            background: 'rgba(255, 152, 0, 0.18)',
+                            color: '#FF9800',
+                            border: '1px solid rgba(255, 152, 0, 0.35)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          📢 {campInfo.daysAgo === 0 ? 'Hoje' : `${campInfo.daysAgo}d atrás`}
+                        </span>
+                      )}
+
                       <span style={{
                         fontSize: '0.72rem',
                         padding: '3px 7px',

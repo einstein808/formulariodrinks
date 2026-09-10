@@ -303,7 +303,8 @@ export async function POST(request) {
           if (isLeads) {
             try {
               await update(ref(db, `leads/${item.id}`), {
-                ultimoContato: updateTime
+                ultimoContato: updateTime,
+                ultimaCampanhaEm: updateTime
               });
 
               await push(ref(db, `leads/${item.id}/messages`), {
