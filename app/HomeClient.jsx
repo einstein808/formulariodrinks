@@ -6,13 +6,9 @@ import { useRouter } from 'next/navigation';
 
 import BackgroundEffects from '../components/BackgroundEffects';
 import HeroSection from '../components/home/HeroSection';
-import BeneficioSection from '../components/home/BeneficioSection';
-import FormatosSection from '../components/home/FormatosSection';
-import CartaDrinksSection from '../components/home/CartaDrinksSection';
-import DiferenciaisSection from '../components/home/DiferenciaisSection';
-import PacotesResumoSection from '../components/home/PacotesResumoSection';
 import GaleriaSection from '../components/home/GaleriaSection';
 import AvaliacoesSection from '../components/home/AvaliacoesSection';
+import PacotesResumoSection from '../components/home/PacotesResumoSection';
 import ParceirosBanner from '../components/home/ParceirosBanner';
 import EventoModal from '../components/home/EventoModal';
 import Navbar from '../components/home/Navbar';
@@ -106,14 +102,13 @@ export default function HomeClient() {
   };
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 60 }}>
+    <main suppressHydrationWarning style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 60 }}>
       <BackgroundEffects />
 
       {/* Navbar fixa */}
       <Navbar general={general} />
 
-      {/* 1. Header / Hero */}
-      {/* hero-offset: no desktop compensa navbar top (56px), no mobile zero (barra fica embaixo) */}
+      {/* 1. Header / Hero de Alto Impacto */}
       <style>{`
         .hero-offset { padding-top: 56px; }
         @media (max-width: 767px) { .hero-offset { padding-top: 0; } }
@@ -124,22 +119,7 @@ export default function HomeClient() {
         <HeroSection general={general} />
       </div>
 
-      {/* 2. Manifesto do Benefício: "Bar bom, não conta absurda" */}
-      <BeneficioSection />
-
-      {/* 3. Formatos em Destaque: Mini Wedding, Aniversários, Corporativo */}
-      <FormatosSection />
-
-      {/* 4. A Coquetelaria do Laboratório: Drinks Reais e Preparos Artesanais */}
-      <CartaDrinksSection />
-
-      {/* 5. Diferenciais Racionais: 5 Pilares */}
-      <DiferenciaisSection />
-
-      {/* 6. Comparativo Descomplicado de Formatos / Pacotes */}
-      <PacotesResumoSection />
-
-      {/* 6. Galeria de Eventos Realizados (Prova Visual) */}
+      {/* 2. Prova Visual Imediata: Eventos Realizados (Bancada, Taças e Iluminação) */}
       <GaleriaSection
         galeria={galeria}
         loading={loading}
@@ -149,14 +129,17 @@ export default function HomeClient() {
         formatDate={formatDate}
       />
 
-      {/* 7. Depoimentos Reais (Google Reviews & WhatsApp) */}
+      {/* 3. Depoimentos Reais (Google Reviews 5.0 & Elogios de Convidados) */}
       <AvaliacoesSection
         avaliacoes={avaliacoes}
         general={general}
         loading={loading}
       />
 
-      {/* 8. Banner Guia de Parceiros */}
+      {/* 4. Pacotes Descomplicados: 5, 6 e 7 Drinks (+ 2 Sem Álcool) */}
+      <PacotesResumoSection />
+
+      {/* 6. Banner Parceiros */}
       <ParceirosBanner />
 
 

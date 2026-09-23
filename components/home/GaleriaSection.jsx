@@ -17,7 +17,7 @@ export default function GaleriaSection({
     : (verTodosEventos ? galeria : galeria.slice(0, 3));
 
   return (
-    <section style={{ position: 'relative', zIndex: 10, padding: '40px 24px', maxWidth: 1200, margin: '0 auto' }}>
+    <section style={{ position: 'relative', zIndex: 10, padding: '16px 20px 40px', maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <span style={{
           fontSize: '0.8rem',
@@ -26,13 +26,13 @@ export default function GaleriaSection({
           letterSpacing: '0.08em',
           textTransform: 'uppercase'
         }}>
-          Galeria & Eventos Reais
+          Estética & Estrutura Real
         </span>
-        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.35rem, 4vw, 1.8rem)', color: '#FFF', margin: '8px 0 10px', letterSpacing: '0.02em' }}>
-          Estrutura e bar real em festas de 30 a 150 convidados
+        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 4vw, 2.1rem)', color: '#FFF', margin: '8px 0 10px', letterSpacing: '0.02em' }}>
+          O Bar do Laboratório nos Eventos
         </h2>
-        <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto' }}>
-          Veja fotos e vídeos de mini weddings, aniversários e confraternizações que realizamos recentemente em Juiz de Fora e região.
+        <p style={{ fontSize: '0.94rem', color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto' }}>
+          Bancadas iluminadas, taças especiais e apresentação de alto padrão para casamentos e celebrações de 30 a 150 convidados.
         </p>
       </div>
 

@@ -87,7 +87,7 @@ export default function TrabalheConoscoClient() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   // Google Maps Autocomplete states
   const [bairroQuery, setBairroQuery] = useState('');
@@ -101,13 +101,9 @@ export default function TrabalheConoscoClient() {
   const suggestionsBoxRef = useRef(null);
   const debounceTimerRef = useRef(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Carrega SDK do Google Maps se necessário
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  // Carrega SDK do Google Maps sob demanda (lazy) para não travar a abertura inicial da página
+  const loadGoogleMaps = useCallback(() => {
+    if (typeof window === 'undefined' || googleLoaded) return;
 
     if (window.google && window.google.maps && window.google.maps.places) {
       setGoogleLoaded(true);
@@ -123,16 +119,16 @@ export default function TrabalheConoscoClient() {
       script.defer = true;
       script.onload = () => setGoogleLoaded(true);
       document.head.appendChild(script);
-    } else {
-      const interval = setInterval(() => {
-        if (window.google && window.google.maps) {
-          setGoogleLoaded(true);
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => clearInterval(interval);
     }
-  }, []);
+  }, [googleLoaded]);
+
+  // Pré-carrega de forma ociosa após 2 segundos sem competir com o carregamento da página
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadGoogleMaps();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [loadGoogleMaps]);
 
   // Fecha sugestões ao clicar fora
   useEffect(() => {
@@ -282,48 +278,95 @@ export default function TrabalheConoscoClient() {
     }
 
     setSubmitting(true);
-    try {
-      const candId = `cand_${Date.now()}`;
-      const payload = {
-        id: candId,
-        nome: form.nome.trim(),
-        telefone: form.telefone.replace(/\D/g, ''),
-        instagram: form.instagram.trim() ? (form.instagram.startsWith('@') ? form.instagram.trim() : `@${form.instagram.trim()}`) : '',
-        funcao: form.funcao,
-        bairro: form.bairro.trim(),
-        cidade: form.cidade,
-        enderecoCompleto: form.enderecoCompleto || `${form.bairro}, Juiz de Fora - MG`,
-        lat: form.lat || null,
-        lng: form.lng || null,
-        temExperiencia: form.temExperiencia === 'sim',
-        locaisTrabalhados: form.locaisTrabalhados.trim(),
-        diasSemana: form.diasSemana,
-        transporte: form.transporte,
-        valorCache: form.valorCache.trim(),
-        observacoes: form.observacoes.trim(),
-        status: 'novo', // 'novo' | 'aprovado' | 'em_espera' | 'recusado'
-        criadoEm: new Date().toISOString()
-      };
+    setSubmitError(null);
 
-      await set(ref(db, `candidatos_freelancers/${candId}`), payload);
-      setSubmitted(true);
+    const candId = `cand_${Date.now()}`;
+    const payload = {
+      id: candId,
+      nome: form.nome.trim(),
+      telefone: form.telefone.replace(/\D/g, ''),
+      instagram: form.instagram.trim() ? (form.instagram.startsWith('@') ? form.instagram.trim() : `@${form.instagram.trim()}`) : '',
+      funcao: form.funcao,
+      bairro: form.bairro.trim(),
+      cidade: form.cidade,
+      enderecoCompleto: form.enderecoCompleto || `${form.bairro}, Juiz de Fora - MG`,
+      lat: form.lat || null,
+      lng: form.lng || null,
+      temExperiencia: form.temExperiencia === 'sim',
+      locaisTrabalhados: form.locaisTrabalhados.trim(),
+      diasSemana: form.diasSemana,
+      transporte: form.transporte,
+      valorCache: form.valorCache.trim(),
+      observacoes: form.observacoes.trim(),
+      status: 'novo', // 'novo' | 'aprovado' | 'em_espera' | 'recusado'
+      criadoEm: new Date().toISOString()
+    };
+
+    let saved = false;
+
+    // 1. Tenta API Route /api/candidatos com timeout rígido de 5s
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('/api/candidatos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) saved = true;
+      }
     } catch (err) {
-      console.error('Erro ao enviar formulário de freelancer:', err);
-      alert('Houve um erro ao enviar seu cadastro. Por favor, tente novamente.');
-    } finally {
-      setSubmitting(false);
+      console.warn('Tentativa via /api/candidatos:', err?.message || err);
     }
+
+    // 2. Se a rota não respondeu ou falhou, tenta direto via SDK com timeout de 3s
+    if (!saved) {
+      try {
+        const sdkPromise = set(ref(db, `candidatos_freelancers/${candId}`), payload);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout Firebase SDK')), 3000)
+        );
+        await Promise.race([sdkPromise, timeoutPromise]);
+        saved = true;
+      } catch (err) {
+        console.warn('Tentativa via Firebase SDK direto:', err?.message || err);
+      }
+    }
+
+    if (saved) {
+      setSubmitted(true);
+      setSubmitting(false);
+      return;
+    }
+
+    // Se ambas as tentativas falharam (ex: bloqueio de regras do banco)
+    setSubmitting(false);
+    setSubmitError('Houve uma lentidão no servidor ao confirmar o cadastro. Você pode tentar novamente ou enviar diretamente pelo WhatsApp.');
   };
 
-  const zapAdminUrl = `https://wa.me/5532999990000?text=${encodeURIComponent(`Olá! Acabei de me cadastrar como freelancer no Laboratório de Drinks. Meu nome é ${form.nome}.`)}`;
-
-  if (!mounted) {
-    return (
-      <main style={{ minHeight: '100vh', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="btn__spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
-      </main>
+  const getCandidateWhatsappMessage = () => {
+    return encodeURIComponent(
+      `Olá! Gostaria de me cadastrar como freelancer no Laboratório de Drinks:\n\n` +
+      `*Nome:* ${form.nome || 'Não informado'}\n` +
+      `*WhatsApp:* ${form.telefone || 'Não informado'}\n` +
+      (form.instagram ? `*Instagram:* ${form.instagram}\n` : '') +
+      `*Função:* ${form.funcao}\n` +
+      `*Bairro/Região:* ${form.bairro || 'Juiz de Fora'}\n` +
+      `*Experiência:* ${form.temExperiencia === 'sim' ? 'Sim (' + (form.locaisTrabalhados || 'Experiente') + ')' : 'Iniciante'}\n` +
+      `*Disponibilidade:* ${form.diasSemana.join(', ')}\n` +
+      `*Transporte:* ${form.transporte}\n` +
+      `*Cachê Pretendido:* R$ ${form.valorCache || 'A combinar'}\n` +
+      (form.observacoes ? `*Obs:* ${form.observacoes}\n` : '')
     );
-  }
+  };
+
+  const zapAdminUrl = `https://wa.me/5532998696519?text=${encodeURIComponent(`Olá! Acabei de me cadastrar como freelancer no Laboratório de Drinks. Meu nome é ${form.nome}.`)}`;
+  const zapFallbackUrl = `https://wa.me/5532998696519?text=${getCandidateWhatsappMessage()}`;
 
   if (submitted) {
     return (
@@ -483,6 +526,7 @@ export default function TrabalheConoscoClient() {
                     value={bairroQuery}
                     onChange={handleBairroInputChange}
                     onFocus={() => {
+                      loadGoogleMaps();
                       if (bairroSuggestions.length > 0) setShowSuggestions(true);
                     }}
                     style={{ paddingLeft: '38px' }}
@@ -754,6 +798,47 @@ export default function TrabalheConoscoClient() {
                 />
               </div>
             </div>
+
+            {submitError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '12px',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#EF4444', fontSize: '0.88rem', fontWeight: 600 }}>
+                  <FiAlertCircle size={20} />
+                  <span>Aviso no envio</span>
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  {submitError}
+                </div>
+                <a
+                  href={zapFallbackUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: '#25D366',
+                    color: '#fff',
+                    padding: '11px 16px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.88rem'
+                  }}
+                >
+                  <FaWhatsapp size={18} />
+                  <span>Enviar Cadastro pelo WhatsApp</span>
+                </a>
+              </div>
+            )}
 
             {/* Botão de Envio */}
             <button

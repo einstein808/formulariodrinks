@@ -5,6 +5,53 @@ import { FiCheck, FiArrowRight } from 'react-icons/fi';
 
 const PACOTES_RESUMO = [
   {
+    id: 'experimento',
+    badge: 'Essencial • Custo-Benefício',
+    nome: 'Pacote Experimento',
+    tagline: '5 Drinks com Álcool + 2 Opções Sem Álcool Inclusas',
+    descricao: 'O formato clássico com tudo incluso para você não se preocupar com compras. 5 opções consagradas de drinks mais 2 mocktails artesanais.',
+    features: [
+      '5 opções de drinks com álcool à sua escolha',
+      '2 opções sem álcool inclusas (Mocktails refrescantes)',
+      'Frutas frescas do dia, insumos e xaropes inclusos',
+      'Equipe completa com bar móvel elegante',
+      'Gelo, copos e canudos biodegradáveis'
+    ],
+    destaque: false
+  },
+  {
+    id: 'laboratorio',
+    badge: 'O Mais Escolhido • Open Bar',
+    nome: 'Pacote Laboratório',
+    tagline: '5 Drinks com Álcool + 3 Opções Sem Álcool Inclusas',
+    descricao: 'O formato preferido para casamentos e comemorações. 5 opções de drinks com apresentações marcantes, xaropes artesanais e coquetéis autorais mais 3 opções sem álcool.',
+    features: [
+      '5 opções de drinks com álcool à sua escolha',
+      '3 opções sem álcool inclusas (Mocktails especiais da casa)',
+      'Espuma artesanal de gengibre da casa para Moscow Mule',
+      'Xaropes e cordiais artesanais produzidos por nós',
+      'Estrutura de bar móvel elegante e equipe profissional uniformizada',
+      'Taças e copos especiais para cada coquetel'
+    ],
+    destaque: true
+  },
+  {
+    id: 'reatividade',
+    badge: 'Experiência Completa',
+    nome: 'Pacote Reatividade',
+    tagline: '6 Drinks com Álcool + 3 Opções Sem Álcool Inclusas',
+    descricao: 'O menu mais completo para impressionar os paladares mais exigentes, com destilados premium, finalizações aromáticas e coquetéis cênicos.',
+    features: [
+      '6 opções de drinks sofisticados à sua escolha',
+      '3 opções sem álcool inclusas (Mocktails especiais)',
+      'Drinks com botânicos selecionados e defumação',
+      'Destilados e tônicas selecionadas',
+      'Apresentação cênica com taças especiais',
+      'Operação ampliada com alta agilidade'
+    ],
+    destaque: false
+  },
+  {
     id: 'mao-de-obra',
     badge: 'Mão de Obra Especializada',
     nome: 'Mão de Obra Especializada',
@@ -15,48 +62,6 @@ const PACOTES_RESUMO = [
       'Kit completo de coqueteleiras, dosadores e barware',
       'Consultoria e lista exata para você economizar',
       'Até 5 horas de evento com atendimento ágil'
-    ],
-    destaque: false
-  },
-  {
-    id: 'experimento',
-    badge: 'Melhor Custo-Benefício',
-    nome: 'Pacote Experimento',
-    tagline: 'Para quem quer tranquilidade sem gastar muito',
-    descricao: 'O formato clássico com tudo incluso para você não se preocupar com nada no supermercado. 4 opções consagradas de drinks com excelente rotatividade.',
-    features: [
-      '4 opções de drinks (Caipirinha, Fitzgerald, Mojito e mocktail)',
-      'Frutas frescas do dia e insumos inclusos',
-      'Equipe completa com bar móvel elegante',
-      'Gelo, copos e canudos biodegradáveis'
-    ],
-    destaque: false
-  },
-  {
-    id: 'laboratorio',
-    badge: 'O Mais Escolhido',
-    nome: 'Pacote Laboratório',
-    tagline: 'O equilíbrio perfeito entre clássico e autoral',
-    descricao: 'Ideal para casamentos e grandes comemorações. 5 opções de drinks com apresentações marcantes, xaropes artesanais e coquetéis autorais da casa.',
-    features: [
-      '5 opções de drinks (inclui Moscow Mule com espuma própria)',
-      'Xaropes artesanais e cordiais produzidos por nós',
-      'Taças e copos especiais para cada coquetel',
-      'Insumos e destilados selecionados'
-    ],
-    destaque: true
-  },
-  {
-    id: 'reatividade',
-    badge: 'Experiência Completa',
-    nome: 'Pacote Reatividade',
-    tagline: 'Para quem deseja coquetelaria cênica e marcante',
-    descricao: 'O menu mais completo para impressionar os paladares mais exigentes, com 6 opções de drinks sofisticados e finalizações aromáticas.',
-    features: [
-      '6 opções de drinks com botânicos e defumação',
-      'Destilados e tônicas selecionadas',
-      'Apresentação cênica com taças especiais',
-      'Operação ampliada com alta agilidade'
     ],
     destaque: false
   }

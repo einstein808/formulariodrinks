@@ -105,7 +105,12 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="LabDrinks" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <meta name="mobile-web-app-capable" content="yes" />
+        {/* Anti-extension DOM cleaner for Bitdefender / bis_skin_checked hydration mismatch */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){if(typeof window==='undefined')return;try{var clean=function(n){if(n&&n.nodeType===1){if(n.hasAttribute('bis_skin_checked'))n.removeAttribute('bis_skin_checked');var c=n.querySelectorAll?n.querySelectorAll('[bis_skin_checked]'):[];for(var i=0;i<c.length;i++)c[i].removeAttribute('bis_skin_checked');}};if(typeof MutationObserver!=='undefined'){var o=new MutationObserver(function(m){for(var i=0;i<m.length;i++){var t=m[i];if(t.type==='attributes'&&t.attributeName==='bis_skin_checked'&&t.target){t.target.removeAttribute('bis_skin_checked');}else if(t.type==='childList'){for(var j=0;j<t.addedNodes.length;j++)clean(t.addedNodes[j]);}}});o.observe(document.documentElement,{attributes:true,attributeFilter:['bis_skin_checked'],subtree:true,childList:true});}var origError=console.error;console.error=function(){for(var i=0;i<arguments.length;i++){var a=arguments[i];if(typeof a==='string'&&(a.indexOf('bis_skin_checked')!==-1||(a.indexOf('hydration')!==-1&&document.querySelector('[bis_skin_checked]')))){return;}}origError.apply(console,arguments);};}catch(e){}})();`
+          }}
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body suppressHydrationWarning>

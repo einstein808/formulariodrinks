@@ -595,16 +595,16 @@ export default function OrcamentoClient() {
                 let drinkPillText = '🍸 Opções de Drinks';
                 if (p.drinksCount || p.maxDrinks) {
                   const count = p.drinksCount || p.maxDrinks;
-                  if (count === 4 || isExperimento) drinkPillText = '🍸 4 Opções de Drinks';
-                  else if (count === 5 || isLaboratorio) drinkPillText = '🍹 5 Opções • Inclui Autorais';
-                  else if (count === 6 || isReatividade) drinkPillText = '💎 6 Opções • Destilados Premium';
-                  else drinkPillText = `🍸 ${count} Opções de Drinks`;
+                  if (isExperimento) drinkPillText = '🍸 5 Drinks (+2 Sem Álcool)';
+                  else if (isLaboratorio) drinkPillText = '🍹 5 Drinks • Autorais (+3 Sem Álcool)';
+                  else if (isReatividade) drinkPillText = '💎 6 Drinks • Premium (+3 Sem Álcool)';
+                  else drinkPillText = `🍸 ${count} Drinks`;
                 } else if (isExperimento) {
-                  drinkPillText = '🍸 4 Opções de Drinks';
+                  drinkPillText = '🍸 5 Drinks (+2 Sem Álcool)';
                 } else if (isLaboratorio) {
-                  drinkPillText = '🍹 5 Opções • Inclui Autorais';
+                  drinkPillText = '🍹 5 Drinks • Autorais (+3 Sem Álcool)';
                 } else if (isReatividade) {
-                  drinkPillText = '💎 6 Opções • Destilados Premium';
+                  drinkPillText = '💎 6 Drinks • Premium (+3 Sem Álcool)';
                 }
 
                 const calc = calculatePackagePrice(p, formData.convidados || 40, formData.duracao || 5, { 
@@ -1078,7 +1078,7 @@ export default function OrcamentoClient() {
       )}
 
 
-      <div className="app">
+      <div className="app" suppressHydrationWarning>
         {configLoading ? (
           <div className="loading-screen" style={{
             minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '20px 0'

@@ -113,7 +113,7 @@ export default function Page() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* SEO: Static content visible to search engines and AI crawlers */}
-      <div className="sr-only" aria-hidden="false">
+      <div className="sr-only" aria-hidden="false" suppressHydrationWarning>
         <h1>Laboratório de Drinks - Bar de Qualidade para Festas e Mini Weddings em Juiz de Fora</h1>
         <p>
           O Laboratório de Drinks oferece serviço de bar móvel e coquetelaria sob medida para casamentos, 

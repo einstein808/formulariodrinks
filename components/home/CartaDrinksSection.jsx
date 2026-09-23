@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { FiArrowRight, FiCheck } from 'react-icons/fi';
+import { FiArrowRight } from 'react-icons/fi';
 
 const DRINKS_CARTA = [
   {
@@ -46,13 +46,6 @@ const DRINKS_CARTA = [
     descricao: 'Cordial artesanal de morango, amora e framboesa, limão e água gaseificada. Uma opção sofisticada para todas as idades.',
     emoji: '🍓'
   }
-];
-
-const DIFERENCIAIS_LAB = [
-  { titulo: 'Frutas frescas do dia', desc: 'Nada de polpas congeladas ou pós químicos. Cortamos e preparamos no dia do seu evento.' },
-  { titulo: 'Xaropes e cordiais artesanais', desc: 'Preparamos nossas próprias bases e infusões botânicas para garantir um sabor que você não encontra em buffets convencionais.' },
-  { titulo: 'Equilíbrio e dosagem precisa', desc: 'Técnica de coquetelaria internacional com dosadores. Seus convidados bebem um coquetel equilibrado do primeiro ao último brinde.' },
-  { titulo: 'Atendimento rápido e ágil', desc: 'Estação de bar planejada para preparo simultâneo. Zero filas longas para você curtir a festa.' }
 ];
 
 export default function CartaDrinksSection() {
@@ -145,74 +138,25 @@ export default function CartaDrinksSection() {
         ))}
       </div>
 
-      {/* Box de Diferenciação: Por que Laboratório? */}
-      <div style={{
-        background: 'linear-gradient(180deg, rgba(203, 161, 83, 0.06) 0%, rgba(12, 22, 16, 0.7) 100%)',
-        border: '1px solid rgba(203, 161, 83, 0.25)',
-        borderRadius: 'var(--radius-lg)',
-        padding: 'clamp(24px, 4vw, 36px)',
-        boxShadow: '0 12px 36px rgba(0,0,0,0.35)'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h3 style={{
-            fontFamily: 'var(--font-cinzel), serif',
-            fontSize: 'clamp(1.15rem, 3.2vw, 1.5rem)',
-            color: '#FFFFFF',
-            margin: '0 0 8px 0'
-          }}>
-            O que faz o Laboratório ser diferente de um buffet comum?
-          </h3>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>
-            Cuidamos de cada detalhe para que seus convidados sintam a diferença no primeiro gole:
-          </p>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 16,
-          marginBottom: 28
-        }}>
-          {DIFERENCIAIS_LAB.map((item, idx) => (
-            <div key={idx} style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              borderRadius: 'var(--radius-md)',
-              padding: '16px 18px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6
-            }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <FiCheck size={16} /> {item.titulo}
-              </span>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                {item.desc}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* CTA da Seção */}
-        <div style={{ textAlign: 'center' }}>
-          <button
-            onClick={() => router.push('/orcamento')}
-            className="btn btn--primary"
-            style={{
-              padding: '14px 28px',
-              fontSize: '0.98rem',
-              fontWeight: 700,
-              color: '#0a100d',
-              borderRadius: 10,
-              boxShadow: '0 4px 20px rgba(203, 161, 83, 0.3)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8
-            }}
-          >
-            Calcular orçamento com esses drinks <FiArrowRight size={16} />
-          </button>
-        </div>
+      {/* CTA Direto e Elegante */}
+      <div style={{ textAlign: 'center', marginTop: 10 }}>
+        <button
+          onClick={() => router.push('/orcamento')}
+          className="btn btn--primary"
+          style={{
+            padding: '14px 28px',
+            fontSize: '0.98rem',
+            fontWeight: 700,
+            color: '#0a100d',
+            borderRadius: 10,
+            boxShadow: '0 4px 20px rgba(203, 161, 83, 0.3)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          Personalizar carta no orçamento <FiArrowRight size={16} />
+        </button>
       </div>
     </section>
   );

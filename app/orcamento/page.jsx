@@ -62,7 +62,7 @@ export default function Page() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* SEO: Static content visible to search engines and AI crawlers */}
-      <div className="sr-only" aria-hidden="false">
+      <div className="sr-only" aria-hidden="false" suppressHydrationWarning>
         <h1>Orçamento de Barman para Eventos em Juiz de Fora</h1>
         <p>
           Solicite agora um orçamento personalizado para o serviço de bartender e coquetelaria 
