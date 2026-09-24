@@ -263,9 +263,9 @@ export default function ClienteContratoPage() {
     (p.name && formData.Servico && p.name.toLowerCase() === formData.Servico.toLowerCase())
   );
 
-  // Limite de drinks: usa maxDrinks do Firebase se configurado, senão fallback pelos nomes
+  // Limite de drinks: usa maxDrinks/maxDrinksNA do Firebase se configurado, senão fallback pelos nomes
   const limitAlcoolTotal = activePacote?.maxDrinks ? Number(activePacote.maxDrinks) : (isReatividade ? 6 : (isExperimento ? 4 : 5));
-  const limitNA = 2;
+  const limitNA = activePacote?.maxDrinksNA ? Number(activePacote.maxDrinksNA) : 2;
   const limitSofisticado = isReatividade ? 1 : 0;
   const limitFrozen = isFrozen ? 2 : 0;
 

@@ -298,7 +298,7 @@ export default function TabPacotes() {
             </div>
 
             {/* Linha 1: Dados Básicos */}
-            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 120px', gap: '16px', marginBottom: '16px' }}>
+            <div className="admin-config-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 110px 110px', gap: '16px', marginBottom: '16px' }}>
               <div>
                 <label className="form-label">Emoji</label>
                 <input type="text" className="form-input" value={pacote.emoji || ''} onChange={(e) => updatePacote(pacote.id, 'emoji', e.target.value)} style={{ textAlign: 'center' }} />
@@ -312,8 +312,12 @@ export default function TabPacotes() {
                 <input type="text" className="form-input" value={pacote.badge || ''} onChange={(e) => updatePacote(pacote.id, 'badge', e.target.value)} placeholder="Ex: Mais Escolhido" />
               </div>
               <div>
-                <label className="form-label">Limite Drinks</label>
-                <input type="number" className="form-input" value={pacote.maxDrinks ?? ''} onChange={(e) => updatePacote(pacote.id, 'maxDrinks', Number(e.target.value))} />
+                <label className="form-label">🍸 Lim. Alcoólicos</label>
+                <input type="number" className="form-input" value={pacote.maxDrinks ?? ''} onChange={(e) => updatePacote(pacote.id, 'maxDrinks', Number(e.target.value))} placeholder="Ex: 5" />
+              </div>
+              <div>
+                <label className="form-label">🥤 Lim. Sem Álcool</label>
+                <input type="number" className="form-input" value={pacote.maxDrinksNA ?? ''} onChange={(e) => updatePacote(pacote.id, 'maxDrinksNA', Number(e.target.value))} placeholder="Ex: 2" />
               </div>
             </div>
 
