@@ -108,7 +108,9 @@ export function useWhatsAppActions({
           finalText += `\n\nLink do contrato: ${linkContrato}`;
         }
 
-        const number = '55' + (selectedLead.telefone || '').replace(/\D/g, '');
+        const rawDigits = (selectedLead.telefone || '').replace(/\D/g, '');
+        // Normalize: if already has country code 55, use as-is; otherwise prepend 55
+        const number = rawDigits.startsWith('55') ? rawDigits : '55' + rawDigits;
         const baseUrl = evolutionApi.url.endsWith('/') ? evolutionApi.url.slice(0, -1) : evolutionApi.url;
         
         let endpoint = '';
@@ -123,7 +125,6 @@ export function useWhatsAppActions({
             payload = {
               number: number,
               text: finalText + '\n\n' + scriptConfig.image,
-              linkPreview: false
             };
           } else {
             endpoint = `${baseUrl}/message/sendMedia/${evolutionApi.instance}`;
@@ -132,7 +133,6 @@ export function useWhatsAppActions({
               mediatype: "image",
               media: scriptConfig.image,
               caption: finalText,
-              linkPreview: false
             };
           }
         } else {
@@ -140,7 +140,6 @@ export function useWhatsAppActions({
           payload = {
             number: number,
             text: finalText,
-            linkPreview: false
           };
         }
 
@@ -154,7 +153,9 @@ export function useWhatsAppActions({
         });
 
         if (!response.ok) {
-          throw new Error('Falha ao enviar mensagem pela API do Evolution (Status ' + response.status + ')');
+          const errorBody = await response.text().catch(() => '(sem corpo)');
+          console.error('[Evolution API] Erro', response.status, '- Payload:', JSON.stringify(payload), '- Resposta:', errorBody);
+          throw new Error(`Falha ao enviar mensagem pela API do Evolution (Status ${response.status}): ${errorBody}`);
         }
 
         await logMessageToLead(selectedLead.id, `script_${scriptType}`, number, true);
@@ -162,7 +163,8 @@ export function useWhatsAppActions({
       } catch (err) {
         console.error("Erro ao enviar script:", err);
         showToast(`Erro ao enviar script: ${err.message}`, "error");
-        await logMessageToLead(selectedLead.id, `script_${scriptType}`, '55' + (selectedLead.telefone || '').replace(/\D/g, ''), false, err.message);
+        const rawDigits2 = (selectedLead.telefone || '').replace(/\D/g, '');
+        await logMessageToLead(selectedLead.id, `script_${scriptType}`, rawDigits2.startsWith('55') ? rawDigits2 : '55' + rawDigits2, false, err.message);
       } finally {
         setSendingScript(false);
       }

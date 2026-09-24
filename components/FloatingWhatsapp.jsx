@@ -30,12 +30,12 @@ export default function FloatingWhatsapp() {
     return () => unsubscribe();
   }, []);
 
-  // Do not show on admin routes or orcamento form
+  // Do not show on admin routes, orcamento form, or contrato pages
   const isAdmin = pathname && pathname.startsWith('/admin');
   const isOrcamento = pathname === '/orcamento' || (pathname && pathname.startsWith('/orcamento'));
-  if (isAdmin || isOrcamento || !whatsappNumber) return null;
+  const isContrato = pathname && pathname.startsWith('/contrato');
+  if (isAdmin || isOrcamento || isContrato || !whatsappNumber) return null;
 
-  const isFormPage = pathname && pathname.startsWith('/contrato');
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=Olá! Gostaria de fazer um orçamento de drinks para meu evento.`;
 
   return (
@@ -67,7 +67,7 @@ export default function FloatingWhatsapp() {
 
         @media (max-width: 768px) {
           .floating-wa-wrapper {
-            bottom: ${isFormPage ? '105px' : '85px'} !important;
+            bottom: 85px !important;
             right: 16px !important;
           }
         }
