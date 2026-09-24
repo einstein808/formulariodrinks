@@ -256,8 +256,15 @@ export default function ClienteContratoPage() {
   const DRINKS_SOFISTICADOS = allDrinks.filter(d => d.category === 'sofisticado');
   const DRINKS_FROZEN = allDrinks.filter(d => d.category === 'frozen');
 
-  // Limite de drinks por pacote: Experimento = 4, Laboratório = 5, Reatividade = 6
-  const limitAlcoolTotal = isReatividade ? 6 : (isExperimento ? 4 : 5);
+  // Busca pacote ativo do Firebase para pegar limites dinâmicos
+  const activePacote = pacotes.find(p =>
+    p.id === formData.pacote ||
+    p.name === formData.Servico ||
+    (p.name && formData.Servico && p.name.toLowerCase() === formData.Servico.toLowerCase())
+  );
+
+  // Limite de drinks: usa maxDrinks do Firebase se configurado, senão fallback pelos nomes
+  const limitAlcoolTotal = activePacote?.maxDrinks ? Number(activePacote.maxDrinks) : (isReatividade ? 6 : (isExperimento ? 4 : 5));
   const limitNA = 2;
   const limitSofisticado = isReatividade ? 1 : 0;
   const limitFrozen = isFrozen ? 2 : 0;
