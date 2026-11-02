@@ -197,10 +197,14 @@ export default function PacotesResumoSection() {
         borderRadius: 'var(--radius-md)',
         border: '1px solid rgba(255, 255, 255, 0.06)'
       }}>
-        <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-          Precisa de um formato personalizado ou quer adicionar chopeira ou máquina de frozen?{' '}
-          <strong style={{ color: 'var(--primary)', cursor: 'pointer' }} onClick={() => router.push('/orcamento')}>
-            Monte seu orçamento completo online em 1 minuto →
+        <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          Todos os drinks acima fazem parte do pacote contratado (sem taxa por unidade consumida).<br />
+          <strong style={{ color: 'var(--primary)', cursor: 'pointer', marginRight: 16 }} onClick={() => router.push('/menu')}>
+            Ver nosso cardápio completo de drinks →
+          </strong>
+          <span style={{ opacity: 0.6 }}>•</span>
+          <strong style={{ color: 'var(--text-primary)', cursor: 'pointer', marginLeft: 16 }} onClick={() => router.push('/orcamento')}>
+            Calcular orçamento do evento em 1 minuto →
           </strong>
         </p>
       </div>

@@ -112,7 +112,6 @@ export function ConfigsProvider({ children }) {
         await set(ref(db, 'config/evolutionApi'), evolutionApi);
       } else if (activeTab === 'scripts') {
         await set(ref(db, 'config/scripts'), scripts);
-        await set(ref(db, 'config/general'), general);
       } else if (activeTab === 'galeria') {
         const sorted = galeria.map((e, i) => ({ ...e, order: i }));
         await set(ref(db, 'config/galeriaEventos'), arrayToFirebaseObj(sorted));

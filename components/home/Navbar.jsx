@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FiArrowRight } from 'react-icons/fi';
 
@@ -79,22 +80,42 @@ export default function Navbar({ general }) {
           </span>
         </div>
 
-        {/* CTA */}
-        <button
-          onClick={() => router.push('/orcamento')}
-          className="btn btn--primary"
-          style={{
-            fontSize: '0.82rem',
-            padding: '9px 18px',
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 7,
-            boxShadow: '0 2px 12px rgba(203, 161, 83, 0.3)'
-          }}
-        >
-          Calcular orçamento <FiArrowRight size={14} />
-        </button>
+        {/* Ações */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <Link
+            href="/menu"
+            style={{
+              color: 'var(--text-secondary)',
+              textDecoration: 'none',
+              fontSize: '0.84rem',
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              transition: 'color 0.2s ease',
+              padding: '6px 10px'
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            Cardápio
+          </Link>
+
+          {/* CTA */}
+          <button
+            onClick={() => router.push('/orcamento')}
+            className="btn btn--primary"
+            style={{
+              fontSize: '0.82rem',
+              padding: '9px 18px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              boxShadow: '0 2px 12px rgba(203, 161, 83, 0.3)'
+            }}
+          >
+            Calcular orçamento <FiArrowRight size={14} />
+          </button>
+        </div>
       </nav>
     </>
   );

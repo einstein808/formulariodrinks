@@ -243,6 +243,7 @@ export default function CerimonialstasManager() {
           whatsapp: form.whatsapp.replace(/\D/g, ''),
           foto: form.foto || '',
           categorias: form.categorias,
+          categoria: null, // remove campo legado (singular) se existir
           exibirNaVitrine: Boolean(form.exibirNaVitrine),
           atualizadoEm: new Date().toISOString()
         });

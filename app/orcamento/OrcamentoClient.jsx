@@ -302,7 +302,7 @@ export default function OrcamentoClient() {
     })
 
     if (!cleanData.status) cleanData.status = 'novo';
-    cleanData.atualizadoEm = Date.now();
+    cleanData.atualizadoEm = new Date().toISOString();
 
     if (existingId) {
       try {
@@ -313,7 +313,7 @@ export default function OrcamentoClient() {
       }
       return existingId
     } else {
-      if (!cleanData.criadoEm) cleanData.criadoEm = Date.now();
+      if (!cleanData.criadoEm) cleanData.criadoEm = new Date().toISOString();
       const newRef = await push(ref(db, 'leads'), cleanData)
       return newRef.key
     }
@@ -343,7 +343,7 @@ export default function OrcamentoClient() {
           cidade,
           cerimonialista: formData.cerimonialista,
           status: 'novo',
-          criadoEm: Date.now(),
+          criadoEm: new Date().toISOString(),
           abGroup: abGroup || 'A',
         })
         leadIdRef.current = newId
@@ -431,7 +431,7 @@ export default function OrcamentoClient() {
       cidade: finalCity,
       status: 'novo',
       abGroup: abGroup || 'A',
-      atualizadoEm: Date.now(),
+      atualizadoEm: new Date().toISOString(),
     };
 
     // Step 0 → 1: criar lead se ainda não existe
@@ -439,7 +439,7 @@ export default function OrcamentoClient() {
       try {
         const newId = await saveLeadToFirebase({
           ...baseData,
-          criadoEm: Date.now(),
+          criadoEm: new Date().toISOString(),
         });
         // Salvar ID de forma síncrona no ref E no estado E no localStorage
         leadIdRef.current = newId;
@@ -509,7 +509,7 @@ export default function OrcamentoClient() {
         abGroup: abGroup || 'A',
         abCampaign: isAbActive ? (abTestingConfig?.campaignName || formData.abCampaign || 'padrao') : (formData.abCampaign || 'padrao'),
         status: 'novo',
-        atualizadoEm: Date.now()
+        atualizadoEm: new Date().toISOString()
       };
       delete rawLeadData.novaCidade;
 
@@ -525,7 +525,7 @@ export default function OrcamentoClient() {
       if (leadIdRef.current) {
         await update(ref(db, `leads/${leadIdRef.current}`), leadDataToSave);
       } else {
-        leadDataToSave.criadoEm = Date.now();
+        leadDataToSave.criadoEm = new Date().toISOString();
         const newRef = await push(ref(db, 'leads'), leadDataToSave);
         finalLeadId = newRef.key;
         leadIdRef.current = newRef.key
