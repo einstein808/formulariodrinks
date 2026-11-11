@@ -25,6 +25,7 @@ build/
 
 # Local env files
 *.local
+backup_*.json
 
 # Editor directories and files
 .vscode/*

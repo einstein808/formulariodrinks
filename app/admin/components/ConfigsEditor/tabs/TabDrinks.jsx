@@ -1,8 +1,9 @@
 "use client";
 import React from 'react';
-import { FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiZap } from 'react-icons/fi';
 import { useConfigs } from '../context/ConfigsContext';
 import MinioImageUpload from '@/app/admin/components/MinioImageUpload';
+import { getDefaultRecipeForDrink, sanitizeRecipe } from '@/lib/drinksRecipes';
 
 export default function TabDrinks() {
   const { drinks, setDrinks } = useConfigs();
@@ -41,6 +42,49 @@ export default function TabDrinks() {
     }));
   };
 
+  const applyDefaultRecipe = (id, drinkName) => {
+    const defaultRec = getDefaultRecipeForDrink(id || drinkName);
+    if (defaultRec && defaultRec.length > 0) {
+      setDrinks(drinks.map(d => d.id === id ? { ...d, receita: defaultRec } : d));
+    } else {
+      alert('Nenhuma receita padrão cadastrada para este drink.');
+    }
+  };
+
+  const fixAndStandardizeAllRecipes = () => {
+    if (window.confirm('Deseja corrigir e padronizar automaticamente todas as unidades e fichas técnicas (corrigindo limão em gramas, Run -> Rum, doses vazias e adicionando receitas de frozens)?')) {
+      let count = 0;
+      const updated = drinks.map(d => {
+        let rec = d.receita && Array.isArray(d.receita) && d.receita.length > 0
+          ? sanitizeRecipe(d.receita)
+          : [];
+        if (rec.length === 0) {
+          rec = getDefaultRecipeForDrink(d.id || d.name);
+        }
+        count++;
+        return { ...d, receita: rec };
+      });
+      setDrinks(updated);
+      alert(`Todas as ${count} fichas de drinks foram corrigidas e padronizadas com sucesso! Lembre-se de clicar em "Salvar Alterações" no topo do painel.`);
+    }
+  };
+
+  const applyAllDefaultRecipes = () => {
+    if (window.confirm('Deseja preencher as fichas técnicas e dosagens padrão em todos os drinks cadastrados?')) {
+      let count = 0;
+      const updated = drinks.map(d => {
+        const defaultRec = getDefaultRecipeForDrink(d.id || d.name);
+        if (defaultRec && defaultRec.length > 0) {
+          count++;
+          return { ...d, receita: defaultRec };
+        }
+        return d;
+      });
+      setDrinks(updated);
+      alert(`Ficha técnica padrão aplicada a ${count} drinks! Lembre-se de clicar em "Salvar Alterações" no topo do painel.`);
+    }
+  };
+
   const removeDrink = (id) => {
     if (window.confirm('Remover este drink do cardápio?')) {
       setDrinks(drinks.filter(d => d.id !== id));
@@ -49,13 +93,33 @@ export default function TabDrinks() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.2s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, flex: 1, minWidth: '240px' }}>
           Cadastre as opções de drinks do bar, fotos para o cardápio e os insumos de cada receita para o cálculo automático de compras.
         </p>
-        <button className="btn btn--outline" onClick={addDrink} style={{ width: 'auto', flexShrink: 0 }}>
-          <FiPlus /> Novo Drink
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+          <button 
+            type="button"
+            className="btn btn--primary" 
+            onClick={fixAndStandardizeAllRecipes} 
+            style={{ width: 'auto', fontSize: '0.82rem', padding: '8px 12px' }}
+            title="Corrigir unidades erradas (1g -> 1un), nomes duplicados e preencher frozens sem receita"
+          >
+            🔧 Corrigir Unidades & Nomes
+          </button>
+          <button 
+            type="button"
+            className="btn btn--outline" 
+            onClick={applyAllDefaultRecipes} 
+            style={{ width: 'auto', color: 'var(--primary)', borderColor: 'var(--primary)', fontSize: '0.82rem', padding: '8px 12px' }}
+            title="Preencher dosagens padrão da coquetelaria em todos os drinks"
+          >
+            <FiZap /> Restaurar Todas Fichas
+          </button>
+          <button className="btn btn--outline" onClick={addDrink} style={{ width: 'auto', fontSize: '0.82rem', padding: '8px 12px' }}>
+            <FiPlus /> Novo Drink
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -102,11 +166,25 @@ export default function TabDrinks() {
             
             {/* Receita do Drink */}
             <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', borderLeft: '3px solid var(--primary)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h5 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Receita (Base para 1 preparo)</h5>
-                <button onClick={() => addDrinkRecipeItem(drink.id)} style={{ background: 'none', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 'bold' }}>
-                  + Adicionar Insumo
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Receita / Ficha Técnica (Base para 1 preparo)</h5>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button 
+                    type="button"
+                    onClick={() => applyDefaultRecipe(drink.id, drink.name)} 
+                    style={{ background: 'none', border: '1px solid rgba(203,161,83,0.3)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.72rem' }}
+                    title="Preencher com a receita e dosagens padrão"
+                  >
+                    ⚡ Ficha Padrão
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => addDrinkRecipeItem(drink.id)} 
+                    style={{ background: 'none', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 'bold' }}
+                  >
+                    + Adicionar Insumo
+                  </button>
+                </div>
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

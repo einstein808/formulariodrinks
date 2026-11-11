@@ -59,6 +59,9 @@ export default function OrcamentoClient() {
   // Ref síncrono para o leadId — evita race condition com estado assíncrono do React
   // Sempre use leadIdRef.current em lógica síncrona (nextStep, handleSubmit)
   const leadIdRef = useRef(null)
+  const savePromiseRef = useRef(null)
+  const autoCaptureTimerRef = useRef(null)
+  const isNavigatingRef = useRef(false)
   const [general, setGeneral] = useState(null)
 
   const [abGroup, setAbGroup] = useState('A')
@@ -294,7 +297,7 @@ export default function OrcamentoClient() {
     setErrors(prev => ({ ...prev, [field]: '' }))
   }, [])
 
-  /* ---- Helper: salva/atualiza lead no Firebase com retry ---- */
+  /* ---- Helper: salva/atualiza lead no Firebase com retry e trava contra duplicatas ---- */
   const saveLeadToFirebase = useCallback(async (data, existingId = null) => {
     const cleanData = {}
     Object.entries(data).forEach(([k, v]) => {
@@ -304,25 +307,53 @@ export default function OrcamentoClient() {
     if (!cleanData.status) cleanData.status = 'novo';
     cleanData.atualizadoEm = new Date().toISOString();
 
-    if (existingId) {
+    const targetId = existingId || leadIdRef.current;
+
+    // Se já existe um leadId registrado, SEMPRE atualiza (nunca faz push)
+    if (targetId) {
       try {
-        await update(ref(db, `leads/${existingId}`), cleanData)
+        await update(ref(db, `leads/${targetId}`), cleanData)
       } catch (err) {
         console.warn('Retry ao atualizar lead...', err)
-        try { await update(ref(db, `leads/${existingId}`), cleanData) } catch (_) {}
+        try { await update(ref(db, `leads/${targetId}`), cleanData) } catch (_) {}
       }
-      return existingId
-    } else {
+      return targetId
+    }
+
+    // Se já existe uma criação em andamento por outra chamada/timer, aguarda a promessa e atualiza
+    if (savePromiseRef.current) {
+      try {
+        const promisedId = await savePromiseRef.current;
+        if (promisedId) {
+          await update(ref(db, `leads/${promisedId}`), cleanData);
+          return promisedId;
+        }
+      } catch (_) {}
+    }
+
+    // Criação inicial atômica (apenas UMA requisição push é executada)
+    savePromiseRef.current = (async () => {
       if (!cleanData.criadoEm) cleanData.criadoEm = new Date().toISOString();
-      const newRef = await push(ref(db, 'leads'), cleanData)
-      return newRef.key
+      const newRef = await push(ref(db, 'leads'), cleanData);
+      const newKey = newRef.key;
+      leadIdRef.current = newKey;
+      setCurrentLeadId(newKey);
+      try { localStorage.setItem('CURRENT_LEAD_ID', newKey); } catch (_) {}
+      return newKey;
+    })();
+
+    try {
+      const newId = await savePromiseRef.current;
+      return newId;
+    } finally {
+      savePromiseRef.current = null;
     }
   }, [])
 
   // Auto-captura parcial: salva lead assim que campos mínimos do step 0 são preenchidos
   // Não espera o usuário clicar "Próximo" — garante captura mesmo em abandono
   useEffect(() => {
-    if (leadIdRef.current) return // já existe lead
+    if (leadIdRef.current || savePromiseRef.current) return // já existe lead ou está criando
     if (currentStep !== 0) return // só no step inicial
     if (isSuccess) return
 
@@ -333,10 +364,14 @@ export default function OrcamentoClient() {
     // Aguarda pelo menos nome + telefone válido + cidade
     if (!nome || telefone.length < 10 || !cidade) return
 
-    const timer = setTimeout(async () => {
-      if (leadIdRef.current) return // double-check (outra aba pode ter criado)
+    if (autoCaptureTimerRef.current) {
+      clearTimeout(autoCaptureTimerRef.current);
+    }
+
+    autoCaptureTimerRef.current = setTimeout(async () => {
+      if (leadIdRef.current || savePromiseRef.current) return // double-check
       try {
-        const newId = await saveLeadToFirebase({
+        await saveLeadToFirebase({
           nome,
           sobrenome: formData.sobrenome,
           telefone: formData.telefone,
@@ -346,13 +381,15 @@ export default function OrcamentoClient() {
           criadoEm: new Date().toISOString(),
           abGroup: abGroup || 'A',
         })
-        leadIdRef.current = newId
-        setCurrentLeadId(newId)
-        try { localStorage.setItem('CURRENT_LEAD_ID', newId) } catch (_) {}
       } catch (_) {}
     }, 1500) // debounce 1.5s — evita salvar a cada tecla
 
-    return () => clearTimeout(timer)
+    return () => {
+      if (autoCaptureTimerRef.current) {
+        clearTimeout(autoCaptureTimerRef.current);
+        autoCaptureTimerRef.current = null;
+      }
+    }
   }, [formData.nome, formData.telefone, formData.cidade, formData.novaCidade, formData.sobrenome, formData.cerimonialista, currentStep, isSuccess, abGroup, saveLeadToFirebase])
 
   /* ---- Phone mask ---- */
@@ -420,46 +457,56 @@ export default function OrcamentoClient() {
   }, [formData])
 
   const nextStep = useCallback(async () => {
+    if (isNavigatingRef.current) return;
     if (!validateStep(currentStep)) return;
 
-    let finalCity = formData.cidade === 'Outra cidade...'
-      ? formData.novaCidade.trim()
-      : formData.cidade;
-
-    const baseData = {
-      ...formData,
-      cidade: finalCity,
-      status: 'novo',
-      abGroup: abGroup || 'A',
-      atualizadoEm: new Date().toISOString(),
-    };
-
-    // Step 0 → 1: criar lead se ainda não existe
-    if (currentStep === 0 && !leadIdRef.current) {
-      try {
-        const newId = await saveLeadToFirebase({
-          ...baseData,
-          criadoEm: new Date().toISOString(),
-        });
-        // Salvar ID de forma síncrona no ref E no estado E no localStorage
-        leadIdRef.current = newId;
-        setCurrentLeadId(newId);
-        try { localStorage.setItem('CURRENT_LEAD_ID', newId); } catch (_) {}
-      } catch (err) {
-        console.warn('Aviso ao pré-salvar lead:', err);
-      }
-    } else if (leadIdRef.current) {
-      // Atualizar lead existente com dados mais recentes
-      try {
-        await saveLeadToFirebase(baseData, leadIdRef.current);
-      } catch (err) {
-        console.warn('Aviso ao atualizar lead:', err);
-      }
+    // Cancela imediatamente qualquer auto-captura agendada no timer
+    if (autoCaptureTimerRef.current) {
+      clearTimeout(autoCaptureTimerRef.current);
+      autoCaptureTimerRef.current = null;
     }
 
-    setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    isNavigatingRef.current = true;
+
+    try {
+      let finalCity = formData.cidade === 'Outra cidade...'
+        ? formData.novaCidade.trim()
+        : formData.cidade;
+
+      const baseData = {
+        ...formData,
+        cidade: finalCity,
+        status: 'novo',
+        abGroup: abGroup || 'A',
+        atualizadoEm: new Date().toISOString(),
+      };
+
+      // Se houver salvamento em andamento pela auto-captura, aguarda a resolução
+      if (savePromiseRef.current) {
+        try { await savePromiseRef.current; } catch (_) {}
+      }
+
+      // Step 0 → 1: salvar ou atualizar lead
+      if (currentStep === 0) {
+        try {
+          await saveLeadToFirebase(baseData, leadIdRef.current);
+        } catch (err) {
+          console.warn('Aviso ao salvar lead no step 0:', err);
+        }
+      } else if (leadIdRef.current) {
+        try {
+          await saveLeadToFirebase(baseData, leadIdRef.current);
+        } catch (err) {
+          console.warn('Aviso ao atualizar lead:', err);
+        }
+      }
+
+      setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } finally {
+      isNavigatingRef.current = false;
     }
   }, [currentStep, validateStep, formData, abGroup, saveLeadToFirebase])
 
@@ -476,7 +523,14 @@ export default function OrcamentoClient() {
 
   /* ---- Submit ---- */
   const handleSubmit = useCallback(async () => {
-    if (!validateStep(currentStep)) return
+    if (isSubmitting) return;
+    if (!validateStep(currentStep)) return;
+
+    // Cancela timer pendente se houver
+    if (autoCaptureTimerRef.current) {
+      clearTimeout(autoCaptureTimerRef.current);
+      autoCaptureTimerRef.current = null;
+    }
 
     setIsSubmitting(true)
     try {
@@ -521,15 +575,16 @@ export default function OrcamentoClient() {
         }
       });
 
+      // Aguarda qualquer salvamento que esteja em trânsito
+      if (savePromiseRef.current) {
+        try { await savePromiseRef.current; } catch (_) {}
+      }
+
       let finalLeadId = leadIdRef.current
-      if (leadIdRef.current) {
-        await update(ref(db, `leads/${leadIdRef.current}`), leadDataToSave);
+      if (finalLeadId) {
+        await saveLeadToFirebase(leadDataToSave, finalLeadId);
       } else {
-        leadDataToSave.criadoEm = new Date().toISOString();
-        const newRef = await push(ref(db, 'leads'), leadDataToSave);
-        finalLeadId = newRef.key;
-        leadIdRef.current = newRef.key
-        setCurrentLeadId(newRef.key);
+        finalLeadId = await saveLeadToFirebase(leadDataToSave);
       }
       
       // Enviar mensagem via WhatsApp sem travar a conclusão do orçamento se o número não existir ou houver falha de API
@@ -543,7 +598,8 @@ export default function OrcamentoClient() {
       try { 
         localStorage.removeItem(DRAFT_KEY);
         localStorage.removeItem('CURRENT_LEAD_ID');
-        leadIdRef.current = null
+        leadIdRef.current = null;
+        setCurrentLeadId(null);
       } catch (e) {}
     } catch (err) {
       console.error('Erro ao enviar formulário:', err);

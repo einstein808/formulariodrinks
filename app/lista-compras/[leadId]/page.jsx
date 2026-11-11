@@ -5,6 +5,7 @@ import { ref, get, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { FiCheck, FiShoppingCart, FiChevronRight, FiShare2, FiRefreshCw } from 'react-icons/fi';
 import { DEFAULT_FIXED_ITEMS, CATEGORY_LABELS } from '@/lib/shoppingCalculator';
+import { getDefaultRecipeForDrink, sanitizeRecipe } from '@/lib/drinksRecipes';
 
 function ShoppingListContent() {
   const { leadId } = useParams();
@@ -113,8 +114,14 @@ function ShoppingListContent() {
                   proportion = totalWAlcool > 0 ? peso / totalWAlcool : 1 / selAlcool.length;
                   drinksDesteTipo = Math.ceil(totalAlcool * proportion);
                 }
-                if (drink.receita && Array.isArray(drink.receita)) {
-                  drink.receita.forEach(item => {
+                const rawReceita = (drink.receita && Array.isArray(drink.receita) && drink.receita.length > 0)
+                  ? sanitizeRecipe(drink.receita)
+                  : [];
+                const receitaDrink = rawReceita.length > 0
+                  ? rawReceita
+                  : getDefaultRecipeForDrink(drink.id || drink.slug);
+                if (receitaDrink && Array.isArray(receitaDrink)) {
+                  receitaDrink.forEach(item => {
                     if (!item.insumo || !item.quantidade) return;
                     const baseQ = Number(item.quantidade) * drinksDesteTipo;
                     const key = item.insumo.trim().charAt(0).toUpperCase() + item.insumo.trim().slice(1).toLowerCase();

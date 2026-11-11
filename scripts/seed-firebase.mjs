@@ -11,7 +11,42 @@
  *   After seeding, change ".write" back to false.
  */
 
-const DB_URL = 'https://formsbar-default-rtdb.firebaseio.com'
+import { DEFAULT_DRINK_RECIPES } from '../lib/drinksRecipes.js';
+
+const DB_URL = 'https://formsbar-default-rtdb.firebaseio.com';
+
+const RAW_DRINKS = {
+  caipirinha: { order: 0, name: 'Caipirinha', emoji: '🍋', image: '/drinks/caipirinha.jpg', category: 'alcool', popularityWeight: 9 },
+  mojito: { order: 1, name: 'Mojito', emoji: '🌿', image: '/drinks/mojito.jpg', category: 'alcool', popularityWeight: 8 },
+  margarita: { order: 2, name: 'Margarita', emoji: '🍊', image: '/drinks/margarita.jpg', category: 'alcool', popularityWeight: 7 },
+  'pina-colada': { order: 3, name: 'Piña Colada', emoji: '🥥', image: '/drinks/pina-colada.jpg', category: 'alcool', popularityWeight: 8 },
+  'moscow-mule': { order: 4, name: 'Moscow Mule', emoji: '🫚', image: '/drinks/moscow-mule.jpg', category: 'alcool', popularityWeight: 10 },
+  negroni: { order: 5, name: 'Negroni', emoji: '🍷', image: '/drinks/negroni.jpg', category: 'alcool', popularityWeight: 6 },
+  'aperol-spritz': { order: 6, name: 'Aperol Spritz', emoji: '🧡', image: '/drinks/aperol-spritz.jpg', category: 'alcool', popularityWeight: 8 },
+  cosmopolitan: { order: 7, name: 'Cosmopolitan', emoji: '🍹', image: '/drinks/cosmopolitan.jpg', category: 'alcool', popularityWeight: 6 },
+  'gin-tonica': { order: 8, name: 'Gin Tônica', emoji: '🫒', image: '/drinks/gin-tonica.jpg', category: 'alcool', popularityWeight: 9 },
+  'whisky-sour': { order: 9, name: 'Whisky Sour', emoji: '🥃', image: '/drinks/whisky-sour.jpg', category: 'alcool', popularityWeight: 6 },
+  'sex-on-beach': { order: 10, name: 'Sex on the Beach', emoji: '🏖️', image: '/drinks/sex-on-beach.jpg', category: 'alcool', popularityWeight: 7 },
+  'blue-lagoon': { order: 11, name: 'Blue Lagoon', emoji: '💙', image: '/drinks/blue-lagoon.jpg', category: 'alcool', popularityWeight: 6 },
+  'long-island': { order: 12, name: 'Long Island', emoji: '🏝️', image: '/drinks/long-island.jpg', category: 'alcool', popularityWeight: 5 },
+  'cuba-libre': { order: 13, name: 'Cuba Libre', emoji: '🇨🇺', image: '/drinks/cuba-libre.jpg', category: 'alcool', popularityWeight: 6 },
+  daiquiri: { order: 14, name: 'Daiquiri', emoji: '🍓', image: '/drinks/daiquiri.jpg', category: 'alcool', popularityWeight: 6 },
+  'espresso-martini': { order: 15, name: 'Espresso Martini', emoji: '☕', image: '/drinks/espresso-martini.jpg', category: 'alcool', popularityWeight: 6 },
+  sangria: { order: 16, name: 'Sangria', emoji: '🍇', image: '/drinks/sangria.jpg', category: 'alcool', popularityWeight: 6 },
+  'mai-tai': { order: 17, name: 'Mai Tai', emoji: '🌺', image: '/drinks/mai-tai.jpg', category: 'alcool', popularityWeight: 5 },
+  'tequila-sunrise': { order: 18, name: 'Tequila Sunrise', emoji: '🌅', image: '/drinks/tequila-sunrise.jpg', category: 'alcool', popularityWeight: 6 },
+  'old-fashioned': { order: 19, name: 'Old Fashioned', emoji: '🎩', image: '/drinks/old-fashioned.jpg', category: 'alcool', popularityWeight: 6 },
+};
+
+const drinksMenu = Object.fromEntries(
+  Object.entries(RAW_DRINKS).map(([slug, data]) => [
+    slug,
+    {
+      ...data,
+      receita: DEFAULT_DRINK_RECIPES[slug] || [],
+    },
+  ])
+);
 
 const config = {
   pacotes: {
@@ -102,62 +137,47 @@ const config = {
     gin: { order: 5, label: 'Gin', icon: '🫒' },
   },
 
-  drinksMenu: {
-    caipirinha: { order: 0, name: 'Caipirinha', emoji: '🍋', image: '/drinks/caipirinha.jpg' },
-    mojito: { order: 1, name: 'Mojito', emoji: '🌿', image: '/drinks/mojito.jpg' },
-    margarita: { order: 2, name: 'Margarita', emoji: '🍊', image: '/drinks/margarita.jpg' },
-    'pina-colada': { order: 3, name: 'Piña Colada', emoji: '🥥', image: '/drinks/pina-colada.jpg' },
-    'moscow-mule': { order: 4, name: 'Moscow Mule', emoji: '🫚', image: '/drinks/moscow-mule.jpg' },
-    negroni: { order: 5, name: 'Negroni', emoji: '🍷', image: '/drinks/negroni.jpg' },
-    'aperol-spritz': { order: 6, name: 'Aperol Spritz', emoji: '🧡', image: '/drinks/aperol-spritz.jpg' },
-    cosmopolitan: { order: 7, name: 'Cosmopolitan', emoji: '🍹', image: '/drinks/cosmopolitan.jpg' },
-    'gin-tonica': { order: 8, name: 'Gin Tônica', emoji: '🫒', image: '/drinks/gin-tonica.jpg' },
-    'whisky-sour': { order: 9, name: 'Whisky Sour', emoji: '🥃', image: '/drinks/whisky-sour.jpg' },
-    'sex-on-beach': { order: 10, name: 'Sex on the Beach', emoji: '🏖️', image: '/drinks/sex-on-beach.jpg' },
-    'blue-lagoon': { order: 11, name: 'Blue Lagoon', emoji: '💙', image: '/drinks/blue-lagoon.jpg' },
-    'long-island': { order: 12, name: 'Long Island', emoji: '🏝️', image: '/drinks/long-island.jpg' },
-    'cuba-libre': { order: 13, name: 'Cuba Libre', emoji: '🇨🇺', image: '/drinks/cuba-libre.jpg' },
-    daiquiri: { order: 14, name: 'Daiquiri', emoji: '🍓', image: '/drinks/daiquiri.jpg' },
-    'espresso-martini': { order: 15, name: 'Espresso Martini', emoji: '☕', image: '/drinks/espresso-martini.jpg' },
-    sangria: { order: 16, name: 'Sangria', emoji: '🍇', image: '/drinks/sangria.jpg' },
-    'mai-tai': { order: 17, name: 'Mai Tai', emoji: '🌺', image: '/drinks/mai-tai.jpg' },
-    'tequila-sunrise': { order: 18, name: 'Tequila Sunrise', emoji: '🌅', image: '/drinks/tequila-sunrise.jpg' },
-    'old-fashioned': { order: 19, name: 'Old Fashioned', emoji: '🎩', image: '/drinks/old-fashioned.jpg' },
-  },
+  drinksMenu,
 
   cidades: {
     juizdefora: { name: 'Juiz de Fora', count: 999 },
     matiasbarbosa: { name: 'Matias Barbosa', count: 998 },
-    simaopereira: { name: 'Simão Pereira', count: 997 }
+    simaopereira: { name: 'Simão Pereira', count: 997 },
   },
 
   maxDrinks: 5,
-}
+};
 
 async function seed() {
-  console.log('🔥 Seeding Firebase config...')
+  console.log('🔥 Seeding Firebase config com fichas técnicas de drinks...');
 
   const res = await fetch(`${DB_URL}/config.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
-  })
+  });
 
   if (!res.ok) {
-    const err = await res.text()
-    console.error('❌ Falha ao enviar:', err)
-    process.exit(1)
+    const err = await res.text();
+    console.error('❌ Falha ao enviar:', err);
+    process.exit(1);
   }
 
-  console.log('✅ Config salva com sucesso!')
-  console.log('')
-  console.log('📋 Agora atualize as regras do Firebase para:')
-  console.log(JSON.stringify({
-    rules: {
-      leads: { '.read': false, '.write': 'auth != null' },
-      config: { '.read': true, '.write': false },
-    },
-  }, null, 2))
+  console.log('✅ Config salva com sucesso com todas as receitas e dosagens!');
+  console.log('');
+  console.log('📋 Agora atualize as regras do Firebase para:');
+  console.log(
+    JSON.stringify(
+      {
+        rules: {
+          leads: { '.read': false, '.write': 'auth != null' },
+          config: { '.read': true, '.write': false },
+        },
+      },
+      null,
+      2
+    )
+  );
 }
 
-seed()
+seed();

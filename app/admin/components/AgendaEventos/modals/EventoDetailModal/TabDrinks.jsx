@@ -1,31 +1,48 @@
 import React from 'react';
+import { getDefaultRecipeForDrink, sanitizeRecipe } from '@/lib/drinksRecipes';
 
 export function resolveDrinkInfo(drinkItem, drinksMenu = {}, drinksConfig = []) {
-  if (!drinkItem) return { nome: 'Drink', foto: null, emoji: '🍸', ingredientes: [] };
+  if (!drinkItem) return { nome: 'Drink', foto: null, emoji: '🍸', ingredientes: [], receita: [] };
 
-  // Se já for um objeto com dados do drink
+  let nome = 'Drink';
+  let foto = null;
+  let emoji = null;
+  let ingRaw = null;
+  let identifier = '';
+
+  // 1. Se já for um objeto com dados do drink
   if (typeof drinkItem === 'object') {
-    const nome = drinkItem.nome || drinkItem.name || drinkItem.title || 'Drink';
-    const foto = drinkItem.imagem || drinkItem.foto || drinkItem.image || drinkItem.url || null;
-    const emoji = drinkItem.emoji || null;
-    const ingRaw = drinkItem.ingredientes || drinkItem.receita || [];
-    const ingredientes = Array.isArray(ingRaw) 
-      ? ingRaw.map(i => (typeof i === 'string' ? i : (i.nome || i.insumo || i.name || ''))).filter(Boolean)
-      : [];
-    return { nome, foto, emoji, ingredientes };
-  }
+    nome = drinkItem.nome || drinkItem.name || drinkItem.title || 'Drink';
+    foto = drinkItem.imagem || drinkItem.foto || drinkItem.image || drinkItem.url || null;
+    emoji = drinkItem.emoji || null;
+    ingRaw = drinkItem.ingredientes || drinkItem.receita || null;
+    identifier = drinkItem.id || drinkItem.slug || nome;
+  } else {
+    const slug = String(drinkItem).trim();
+    identifier = slug;
+    const slugClean = slug.toLowerCase();
+    const slugNorm = slugClean.replace(/[\s_-]+/g, '');
 
-  const slug = String(drinkItem).trim();
-  const slugClean = slug.toLowerCase();
-  const slugNorm = slugClean.replace(/[\s_-]+/g, '');
+    // Procurar em drinksMenu
+    let found = null;
+    if (drinksMenu && typeof drinksMenu === 'object') {
+      if (drinksMenu[slug]) {
+        found = drinksMenu[slug];
+      } else {
+        const list = Array.isArray(drinksMenu) ? drinksMenu : Object.values(drinksMenu);
+        found = list.find(d => {
+          if (!d) return false;
+          const dId = String(d.id || '').toLowerCase().replace(/[\s_-]+/g, '');
+          const dSlug = String(d.slug || '').toLowerCase().replace(/[\s_-]+/g, '');
+          const dName = String(d.name || d.nome || '').toLowerCase().replace(/[\s_-]+/g, '');
+          return dId === slugNorm || dSlug === slugNorm || dName === slugNorm || d.id === slug || d.slug === slug;
+        });
+      }
+    }
 
-  // 1. Procurar em drinksMenu
-  let found = null;
-  if (drinksMenu && typeof drinksMenu === 'object') {
-    if (drinksMenu[slug]) {
-      found = drinksMenu[slug];
-    } else {
-      const list = Array.isArray(drinksMenu) ? drinksMenu : Object.values(drinksMenu);
+    // Se não achou, procurar em drinksConfig
+    if (!found && drinksConfig) {
+      const list = Array.isArray(drinksConfig) ? drinksConfig : Object.values(drinksConfig);
       found = list.find(d => {
         if (!d) return false;
         const dId = String(d.id || '').toLowerCase().replace(/[\s_-]+/g, '');
@@ -34,49 +51,52 @@ export function resolveDrinkInfo(drinkItem, drinksMenu = {}, drinksConfig = []) 
         return dId === slugNorm || dSlug === slugNorm || dName === slugNorm || d.id === slug || d.slug === slug;
       });
     }
+
+    if (found) {
+      nome = found.nome || found.name || found.title || slug;
+      foto = found.imagem || found.foto || found.image || found.photo || found.url || null;
+      emoji = found.emoji || null;
+      ingRaw = found.ingredientes || found.receita || null;
+    } else {
+      // Fallback amigável
+      if (/^drink[_-]?\d+$/i.test(slug)) {
+        nome = 'Drink Especial (Personalizado)';
+      } else {
+        nome = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      }
+    }
   }
 
-  // 2. Se não achou, procurar em drinksConfig (de config/drinks)
-  if (!found && drinksConfig) {
-    const list = Array.isArray(drinksConfig) ? drinksConfig : Object.values(drinksConfig);
-    found = list.find(d => {
-      if (!d) return false;
-      const dId = String(d.id || '').toLowerCase().replace(/[\s_-]+/g, '');
-      const dSlug = String(d.slug || '').toLowerCase().replace(/[\s_-]+/g, '');
-      const dName = String(d.name || d.nome || '').toLowerCase().replace(/[\s_-]+/g, '');
-      return dId === slugNorm || dSlug === slugNorm || dName === slugNorm || d.id === slug || d.slug === slug;
-    });
+  // Sanitiza a receita para corrigir unidades erradas (ex: limão 1g -> 1un, Run -> Rum)
+  let finalReceita = (Array.isArray(ingRaw) && ingRaw.length > 0)
+    ? sanitizeRecipe(ingRaw)
+    : [];
+
+  // Se não tiver receita própria ou estiver vazia, busca na ficha técnica padrão
+  if (finalReceita.length === 0) {
+    finalReceita = getDefaultRecipeForDrink(identifier || nome);
   }
 
-  if (found) {
-    const nome = found.nome || found.name || found.title || slug;
-    const foto = found.imagem || found.foto || found.image || found.photo || found.url || null;
-    const emoji = found.emoji || null;
-    const ingRaw = found.ingredientes || found.receita || [];
-    const ingredientes = Array.isArray(ingRaw) 
-      ? ingRaw.map(i => (typeof i === 'string' ? i : (i.nome || i.insumo || i.name || ''))).filter(Boolean)
-      : [];
-    return { nome, foto, emoji, ingredientes };
-  }
-
-  // 3. Fallback amigável
-  let fallbackName = slug;
-  if (/^drink[_-]?\d+$/i.test(slug)) {
-    fallbackName = 'Drink Especial (Personalizado)';
-  } else {
-    fallbackName = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  }
+  const formattedIngredientes = finalReceita.map(i => {
+    if (typeof i === 'string') return { insumo: i, quantidade: '', unidade: '', label: i };
+    const n = i.nome || i.insumo || i.name || '';
+    if (!n) return null;
+    const qtd = i.quantidade !== undefined && i.quantidade !== '' ? i.quantidade : '';
+    const un = i.unidade || '';
+    const label = qtd ? `${n} (${qtd} ${un})`.trim() : n;
+    return { insumo: n, quantidade: qtd, unidade: un, label };
+  }).filter(Boolean);
 
   return {
-    nome: fallbackName,
-    foto: null,
-    emoji: '🍸',
-    ingredientes: []
+    nome,
+    foto,
+    emoji: emoji || '🍸',
+    ingredientes: formattedIngredientes.map(i => i.label),
+    receita: formattedIngredientes
   };
 }
 
 export default function TabDrinks({ selectedEvento, drinksMenu = {}, drinksConfig = [] }) {
-  // Coletar drinks de todas as possíveis propriedades do lead
   let drinksEscolhidosList = selectedEvento?.drinksEscolhidos || [];
   if (drinksEscolhidosList.length === 0) {
     const outros = [
@@ -89,13 +109,18 @@ export default function TabDrinks({ selectedEvento, drinksMenu = {}, drinksConfi
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeIn 0.2s ease' }}>
-      <h3 style={{ margin: 0, fontSize: '0.92rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-        🍹 Cardápio Selecionado ({drinksEscolhidosList.length} drinks)
-      </h3>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeIn 0.2s ease' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          🍹 Cardápio Selecionado & Ficha Técnica ({drinksEscolhidosList.length} drinks)
+        </h3>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          Dosagens para 1 preparo
+        </span>
+      </div>
 
       {drinksEscolhidosList.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
           {drinksEscolhidosList.map((drinkItem, idx) => {
             const drink = resolveDrinkInfo(drinkItem, drinksMenu, drinksConfig);
 
@@ -105,35 +130,67 @@ export default function TabDrinks({ selectedEvento, drinksMenu = {}, drinksConfi
                 style={{ 
                   background: 'var(--bg-input)', 
                   borderRadius: '10px', 
-                  padding: '12px', 
+                  padding: '14px', 
                   border: '1px solid var(--border-color)',
                   display: 'flex',
+                  flexDirection: 'column',
                   gap: '10px',
-                  alignItems: 'center'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                 }}
               >
-                {drink.foto ? (
-                  <img 
-                    src={drink.foto} 
-                    alt={drink.nome} 
-                    style={{ width: 46, height: 46, borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} 
-                  />
-                ) : (
-                  <div style={{ width: 46, height: 46, borderRadius: '8px', background: 'rgba(203,161,83,0.12)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>
-                    {drink.emoji || '🍸'}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  {drink.foto ? (
+                    <img 
+                      src={drink.foto} 
+                      alt={drink.nome} 
+                      style={{ width: 44, height: 44, borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} 
+                    />
+                  ) : (
+                    <div style={{ width: 44, height: 44, borderRadius: '8px', background: 'rgba(203,161,83,0.12)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>
+                      {drink.emoji}
+                    </div>
+                  )}
+                  <div style={{ overflow: 'hidden', flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.92rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {drink.nome}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 600, marginTop: '1px' }}>
+                      Ficha Técnica do Bar
+                    </div>
                   </div>
-                )}
-                <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {drink.nome}
-                  </div>
-                  {drink.ingredientes && drink.ingredientes.length > 0 ? (
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {drink.ingredientes.join(', ')}
+                </div>
+
+                {/* Insumos e Quantidades da Ficha Técnica */}
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  {drink.receita && drink.receita.length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {drink.receita.map((item, iIdx) => (
+                        <span 
+                          key={iIdx}
+                          style={{
+                            fontSize: '0.73rem',
+                            background: 'rgba(203, 161, 83, 0.08)',
+                            color: 'var(--text-secondary)',
+                            border: '1px solid rgba(203, 161, 83, 0.25)',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <strong style={{ color: 'var(--text-primary)' }}>{item.insumo}</strong>
+                          {item.quantidade && (
+                            <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>
+                              {item.quantidade}{item.unidade}
+                            </span>
+                          )}
+                        </span>
+                      ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px', opacity: 0.7 }}>
-                      Receita padrão
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                      Receita clássica padrão
                     </div>
                   )}
                 </div>
@@ -149,4 +206,3 @@ export default function TabDrinks({ selectedEvento, drinksMenu = {}, drinksConfi
     </div>
   );
 }
-
