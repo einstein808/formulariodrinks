@@ -123,10 +123,21 @@ function ShoppingListContent() {
                 if (receitaDrink && Array.isArray(receitaDrink)) {
                   receitaDrink.forEach(item => {
                     if (!item.insumo || !item.quantidade) return;
-                    const baseQ = Number(item.quantidade) * drinksDesteTipo;
-                    const key = item.insumo.trim().charAt(0).toUpperCase() + item.insumo.trim().slice(1).toLowerCase();
+                    let qtdItem = Number(item.quantidade);
+                    let unItem = item.unidade || 'ml';
+                    let nomeItem = item.insumo.trim();
+
+                    // Proteção especial para Limão: se vier em ml (ex: 20ml), converte para fruta (0.5 un)
+                    if (nomeItem.toLowerCase().includes('limão') && unItem === 'ml' && qtdItem <= 60) {
+                      qtdItem = Math.max(0.5, Math.round((qtdItem / 35) * 10) / 10);
+                      unItem = 'un';
+                      nomeItem = 'Limão';
+                    }
+
+                    const baseQ = qtdItem * drinksDesteTipo;
+                    const key = nomeItem.charAt(0).toUpperCase() + nomeItem.slice(1).toLowerCase();
                     if (!agregInsumos[key]) {
-                      agregInsumos[key] = { qtd: 0, unidade: item.unidade || 'ml' };
+                      agregInsumos[key] = { qtd: 0, unidade: unItem };
                     }
                     agregInsumos[key].qtd += (baseQ * margem);
                   });
@@ -261,19 +272,37 @@ function ShoppingListContent() {
         drinksDesteTipo = Math.ceil(totalDrinksFestaAlcool * proportion);
       }
 
-      if (drink.receita && Array.isArray(drink.receita)) {
-        drink.receita.forEach(item => {
+      const rawReceita = (drink.receita && Array.isArray(drink.receita) && drink.receita.length > 0)
+        ? sanitizeRecipe(drink.receita)
+        : [];
+      const receitaDrink = rawReceita.length > 0
+        ? rawReceita
+        : getDefaultRecipeForDrink(drink.id || drink.slug);
+
+      if (receitaDrink && Array.isArray(receitaDrink)) {
+        receitaDrink.forEach(item => {
           if (!item.insumo || !item.quantidade) return;
           
-          const qtdTotalBase = Number(item.quantidade) * drinksDesteTipo;
+          let qtdItem = Number(item.quantidade);
+          let unItem = item.unidade || 'ml';
+          let nomeItem = item.insumo.trim();
+
+          // Proteção especial para Limão: se vier em ml (ex: 20ml), converte para fruta (0.5 un)
+          if (nomeItem.toLowerCase().includes('limão') && unItem === 'ml' && qtdItem <= 60) {
+            qtdItem = Math.max(0.5, Math.round((qtdItem / 35) * 10) / 10);
+            unItem = 'un';
+            nomeItem = 'Limão';
+          }
+
+          const qtdTotalBase = qtdItem * drinksDesteTipo;
           const qtdComMargem = qtdTotalBase * margem;
           
           // Agrupa os itens ignorando maiúsculas/minúsculas
-          const chaveBase = item.insumo.trim().toLowerCase();
+          const chaveBase = nomeItem.toLowerCase();
           const chave = chaveBase.charAt(0).toUpperCase() + chaveBase.slice(1);
           
           if (!agregadorInsumos[chave]) {
-            agregadorInsumos[chave] = { qtd: 0, unidade: item.unidade || 'ml' };
+            agregadorInsumos[chave] = { qtd: 0, unidade: unItem };
           }
           agregadorInsumos[chave].qtd += qtdComMargem;
         });
@@ -864,17 +893,19 @@ function ShoppingListContent() {
                     </div>
                   </div>
 
-                  {/* Actions for Client */}
+                  {/* Actions */}
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {!lead.shoppingListFinalizada && (
-                      <>
-                        <button className="btn btn--secondary" onClick={() => setStep(2)} disabled={isSubmitting} style={{ width: 'auto', gap: '6px' }}>
-                          <FiRefreshCw size={14} /> Refazer Escolhas
-                        </button>
-                        <button className="btn btn--primary" onClick={salvarListaNoFirebase} disabled={isSubmitting} style={{ width: 'auto' }}>
-                          {isSubmitting ? 'Salvando...' : <><FiCheck /> Confirmar e Enviar para Equipe</>}
-                        </button>
-                      </>
+                    <button className="btn btn--secondary" onClick={() => setStep(2)} disabled={isSubmitting} style={{ width: 'auto', gap: '6px' }}>
+                      <FiRefreshCw size={14} /> Recalcular / Refazer Escolhas
+                    </button>
+                    {!lead.shoppingListFinalizada ? (
+                      <button className="btn btn--primary" onClick={salvarListaNoFirebase} disabled={isSubmitting} style={{ width: 'auto' }}>
+                        {isSubmitting ? 'Salvando...' : <><FiCheck /> Confirmar e Enviar para Equipe</>}
+                      </button>
+                    ) : (
+                      <button className="btn btn--outline" onClick={salvarListaNoFirebase} disabled={isSubmitting} style={{ width: 'auto', borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                        {isSubmitting ? 'Atualizando...' : <><FiCheck /> Salvar Atualizações da Lista</>}
+                      </button>
                     )}
                     <button className="btn btn--secondary" onClick={compartilharLista} style={{ width: 'auto', gap: '6px' }}>
                       <FiShare2 size={14} /> Compartilhar Lista
