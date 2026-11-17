@@ -127,9 +127,9 @@ function ShoppingListContent() {
                     let unItem = item.unidade || 'ml';
                     let nomeItem = item.insumo.trim();
 
-                    // Proteção especial para Limão: se vier em ml (ex: 20ml), converte para fruta (0.5 un)
+                    // Padrão do bar: 20 ml de suco = 1 limão (un)
                     if (nomeItem.toLowerCase().includes('limão') && unItem === 'ml' && qtdItem <= 60) {
-                      qtdItem = Math.max(0.5, Math.round((qtdItem / 35) * 10) / 10);
+                      qtdItem = Math.max(0.5, Math.round((qtdItem / 20) * 10) / 10);
                       unItem = 'un';
                       nomeItem = 'Limão';
                     }
@@ -287,9 +287,9 @@ function ShoppingListContent() {
           let unItem = item.unidade || 'ml';
           let nomeItem = item.insumo.trim();
 
-          // Proteção especial para Limão: se vier em ml (ex: 20ml), converte para fruta (0.5 un)
+          // Padrão do bar: 20 ml de suco = 1 limão (un)
           if (nomeItem.toLowerCase().includes('limão') && unItem === 'ml' && qtdItem <= 60) {
-            qtdItem = Math.max(0.5, Math.round((qtdItem / 35) * 10) / 10);
+            qtdItem = Math.max(0.5, Math.round((qtdItem / 20) * 10) / 10);
             unItem = 'un';
             nomeItem = 'Limão';
           }
