@@ -1,212 +1,78 @@
 "use client";
 import React from 'react';
-import { useRouter } from 'next/navigation';
-import { FiCheck, FiArrowRight } from 'react-icons/fi';
+import Link from 'next/link';
+import { FiArrowRight, FiCheck } from 'react-icons/fi';
 
-const PACOTES_RESUMO = [
-  {
-    id: 'experimento',
-    badge: 'Essencial • Custo-Benefício',
-    nome: 'Pacote Experimento',
-    tagline: '5 Drinks com Álcool + 2 Opções Sem Álcool Inclusas',
-    descricao: 'O formato clássico com tudo incluso para você não se preocupar com compras. 5 opções consagradas de drinks mais 2 mocktails artesanais.',
-    features: [
-      '5 opções de drinks com álcool à sua escolha',
-      '2 opções sem álcool inclusas (Mocktails refrescantes)',
-      'Frutas frescas do dia, insumos e xaropes inclusos',
-      'Equipe completa com bar móvel elegante',
-      'Gelo, copos e canudos biodegradáveis'
-    ],
-    destaque: false
-  },
-  {
-    id: 'laboratorio',
-    badge: 'O Mais Escolhido • Open Bar',
-    nome: 'Pacote Laboratório',
-    tagline: '5 Drinks com Álcool + 3 Opções Sem Álcool Inclusas',
-    descricao: 'O formato preferido para casamentos e comemorações. 5 opções de drinks com apresentações marcantes, xaropes artesanais e coquetéis autorais mais 3 opções sem álcool.',
-    features: [
-      '5 opções de drinks com álcool à sua escolha',
-      '3 opções sem álcool inclusas (Mocktails especiais da casa)',
-      'Espuma artesanal de gengibre da casa para Moscow Mule',
-      'Xaropes e cordiais artesanais produzidos por nós',
-      'Estrutura de bar móvel elegante e equipe profissional uniformizada',
-      'Taças e copos especiais para cada coquetel'
-    ],
-    destaque: true
-  },
-  {
-    id: 'reatividade',
-    badge: 'Experiência Completa',
-    nome: 'Pacote Reatividade',
-    tagline: '6 Drinks com Álcool + 3 Opções Sem Álcool Inclusas',
-    descricao: 'O menu mais completo para impressionar os paladares mais exigentes, com destilados premium, finalizações aromáticas e coquetéis cênicos.',
-    features: [
-      '6 opções de drinks sofisticados à sua escolha',
-      '3 opções sem álcool inclusas (Mocktails especiais)',
-      'Drinks com botânicos selecionados e defumação',
-      'Destilados e tônicas selecionadas',
-      'Apresentação cênica com taças especiais',
-      'Operação ampliada com alta agilidade'
-    ],
-    destaque: false
-  },
-  {
-    id: 'mao-de-obra',
-    badge: 'Mão de Obra Especializada',
-    nome: 'Mão de Obra Especializada',
-    tagline: 'Para quem já comprou as bebidas e quer deixar o bar por nossa conta',
-    descricao: 'Você adquire as bebidas (com nossa consultoria e lista exata de compras) e nós entramos com os barmen experientes, utensílios completos e total organização.',
-    features: [
-      'Barmen profissionais uniformizados',
-      'Kit completo de coqueteleiras, dosadores e barware',
-      'Consultoria e lista exata para você economizar',
-      'Até 5 horas de evento com atendimento ágil'
-    ],
-    destaque: false
-  }
-];
-
-export default function PacotesResumoSection() {
-  const router = useRouter();
+export default function PacotesResumoSection({ pacotes = [] }) {
+  const visiblePacotes = pacotes.filter(pkg => !pkg.hidden);
 
   return (
-    <section id="pacotes" style={{ position: 'relative', zIndex: 10, padding: '40px 20px', maxWidth: 1180, margin: '0 auto' }}>
+    <section id="pacotes" style={{ position: 'relative', zIndex: 10, padding: '40px 20px', maxWidth: 1180, margin: '0 auto', scrollMarginBottom: 90 }}>
       <div style={{ textAlign: 'center', marginBottom: 36 }}>
-        <span style={{
-          fontSize: '0.8rem',
-          fontWeight: 700,
-          color: 'var(--primary)',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase'
-        }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           Nossos Formatos
         </span>
-        <h2 style={{
-          fontFamily: 'var(--font-cinzel), serif',
-          fontSize: 'clamp(1.4rem, 4vw, 2.1rem)',
-          color: '#FFFFFF',
-          margin: '8px 0 12px 0',
-          lineHeight: 1.25
-        }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel), serif', fontSize: 'clamp(1.4rem, 4vw, 2.1rem)', color: '#FFFFFF', margin: '8px 0 12px', lineHeight: 1.25 }}>
           Escolha como você quer contratar
         </h2>
         <p style={{ fontSize: 'clamp(0.92rem, 2vw, 1.05rem)', color: 'var(--text-secondary)', maxWidth: 640, margin: '0 auto' }}>
-          Encontre o formato ideal para sua celebração de 30 a 150 convidados. Desde a mão de obra especializada até o open bar completo.
+          Compare os formatos e veja o valor do seu evento no simulador.
         </p>
       </div>
 
-      {/* Grid de Pacotes */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: 18,
-        alignItems: 'stretch'
-      }}>
-        {PACOTES_RESUMO.map((pkg) => (
-          <div
-            key={pkg.id}
-            style={{
-              background: 'var(--bg-card)',
-              border: pkg.destaque ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '24px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              position: 'relative',
-              boxShadow: pkg.destaque ? '0 8px 30px rgba(203, 161, 83, 0.2)' : 'var(--shadow-md)',
-              zIndex: pkg.destaque ? 2 : 1
-            }}
-          >
-            <div>
-              {/* Badge */}
-              <div style={{ marginBottom: 12 }}>
-                <span style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  background: pkg.destaque ? 'rgba(203, 161, 83, 0.22)' : 'rgba(255, 255, 255, 0.05)',
-                  color: pkg.destaque ? 'var(--primary)' : 'var(--text-secondary)',
-                  display: 'inline-block'
-                }}>
-                  {pkg.badge}
-                </span>
-              </div>
+      {visiblePacotes.length ? (
+        <div className="home-packages-grid">
+          {visiblePacotes.map(pkg => {
+            const features = Array.isArray(pkg.features) ? pkg.features : [];
 
-              {/* Nome & Tagline */}
-              <h3 style={{
-                fontFamily: 'var(--font-cinzel), serif',
-                fontSize: '1.2rem',
-                color: '#FFFFFF',
-                margin: '0 0 6px 0',
-                lineHeight: 1.3
-              }}>
-                {pkg.nome}
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, margin: '0 0 14px 0', lineHeight: 1.4 }}>
-                {pkg.tagline}
-              </p>
+            return (
+              <article key={pkg.id} className={`home-package-card${pkg.popular ? ' home-package-card--popular' : ''}`}>
+                <div>
+                  <span className={`home-package-badge${pkg.popular ? ' home-package-badge--popular' : ''}`}>
+                    {pkg.badge || (pkg.popular ? 'Mais escolhido' : 'Pacote')}
+                  </span>
+                  <div className="home-package-heading">
+                    {pkg.emoji && <span aria-hidden="true" className="home-package-emoji">{pkg.emoji}</span>}
+                    <h3>{pkg.name}</h3>
+                  </div>
+                  {pkg.desc && <p className="home-package-description">{pkg.desc}</p>}
+                  <div className="home-package-price">
+                    <strong>Valor personalizado</strong>
+                    <span>calculado com os detalhes do seu evento</span>
+                  </div>
 
-              {/* Descrição */}
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
-                {pkg.descricao}
-              </p>
+                  {features.length > 0 && (
+                    <details className="home-package-details">
+                      <summary>Ver o que está incluso ({features.length})</summary>
+                      <ul>
+                        {features.map((feature, index) => (
+                          <li key={`${pkg.id}-feature-${index}`}><FiCheck aria-hidden="true" /><span>{feature}</span></li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
 
-              {/* Itens inclusos */}
-              <ul style={{ margin: '0 0 24px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {pkg.features.map((feat, fIdx) => (
-                  <li key={fIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                    <FiCheck size={14} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }} />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                <Link href={`/orcamento?pacote=${encodeURIComponent(pkg.id)}`} className="btn btn--outline home-package-cta">
+                  Simular este pacote <FiArrowRight aria-hidden="true" size={16} />
+                </Link>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="home-packages-empty">
+          <p>Os formatos e valores são definidos conforme os detalhes do evento.</p>
+          <Link href="/orcamento" className="btn btn--primary">Calcular orçamento <FiArrowRight aria-hidden="true" /></Link>
+        </div>
+      )}
 
-            {/* CTA do card */}
-            <button
-              onClick={() => router.push(`/orcamento?pacote=${pkg.id}`)}
-              className="btn btn--outline"
-              style={{
-                width: '100%',
-                fontSize: '0.88rem',
-                padding: '11px 14px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                fontWeight: 700,
-                borderColor: pkg.destaque ? 'var(--primary)' : undefined,
-                color: pkg.destaque ? 'var(--primary)' : undefined,
-              }}
-            >
-              Simular este pacote <FiArrowRight size={14} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Nota de rodapé da seção */}
-      <div style={{
-        marginTop: 28,
-        textAlign: 'center',
-        padding: '16px 20px',
-        background: 'rgba(255, 255, 255, 0.02)',
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid rgba(255, 255, 255, 0.06)'
-      }}>
-        <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          Todos os drinks acima fazem parte do pacote contratado (sem taxa por unidade consumida).<br />
-          <strong style={{ color: 'var(--primary)', cursor: 'pointer', marginRight: 16 }} onClick={() => router.push('/menu')}>
-            Ver nosso cardápio completo de drinks →
-          </strong>
-          <span style={{ opacity: 0.6 }}>•</span>
-          <strong style={{ color: 'var(--text-primary)', cursor: 'pointer', marginLeft: 16 }} onClick={() => router.push('/orcamento')}>
-            Calcular orçamento do evento em 1 minuto →
-          </strong>
-        </p>
+      <div className="home-packages-footer">
+        <p>Os valores podem variar conforme convidados, duração e formato do evento.</p>
+        <div>
+          <Link href="/menu">Ver cardápio de drinks <FiArrowRight aria-hidden="true" size={14} /></Link>
+          <Link href="/orcamento">Calcular orçamento <FiArrowRight aria-hidden="true" size={14} /></Link>
+        </div>
       </div>
     </section>
   );

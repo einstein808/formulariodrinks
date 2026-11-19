@@ -14,22 +14,26 @@ export default function AnalyticsDashboard() {
   const [selectedYear, setSelectedYear] = useState('todos');
   const [selectedMonth, setSelectedMonth] = useState('todos');
   const [selectedStatus, setSelectedStatus] = useState('todos');
+  const [selectedDateBasis, setSelectedDateBasis] = useState('cadastro');
 
   const dashboard = useDashboardData({
     selectedYear,
     selectedMonth,
-    selectedStatus
+    selectedStatus,
+    selectedDateBasis
   });
 
   // Define ano atual como padrão assim que os anos estiverem disponíveis
   useEffect(() => {
-    if (dashboard.availableYears.length > 0 && selectedYear === 'todos') {
+    if (dashboard.availableYears.length > 0) {
       const currentYearStr = new Date().getFullYear().toString();
-      if (dashboard.availableYears.includes(currentYearStr)) {
+      if (selectedYear === 'todos' && dashboard.availableYears.includes(currentYearStr)) {
         setSelectedYear(currentYearStr);
+      } else if (selectedYear !== 'todos' && !dashboard.availableYears.includes(selectedYear)) {
+        setSelectedYear('todos');
       }
     }
-  }, [dashboard.availableYears]);
+  }, [dashboard.availableYears, selectedYear]);
 
   // Exportar Balanço Financeiro para CSV
   const handleExportCsv = () => {
@@ -38,12 +42,13 @@ export default function AnalyticsDashboard() {
     const headers = [
       "ID do Lead",
       "Cliente",
+      "Data do Período",
       "Data do Evento",
       "Status",
-      "Faturamento Liquido",
+      "Receita Contratada",
       "Desconto",
       "Custos Totais",
-      "Lucro Real",
+      "Lucro Estimado",
       "Margem (%)",
       "Valor Pago",
       "Valor Restante"
@@ -52,7 +57,8 @@ export default function AnalyticsDashboard() {
     const rows = dashboard.sortedFinancePorLead.map(item => [
       item.id,
       `"${(item.nome || '').replace(/"/g, '""')}"`,
-      item.data,
+      item.periodo,
+      item.dataEvento,
       item.status || 'novo',
       (item.faturamento || 0).toFixed(2),
       (item.desconto || 0).toFixed(2),
@@ -97,7 +103,7 @@ export default function AnalyticsDashboard() {
             Analytics & Inteligência
           </h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
-            Acompanhe o desempenho, conversão e a saúde financeira dos eventos.
+        Indicadores de funil e financeiro com filtros alinhados e definições de receita explícitas.
           </p>
         </div>
       </div>
@@ -106,13 +112,23 @@ export default function AnalyticsDashboard() {
       <KpiSummaryBar
         totalLeads={dashboard.totalLeads}
         totalFechados={dashboard.totalFechados}
+        totalPerdidos={dashboard.totalPerdidos}
+        totalEmAberto={dashboard.totalEmAberto}
+        possiveisDuplicados={dashboard.possiveisDuplicados}
         taxaConversao={dashboard.taxaConversao}
+        taxaFechamentoResolvidos={dashboard.taxaFechamentoResolvidos}
         totalFaturamento={dashboard.totalFaturamento}
         totalCustosGlobal={dashboard.totalCustosGlobal}
         totalLucroGlobal={dashboard.totalLucroGlobal}
+        totalOportunidadeAberta={dashboard.totalOportunidadeAberta}
+        totalValorPago={dashboard.totalValorPago}
         margemGlobalMedia={dashboard.margemGlobalMedia}
         ticketMedio={dashboard.ticketMedio}
         totalValorRestante={dashboard.totalValorRestante}
+        contratosSemFinanceiro={dashboard.contratosSemFinanceiro}
+        contratosSemCustos={dashboard.contratosSemCustos}
+        contratosComDivergenciaPagamento={dashboard.contratosComDivergenciaPagamento}
+        totalValorAcimaDoContrato={dashboard.totalValorAcimaDoContrato}
       />
 
       {/* ── FILTERS BAR ── */}
@@ -123,6 +139,8 @@ export default function AnalyticsDashboard() {
         setSelectedMonth={setSelectedMonth}
         selectedStatus={selectedStatus}
         setSelectedStatus={setSelectedStatus}
+        selectedDateBasis={selectedDateBasis}
+        setSelectedDateBasis={setSelectedDateBasis}
         availableYears={dashboard.availableYears}
         onExportCsv={handleExportCsv}
       />
@@ -169,7 +187,7 @@ export default function AnalyticsDashboard() {
       {/* ── TAB CONTENT (LAZY LOADED) ── */}
       {activeTab === 'geral' && (
         <TabGeral
-          leads={dashboard.leads}
+          leads={dashboard.filteredLeads}
           pipelineData={dashboard.pipelineData}
         />
       )}
@@ -177,10 +195,15 @@ export default function AnalyticsDashboard() {
       {activeTab === 'financeiro' && (
         <TabFinanceiro
           monthlyFinanceData={dashboard.monthlyFinanceData}
+          monthlyCashFlowData={dashboard.monthlyCashFlowData}
           sortedCategories={dashboard.sortedCategories}
           sortedFinancePorLead={dashboard.sortedFinancePorLead}
           totalCustosGlobal={dashboard.totalCustosGlobal}
           totalFaturamento={dashboard.totalFaturamento}
+          totalValorPago={dashboard.totalValorPago}
+          totalLucroGlobal={dashboard.totalLucroGlobal}
+          totalRecebidoComData={dashboard.totalRecebidoComData}
+          totalRecebidoSemData={dashboard.totalRecebidoSemData}
         />
       )}
 
@@ -190,6 +213,7 @@ export default function AnalyticsDashboard() {
           tipoEventoPieData={dashboard.tipoEventoPieData}
           barData={dashboard.barData}
           lineData={dashboard.lineData}
+          abPerformanceData={dashboard.abPerformanceData}
         />
       )}
 

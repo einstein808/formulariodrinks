@@ -68,7 +68,7 @@ function ShoppingListContent() {
             setDrinksMenu(fetchedDrinksMenu);
           }
           
-          let fetchedShoppingConfig = { margemSeguranca: 10, itensFixos: [] };
+          let fetchedShoppingConfig = { margemSeguranca: 20, itensFixos: [] };
           if (config.shoppingConfig) {
             fetchedShoppingConfig = config.shoppingConfig;
             setShoppingConfig(fetchedShoppingConfig);
@@ -85,7 +85,7 @@ function ShoppingListContent() {
             const initialDrinks = leadData.drinksEscolhidos || [];
             const conv = Math.max(Number(leadData.convidados) || 0, 40);
             const totalDrinks = Math.ceil(conv * 3.5);
-            const margem = fetchedShoppingConfig.margemSeguranca ? (1 + (Number(fetchedShoppingConfig.margemSeguranca) / 100)) : 1.10;
+            const margem = fetchedShoppingConfig.margemSeguranca ? (1 + (Number(fetchedShoppingConfig.margemSeguranca) / 100)) : 1.20;
             
             const drinksSel = fetchedDrinksMenu.filter(d => initialDrinks.includes(d.id));
             
@@ -240,7 +240,7 @@ function ShoppingListContent() {
     const convidados = Math.max(Number(convidadosLocal) || 0, 40);
     const totalDrinksFesta = Math.ceil(convidados * 3.5);
 
-    const margem = shoppingConfig?.margemSeguranca ? (1 + (Number(shoppingConfig.margemSeguranca) / 100)) : 1.10;
+    const margem = shoppingConfig?.margemSeguranca ? (1 + (Number(shoppingConfig.margemSeguranca) / 100)) : 1.20;
 
     const agregadorInsumos = {}; // { "Vodka": { qtd: 1000, unidade: "ml" } }
 

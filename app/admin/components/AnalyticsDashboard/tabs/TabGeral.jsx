@@ -56,7 +56,7 @@ export default function TabGeral({ leads = [], pipelineData = [] }) {
           ⚡ Funil do Pipeline de Leads
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0 0 20px 0' }}>
-          Distribuição atual de todos os contatos em cada estágio do funil.
+          Distribuição dos leads no período e no foco por status selecionados.
         </p>
 
         {pipelineData.length > 0 ? (

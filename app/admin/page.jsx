@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
-import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiHeart, FiCalendar, FiUserPlus, FiMenu, FiX, FiFileText, FiPackage, FiSend } from 'react-icons/fi';
+import { FiLogOut, FiUsers, FiSettings, FiPieChart, FiCalendar, FiSend } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 
 const LeadsKanban = dynamic(() => import('./components/LeadsKanban'), {
@@ -55,7 +55,6 @@ const navItems = [
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('leads');
   const [subTab, setSubTab] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -130,102 +129,30 @@ export default function AdminDashboard() {
   const activeNavItem = navItems.find(n => n.id === activeTab);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
-
-      {/* ── MOBILE BACKDROP ─────────────────────────────────── */}
-      {menuOpen && (
-        <div
-          onClick={() => setMenuOpen(false)}
-          className="admin-sidebar-backdrop"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-            zIndex: 1050,
-            animation: 'fadeIn 0.2s ease'
-          }}
-        />
-      )}
+    <div className="admin-layout">
 
       {/* ── DESKTOP/MOBILE SIDEBAR ─────────────────────────────────── */}
-      <aside className={`admin-sidebar ${menuOpen ? 'admin-sidebar--open' : ''}`} style={{ background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-dark) 100%)', borderRight: '1px solid var(--border-color)', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', width: '260px', flexShrink: 0 }}>
-        <div style={{ padding: '32px 24px', textAlign: 'center', borderBottom: '1px solid rgba(203, 161, 83, 0.1)', position: 'relative' }}>
-          <button
-            onClick={() => setMenuOpen(false)}
-            className="admin-sidebar-close-btn"
-            style={{
-              position: 'absolute',
-              right: '16px',
-              top: '16px',
-              background: 'transparent',
-              border: 'none',
-              color: '#FFF',
-              cursor: 'pointer',
-              display: 'none',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32
-            }}
-            aria-label="Fechar menu"
-          >
-            <FiX size={20} />
-          </button>
-          <img src="/logo.webp" alt="Logo" style={{ width: '90px', marginBottom: '12px' }} />
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-brand">
+          <img src="/logo.webp" alt="Laboratório de Drinks" />
           <h2 style={{ margin: 0, fontSize: '0.95rem', fontFamily: 'Cinzel, serif', color: 'var(--primary)', letterSpacing: '1px', textTransform: 'uppercase' }}>
             Painel Admin
           </h2>
         </div>
 
-        <nav style={{ flex: 1, padding: '24px 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <nav className="admin-sidebar-nav" aria-label="Navegação do painel">
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMenuOpen(false);
-                }}
-                style={{
-                  width: 'calc(100% - 32px)',
-                  margin: '2px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  background: isActive ? 'rgba(203, 161, 83, 0.08)' : 'transparent',
-                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontSize: '0.92rem',
-                  fontWeight: isActive ? 600 : 'normal',
-                  transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                  minHeight: 48,
-                  position: 'relative',
-                  outline: 'none'
-                }}
-                className={isActive ? 'admin-sidebar-active-btn' : ''}
+                onClick={() => setActiveTab(item.id)}
+                className={`admin-sidebar-item ${isActive ? 'admin-sidebar-active-btn' : ''}`}
+                aria-current={isActive ? 'page' : undefined}
               >
                 {isActive && (
-                  <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: '12px',
-                    bottom: '12px',
-                    width: '3.5px',
-                    borderRadius: '0 4px 4px 0',
-                    background: 'var(--primary)',
-                    boxShadow: '0 0 10px var(--primary)'
-                  }} />
+                  <span className="admin-sidebar-indicator" aria-hidden="true" />
                 )}
                 <Icon size={18} style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }} />
                 {item.label === 'Leads' ? 'Gestão de Leads' : item.label}
@@ -234,7 +161,7 @@ export default function AdminDashboard() {
           })}
         </nav>
 
-        <div style={{ padding: '24px', borderTop: '1px solid rgba(203, 161, 83, 0.1)' }}>
+        <div className="admin-sidebar-footer">
           <button
             onClick={handleLogout}
             className="btn btn--outline"
@@ -249,25 +176,7 @@ export default function AdminDashboard() {
       {/* ── MOBILE HEADER ───────────────────────────────────── */}
       <header className="admin-mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            onClick={() => setMenuOpen(true)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--primary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-              minWidth: 40,
-              minHeight: 40
-            }}
-            aria-label="Abrir menu"
-          >
-            <FiMenu size={24} />
-          </button>
-          <img src="/logo.webp" alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+          <img src="/logo.webp" alt="" aria-hidden="true" />
           <span style={{ fontFamily: 'Cinzel, serif', color: 'var(--primary)', fontWeight: 700, fontSize: '0.95rem' }}>
             {activeNavItem?.label || 'Admin'}
           </span>
@@ -287,22 +196,16 @@ export default function AdminDashboard() {
       </header>
 
       {/* ── MAIN CONTENT ────────────────────────────────────── */}
-      <main className="admin-main" style={{ flex: 1, height: '100vh', overflowY: 'auto', padding: '24px', background: 'var(--bg-dark)' }}>
+      <main className="admin-main">
         {activeTab === 'leads' && <LeadsKanban />}
         
         {activeTab === 'eventos' && (
           <>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6, marginBottom: 20, scrollbarWidth: 'none' }}>
-              <button 
-                onClick={() => setSubTab('agenda')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'agenda' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'agenda' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+            <div className="admin-subnav" role="group" aria-label="Seções de eventos">
+              <button className={`admin-subnav-item ${subTab === 'agenda' ? 'is-active' : ''}`} aria-pressed={subTab === 'agenda'} onClick={() => setSubTab('agenda')}>
                 📅 Agenda
               </button>
-              <button 
-                onClick={() => setSubTab('contratos')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'contratos' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'contratos' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+              <button className={`admin-subnav-item ${subTab === 'contratos' ? 'is-active' : ''}`} aria-pressed={subTab === 'contratos'} onClick={() => setSubTab('contratos')}>
                 ✍️ Contratos
               </button>
             </div>
@@ -315,17 +218,11 @@ export default function AdminDashboard() {
 
         {activeTab === 'metricas' && (
           <>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6, marginBottom: 20, scrollbarWidth: 'none' }}>
-              <button 
-                onClick={() => setSubTab('analytics')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'analytics' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'analytics' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+            <div className="admin-subnav" role="group" aria-label="Seções de métricas">
+              <button className={`admin-subnav-item ${subTab === 'analytics' ? 'is-active' : ''}`} aria-pressed={subTab === 'analytics'} onClick={() => setSubTab('analytics')}>
                 📊 Gráficos & KPIs
               </button>
-              <button 
-                onClick={() => setSubTab('estoque')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'estoque' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'estoque' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+              <button className={`admin-subnav-item ${subTab === 'estoque' ? 'is-active' : ''}`} aria-pressed={subTab === 'estoque'} onClick={() => setSubTab('estoque')}>
                 📦 Estoque
               </button>
             </div>
@@ -336,29 +233,17 @@ export default function AdminDashboard() {
 
         {activeTab === 'config' && (
           <>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 6, marginBottom: 20, scrollbarWidth: 'none' }}>
-              <button 
-                onClick={() => setSubTab('configs')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'configs' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'configs' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+            <div className="admin-subnav" role="group" aria-label="Seções de configurações">
+              <button className={`admin-subnav-item ${subTab === 'configs' ? 'is-active' : ''}`} aria-pressed={subTab === 'configs'} onClick={() => setSubTab('configs')}>
                 🍹 Pacotes, Preços & Sistema
               </button>
-              <button 
-                onClick={() => setSubTab('parceiros')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'parceiros' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'parceiros' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+              <button className={`admin-subnav-item ${subTab === 'parceiros' ? 'is-active' : ''}`} aria-pressed={subTab === 'parceiros'} onClick={() => setSubTab('parceiros')}>
                 🤝 Parceiros
               </button>
-              <button 
-                onClick={() => setSubTab('campanhas')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'campanhas' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'campanhas' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+              <button className={`admin-subnav-item ${subTab === 'campanhas' ? 'is-active' : ''}`} aria-pressed={subTab === 'campanhas'} onClick={() => setSubTab('campanhas')}>
                 📣 Campanhas WhatsApp
               </button>
-              <button 
-                onClick={() => setSubTab('equipe')} 
-                style={{ padding: '8px 18px', borderRadius: 20, border: '1px solid var(--border-color)', background: subTab === 'equipe' ? 'var(--primary)' : 'rgba(255,255,255,0.03)', color: subTab === 'equipe' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40, transition: '0.2s ease' }}
-              >
+              <button className={`admin-subnav-item ${subTab === 'equipe' ? 'is-active' : ''}`} aria-pressed={subTab === 'equipe'} onClick={() => setSubTab('equipe')}>
                 👥 Equipe / Ajudantes
               </button>
             </div>

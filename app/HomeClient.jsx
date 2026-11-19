@@ -15,6 +15,7 @@ import Navbar from '../components/home/Navbar';
 
 export default function HomeClient() {
   const [general, setGeneral] = useState(null);
+  const [pacotes, setPacotes] = useState([]);
   const [galeria, setGaleria] = useState([]);
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,12 @@ export default function HomeClient() {
         const configSnap = await get(ref(db, 'config'));
         if (configSnap.exists()) {
           const configData = configSnap.val();
+          if (configData.pacotes) {
+            const pacotesArray = Object.entries(configData.pacotes)
+              .map(([id, pacote]) => ({ ...pacote, id }))
+              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            setPacotes(pacotesArray);
+          }
           if (configData.general) {
             setGeneral(configData.general);
           }
@@ -102,7 +109,7 @@ export default function HomeClient() {
   };
 
   return (
-    <main suppressHydrationWarning style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 60 }}>
+    <main className="home-page" suppressHydrationWarning style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
       <BackgroundEffects />
 
       {/* Navbar fixa */}
@@ -112,8 +119,9 @@ export default function HomeClient() {
       <style>{`
         .hero-offset { padding-top: 56px; }
         @media (max-width: 767px) { .hero-offset { padding-top: 0; } }
-        main { padding-bottom: 60px !important; }
-        @media (min-width: 768px) { main { padding-bottom: 20px !important; } }
+        .home-page { padding-bottom: 60px !important; }
+        @media (min-width: 768px) { .home-page { padding-bottom: 20px !important; } }
+        @media (max-width: 767px) { .home-page { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important; } }
       `}</style>
       <div className="hero-offset">
         <HeroSection general={general} />
@@ -137,7 +145,7 @@ export default function HomeClient() {
       />
 
       {/* 4. Pacotes Descomplicados: 5, 6 e 7 Drinks (+ 2 Sem Álcool) */}
-      <PacotesResumoSection />
+      <PacotesResumoSection pacotes={pacotes} />
 
       {/* 6. Banner Parceiros */}
       <ParceirosBanner />

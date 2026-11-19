@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiHeart, FiTrendingUp } from 'react-icons/fi';
+import { FiHeart } from 'react-icons/fi';
 
 export default function TabParceiros({
   rankingParceiros = [],
@@ -62,7 +62,7 @@ export default function TabParceiros({
           <FiHeart color="#E91E63" /> Ranking de Cerimonialistas Parceiros
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0 0 20px 0' }}>
-          Performance e conversão por profissional parceiro.
+          Leads e conversão da coorte completa do período, sem o recorte de status dos gráficos.
         </p>
 
         {rankingParceiros.length > 0 ? (

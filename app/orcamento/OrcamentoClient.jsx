@@ -51,6 +51,8 @@ export default function OrcamentoClient() {
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSavingStep, setIsSavingStep] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [isSuccess, setIsSuccess] = useState(false)
   const [pendingDraft, setPendingDraft] = useState(null) // { formData, step }
   
@@ -225,7 +227,7 @@ export default function OrcamentoClient() {
       const savedLeadId = localStorage.getItem('CURRENT_LEAD_ID');
 
       if (raw) {
-        const { formData: saved, step: savedStep, savedAt } = JSON.parse(raw);
+        const { formData: saved, step: savedStep, leadId: draftLeadId, savedAt } = JSON.parse(raw);
         if (Date.now() - savedAt < DRAFT_TTL) {
           // Cerimonialista: URL vence o cache
           const cerimSlug = refSlug || saved.cerimonialista || '';
@@ -233,9 +235,10 @@ export default function OrcamentoClient() {
           if (pacoteId) {
             // Veio de link de pacote — restaura sem perguntar
             setFormData(prev => ({ ...prev, pacote: pacoteId, cerimonialista: cerimSlug }));
-            if (savedLeadId) {
-              setCurrentLeadId(savedLeadId);
-              leadIdRef.current = savedLeadId;
+            const resumeLeadId = savedLeadId || draftLeadId;
+            if (resumeLeadId) {
+              setCurrentLeadId(resumeLeadId);
+              leadIdRef.current = resumeLeadId;
             }
             setCurrentStep(1);
             return;
@@ -248,7 +251,7 @@ export default function OrcamentoClient() {
             setPendingDraft({
               formData: { ...saved, cerimonialista: cerimSlug },
               step: Math.min(savedStep, STEPS.length - 1),
-              leadId: savedLeadId || null
+              leadId: savedLeadId || draftLeadId || null
             });
             return;
           }
@@ -286,6 +289,7 @@ export default function OrcamentoClient() {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         formData,
         step: currentStep,
+        leadId: leadIdRef.current,
         savedAt: Date.now(),
       }));
     } catch (e) {}
@@ -311,12 +315,7 @@ export default function OrcamentoClient() {
 
     // Se já existe um leadId registrado, SEMPRE atualiza (nunca faz push)
     if (targetId) {
-      try {
-        await update(ref(db, `leads/${targetId}`), cleanData)
-      } catch (err) {
-        console.warn('Retry ao atualizar lead...', err)
-        try { await update(ref(db, `leads/${targetId}`), cleanData) } catch (_) {}
-      }
+      await update(ref(db, `leads/${targetId}`), cleanData)
       return targetId
     }
 
@@ -459,6 +458,7 @@ export default function OrcamentoClient() {
   const nextStep = useCallback(async () => {
     if (isNavigatingRef.current) return;
     if (!validateStep(currentStep)) return;
+    setSaveError('');
 
     // Cancela imediatamente qualquer auto-captura agendada no timer
     if (autoCaptureTimerRef.current) {
@@ -467,6 +467,7 @@ export default function OrcamentoClient() {
     }
 
     isNavigatingRef.current = true;
+    setIsSavingStep(true);
 
     try {
       let finalCity = formData.cidade === 'Outra cidade...'
@@ -486,26 +487,18 @@ export default function OrcamentoClient() {
         try { await savePromiseRef.current; } catch (_) {}
       }
 
-      // Step 0 → 1: salvar ou atualizar lead
-      if (currentStep === 0) {
-        try {
-          await saveLeadToFirebase(baseData, leadIdRef.current);
-        } catch (err) {
-          console.warn('Aviso ao salvar lead no step 0:', err);
-        }
-      } else if (leadIdRef.current) {
-        try {
-          await saveLeadToFirebase(baseData, leadIdRef.current);
-        } catch (err) {
-          console.warn('Aviso ao atualizar lead:', err);
-        }
-      }
+      // Persiste cada etapa no mesmo lead antes de permitir avançar.
+      await saveLeadToFirebase(baseData, leadIdRef.current);
 
       setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+    } catch (err) {
+      console.error('Erro ao salvar etapa do formulário:', err);
+      setSaveError('Não foi possível salvar seus dados. Verifique sua conexão e tente novamente.');
     } finally {
+      setIsSavingStep(false);
       isNavigatingRef.current = false;
     }
   }, [currentStep, validateStep, formData, abGroup, saveLeadToFirebase])
@@ -610,7 +603,10 @@ export default function OrcamentoClient() {
   }, [formData, currentStep, validateStep, pacotes, cidades, currentLeadId, abGroup, abTestingConfig, visiblePacotes]);
 
   const resetForm = useCallback(() => {
-    try { localStorage.removeItem(DRAFT_KEY) } catch (e) {}
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem('CURRENT_LEAD_ID');
+    } catch (e) {}
     leadIdRef.current = null
     setFormData({
       pacote: '', nome: '', sobrenome: '', telefone: '', cidade: '', novaCidade: '',
@@ -637,7 +633,7 @@ export default function OrcamentoClient() {
       case 2:
         return (
           <div className="step-enter" key="step-2">
-            <div className="packages-grid">
+            <div className="packages-grid" role="radiogroup" aria-label="Escolha um pacote">
               {visiblePacotes.map(p => {
                 const isSelected = formData.pacote === p.id;
                 const nameLower = (p.name || '').toLowerCase();
@@ -673,8 +669,25 @@ export default function OrcamentoClient() {
                     key={p.id}
                     id={`pacote-${p.id}`}
                     className={`package-card ${isSelected ? 'package-card--selected' : ''} ${isLaboratorio ? 'package-card--popular' : ''} ${isReatividade ? 'package-card--premium' : ''}`}
+                    role="radio"
+                    aria-checked={isSelected}
+                    aria-labelledby={`pacote-label-${p.id}`}
+                    tabIndex={isSelected || (!formData.pacote && p.id === visiblePacotes[0]?.id) ? 0 : -1}
                     onClick={() => {
                       updateField('pacote', p.id);
+                    }}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        updateField('pacote', p.id);
+                      } else if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(event.key)) {
+                        event.preventDefault();
+                        const radios = Array.from(event.currentTarget.parentElement.querySelectorAll('[role="radio"]'));
+                        const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
+                        const nextIndex = (radios.indexOf(event.currentTarget) + direction + radios.length) % radios.length;
+                        radios[nextIndex]?.focus();
+                        radios[nextIndex]?.click();
+                      }
                     }}
                   >
                     {isLaboratorio && (
@@ -690,7 +703,7 @@ export default function OrcamentoClient() {
 
                     <span className="package-card__emoji">{p.emoji || (isExperimento ? '🧪' : isLaboratorio ? '⚗️' : '🧬')}</span>
                     
-                    <h3 className="package-card__name">{p.name}</h3>
+                    <h3 className="package-card__name" id={`pacote-label-${p.id}`}>{p.name}</h3>
 
                     <div className="package-card__pill">
                       {drinkPillText}
@@ -793,12 +806,12 @@ export default function OrcamentoClient() {
                       ))}
                     </ul>
 
-                    <button
-                      type="button"
+                    <span
+                      aria-hidden="true"
                       className="package-card__select-btn"
                     >
                       {isSelected ? '✓ Pacote Selecionado' : 'Selecionar este Pacote'}
-                    </button>
+                    </span>
                   </div>
                 );
               })}
@@ -1235,16 +1248,19 @@ export default function OrcamentoClient() {
 
             {/* Progress */}
             <nav className="progress" aria-label="Progresso do formulário">
-              {STEPS.map((_, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : 'none' }}>
+              {STEPS.map((step, i) => (
+                <div key={i} className="progress__item">
                   <div
                     className={`progress__step ${
                       i === currentStep ? 'progress__step--active' :
                       i < currentStep ? 'progress__step--completed' : ''
                     }`}
+                    aria-current={i === currentStep ? 'step' : undefined}
+                    aria-label={`Etapa ${i + 1}: ${step.title}${i < currentStep ? ', concluída' : i === currentStep ? ', atual' : ''}`}
                   >
                     {i < currentStep ? <FiCheck size={16} /> : i + 1}
                   </div>
+                  <span className={`progress__label ${i === currentStep ? 'progress__label--active' : ''}`}>{step.title}</span>
                   {i < STEPS.length - 1 && (
                     <div className={`progress__line ${i < currentStep ? 'progress__line--active' : ''}`} />
                   )}
@@ -1275,12 +1291,13 @@ export default function OrcamentoClient() {
                 {currentStep < STEPS.length - 1 ? (
                   <button
                     type="button"
-                    className="btn btn--primary"
+                    className={`btn btn--primary ${isSavingStep ? 'btn--loading' : ''}`}
                     onClick={nextStep}
+                    disabled={isSavingStep}
+                    aria-busy={isSavingStep}
                     id="btn-next"
                   >
-                    Próximo
-                    <FiChevronRight size={18} />
+                    {isSavingStep ? <><span className="btn__spinner" /> Salvando...</> : <>Próximo <FiChevronRight size={18} /></>}
                   </button>
                 ) : (
                   <button
@@ -1301,6 +1318,7 @@ export default function OrcamentoClient() {
                   </button>
                 )}
               </div>
+              {saveError && <p role="alert" className="form-error" style={{ marginTop: 12 }}>{saveError}</p>}
             </main>
           </>
         ) : (

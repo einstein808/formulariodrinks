@@ -8,10 +8,12 @@ export default function DashboardFilters({
   setSelectedMonth,
   selectedStatus,
   setSelectedStatus,
+  selectedDateBasis = 'cadastro',
+  setSelectedDateBasis,
   availableYears = [],
   onExportCsv
 }) {
-  const hasActiveFilters = selectedYear !== 'todos' || selectedMonth !== 'todos' || selectedStatus !== 'todos';
+  const hasActiveFilters = selectedYear !== 'todos' || selectedMonth !== 'todos' || selectedStatus !== 'todos' || selectedDateBasis !== 'cadastro';
 
   return (
     <div style={{
@@ -27,10 +29,30 @@ export default function DashboardFilters({
       justifyContent: 'space-between'
     }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        {/* Base de período */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+          <label htmlFor="analytics-date-basis" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>📍 Período por</label>
+          <select
+            id="analytics-date-basis"
+            value={selectedDateBasis}
+            onChange={(e) => {
+              setSelectedDateBasis?.(e.target.value);
+              setSelectedYear('todos');
+              setSelectedMonth('todos');
+            }}
+            className="form-select"
+            style={{ padding: '6px 10px', fontSize: '0.82rem', height: '36px' }}
+          >
+            <option value="cadastro">Entrada do lead</option>
+            <option value="evento">Data do evento</option>
+          </select>
+        </div>
+
         {/* Filtrar Ano */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px' }}>
-          <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>🗓️ Ano</label>
+          <label htmlFor="analytics-year" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>🗓️ Ano</label>
           <select
+            id="analytics-year"
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
             className="form-select"
@@ -45,8 +67,9 @@ export default function DashboardFilters({
 
         {/* Filtrar Mês */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '140px' }}>
-          <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>📅 Mês</label>
+          <label htmlFor="analytics-month" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>📅 Mês</label>
           <select
+            id="analytics-month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="form-select"
@@ -70,15 +93,16 @@ export default function DashboardFilters({
 
         {/* Filtrar Status */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '140px' }}>
-          <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>⚡ Status</label>
+          <label htmlFor="analytics-status" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>⚡ Status dos gráficos</label>
           <select
+            id="analytics-status"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="form-select"
             style={{ padding: '6px 10px', fontSize: '0.82rem', height: '36px' }}
           >
             <option value="todos">Todos os Status</option>
-            <option value="leads">Novo (Leads)</option>
+            <option value="novo">Novo (Leads)</option>
             <option value="negociacao">Em Negociação</option>
             <option value="fechado">Fechado</option>
             <option value="realizado">Realizado</option>
@@ -92,6 +116,7 @@ export default function DashboardFilters({
               setSelectedYear('todos');
               setSelectedMonth('todos');
               setSelectedStatus('todos');
+              setSelectedDateBasis?.('cadastro');
             }}
             style={{
               alignSelf: 'flex-end',

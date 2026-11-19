@@ -4,12 +4,14 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line
 } from 'recharts';
 import { COLORS } from '../hooks/useDashboardData';
+import { formatCurrency } from '@/lib/utils';
 
 export default function TabCaptacao({
   pieData = [],
   tipoEventoPieData = [],
   barData = [],
-  lineData = []
+  lineData = [],
+  abPerformanceData = []
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.25s ease' }}>
@@ -155,6 +157,42 @@ export default function TabCaptacao({
         </div>
 
       </div>
+
+      {/* Desempenho do teste A/B */}
+      <section style={{ background: 'var(--bg-input)', padding: '20px 24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+        <h3 style={{ margin: '0 0 4px', color: 'var(--text-primary)', fontSize: '1.05rem' }}>🧪 Desempenho por grupo de preço</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 16px' }}>
+          Compara a conversão dos leads dos grupos A e B no período. A taxa usa todos os status; o valor contratado considera apenas fechados e realizados.
+        </p>
+        {abPerformanceData.length ? (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+              <thead>
+                <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
+                  {['Grupo', 'Leads', 'Ganhos', 'Perdidos', 'Conversão', 'Ganhos resolvidos', 'Receita contratada'].map(label => (
+                    <th key={label} style={{ padding: '10px 12px', fontSize: '0.7rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {abPerformanceData.map(group => (
+                  <tr key={group.grupo} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: '12px', color: 'var(--text-primary)', fontWeight: 700 }}>{group.grupo}</td>
+                    <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{group.leads}</td>
+                    <td style={{ padding: '12px', color: '#4CAF50' }}>{group.fechados}</td>
+                    <td style={{ padding: '12px', color: '#F44336' }}>{group.perdidos}</td>
+                    <td style={{ padding: '12px', color: 'var(--primary)', fontWeight: 700 }}>{group.conversao}%</td>
+                    <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{group.taxaResolvidos}%</td>
+                    <td style={{ padding: '12px', color: '#4CAF50', fontWeight: 700 }}>{formatCurrency(group.faturamento)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: 'var(--text-muted)', textAlign: 'center', padding: 18 }}>Ainda não há leads no período para comparar os grupos.</p>
+        )}
+      </section>
 
     </div>
   );

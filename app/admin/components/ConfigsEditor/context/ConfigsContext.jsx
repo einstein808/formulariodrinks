@@ -36,7 +36,7 @@ export function ConfigsProvider({ children }) {
     campaignName: 'campanha_padrao'
   });
   const [shoppingConfig, setShoppingConfig] = useState({
-    margemSeguranca: 10,
+    margemSeguranca: 20,
     nonAlcoholicPercentage: 15,
     itensFixos: []
   });
