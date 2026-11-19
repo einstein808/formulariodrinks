@@ -225,6 +225,7 @@ export default function CampanhasManager() {
 
   // Dispatch states
   const [disparando, setDisparando] = useState(false);
+  const [activeCampaignId, setActiveCampaignId] = useState(null);
   const [progresso, setProgresso] = useState({ total: 0, sucesso: 0, erro: 0, status: '' });
   const [toast, setToast] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
@@ -548,10 +549,17 @@ export default function CampanhasManager() {
     const publicoLabel = publico === 'leads' ? 'cliente(s) / lead(s)' : 'parceiro(s)';
 
     showConfirm(
-      `Deseja realmente disparar esta campanha para ${count} ${publicoLabel} via Evolution API?\n\n🛡️ Proteção Anti-Ban Ativa:\n• Simulação de digitação (digitando...)\n• Intervalo humanizado de 4s a 7s por envio\n• Pausa de resfriamento a cada 8 mensagens\n• Variações Spintax ativas`,
+      `Deseja realmente disparar esta campanha para ${count} ${publicoLabel} via Evolution API?\n\n• Intervalo entre mensagens de 4s a 7s\n• Pausa de resfriamento a cada 8 mensagens\n• Variações personalizadas ativas`,
       async () => {
         setDisparando(true);
         setProgresso({ total: count, sucesso: 0, erro: 0, status: 'Iniciando envio humanizado...' });
+
+        const campanhaId = `camp_${Date.now()}`;
+        const campanhaRef = ref(db, `config/campanhas/${campanhaId}`);
+        let sucessoCount = 0;
+        let erroCount = 0;
+        let processados = 0;
+        let campanhaCriada = false;
 
         try {
           const evUrl = evolutionApi?.url || process.env.NEXT_PUBLIC_WPP_API_URL || 'https://api.gabryelamaro.com';
@@ -573,38 +581,28 @@ export default function CampanhasManager() {
             const id = isLeads ? item.id : item.slug;
             return selectedIds.includes(id);
           });
-
-          const campanhaId = `camp_${Date.now()}`;
+          if (targetList.length === 0) throw new Error('Os destinatários selecionados não estão mais disponíveis. Atualize a lista e tente novamente.');
+          setActiveCampaignId(campanhaId);
           const agoraIso = new Date().toISOString();
 
-          // Registra início da campanha no Firebase com sessão autenticada em config/campanhas
-          try {
-            await set(ref(db, `config/campanhas/${campanhaId}`), {
-              id: campanhaId,
-              publico: isLeads ? 'leads' : 'parceiros',
-              segmentoLead: isLeads ? segmentoLead : null,
-              mensagem,
-              tipo,
-              midia: midia ? midia.trim() : '',
-              criadaEm: agoraIso,
-              status: 'em_andamento',
-              antiBan: {
-                spintaxAtivo: true,
-                typingSimulated: true,
-                jitterDelay: '4s-7s + pausas de lote'
-              },
-              total: targetList.length,
-              sucesso: 0,
-              erro: 0,
-              resultados: {}
-            });
-          } catch (errDb) {
-            console.warn('Aviso: Registro no Firebase ignorado:', errDb?.message);
-          }
-
-          let sucessoCount = 0;
-          let erroCount = 0;
-          const resultados = {};
+          // Não inicia o envio sem registrar o histórico e o estado inicial.
+          await set(campanhaRef, {
+            id: campanhaId,
+            publico: isLeads ? 'leads' : 'parceiros',
+            segmentoLead: isLeads ? segmentoLead : null,
+            mensagem,
+            tipo,
+            midia: midia ? midia.trim() : '',
+            criadaEm: agoraIso,
+            atualizadaEm: agoraIso,
+            status: 'em_andamento',
+            total: targetList.length,
+            processados: 0,
+            sucesso: 0,
+            erro: 0,
+            resultados: {}
+          });
+          campanhaCriada = true;
 
           for (let i = 0; i < targetList.length; i++) {
             const item = targetList[i];
@@ -620,106 +618,85 @@ export default function CampanhasManager() {
               status: `Enviando para ${itemNome} (${i + 1}/${targetList.length})...`
             });
 
+            let resultado;
+            let textoEnviado = '';
             if (!cleaned || cleaned.length < 10) {
               erroCount++;
-              resultados[itemKey] = {
+              resultado = {
                 nome: itemNome,
                 success: false,
                 error: 'Número de telefone inválido ou incompleto'
               };
-              continue;
-            }
+            } else {
+              textoEnviado = isLeads
+                ? interpolarLead(mensagem, item)
+                : interpolarParceiro(mensagem, item, categorias);
 
-            // 1. Interpolação de texto + Spintax
-            const textPersonalizado = isLeads
-              ? interpolarLead(mensagem, item)
-              : interpolarParceiro(mensagem, item, categorias);
+              // A presença já recebe a duração no servidor; não repetimos essa espera no navegador.
+              const typingDuration = getRandomInt(2000, 3500);
+              void simulateTypingPresence(baseUrl, instance, apiKey, cleaned, typingDuration);
 
-            // 2. Simulação de digitação humana (2.0s a 3.5s)
-            const typingDuration = getRandomInt(2000, 3500);
-            await simulateTypingPresence(baseUrl, instance, apiKey, cleaned, typingDuration);
-            await sleep(typingDuration);
-
-            // 3. Montagem do payload de envio
-            let sendEndpoint = `${baseUrl}/message/sendText/${instance}`;
-            let sendPayload = {
-              number: cleaned,
-              text: textPersonalizado
-            };
-
-            if (tipo === 'imagem' && midia.trim()) {
-              sendEndpoint = `${baseUrl}/message/sendMedia/${instance}`;
-              sendPayload = {
-                number: cleaned,
-                mediatype: 'image',
-                media: midia.trim(),
-                caption: textPersonalizado
-              };
-            } else if (tipo === 'instagram' && midia.trim()) {
-              sendPayload.text = `${textPersonalizado}\n\n👉 Confira nossa publicação: ${midia.trim()}`;
-            }
-
-            try {
-              const response = await fetch(sendEndpoint, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': apiKey
-                },
-                body: JSON.stringify(sendPayload)
-              });
-
-              if (response.ok) {
-                sucessoCount++;
-                const updateTime = new Date().toISOString();
-                resultados[itemKey] = {
-                  nome: itemNome,
-                  success: true,
-                  sentAt: updateTime
-                };
-
-                if (isLeads) {
-                  await update(ref(db, `leads/${item.id}`), {
-                    ultimoContato: updateTime,
-                    ultimaCampanhaEm: updateTime
-                  });
-                  await push(ref(db, `leads/${item.id}/messages`), {
-                    type: 'campanha_whatsapp',
-                    number: cleaned,
-                    success: true,
-                    text: textPersonalizado,
-                    sentAt: updateTime
-                  });
-                } else {
-                  await set(ref(db, `config/cerimonialistas/${item.slug}/ultimoContato`), updateTime);
-                }
-              } else {
-                erroCount++;
-                const errText = await response.text();
-                resultados[itemKey] = {
-                  nome: itemNome,
-                  success: false,
-                  error: errText || 'Erro retornado pela Evolution API'
-                };
+              let sendEndpoint = `${baseUrl}/message/sendText/${instance}`;
+              let sendPayload = { number: cleaned, text: textoEnviado };
+              if (tipo === 'imagem' && midia.trim()) {
+                sendEndpoint = `${baseUrl}/message/sendMedia/${instance}`;
+                sendPayload = { number: cleaned, mediatype: 'image', media: midia.trim(), caption: textoEnviado };
+              } else if (tipo === 'instagram' && midia.trim()) {
+                sendPayload.text = `${textoEnviado}\n\n👉 Confira nossa publicação: ${midia.trim()}`;
               }
-            } catch (err) {
-              erroCount++;
-              resultados[itemKey] = {
-                nome: itemNome,
-                success: false,
-                error: err.message || 'Falha de conexão com Evolution API'
-              };
+
+              let response = null;
+              const requestController = new AbortController();
+              const requestTimeout = window.setTimeout(() => requestController.abort(), 60000);
+              try {
+                response = await fetch(sendEndpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', apikey: apiKey },
+                  body: JSON.stringify(sendPayload),
+                  signal: requestController.signal
+                });
+              } catch (err) {
+                erroCount++;
+                const errorMessage = err.name === 'AbortError' ? 'Tempo limite ao aguardar a Evolution API (60s).' : (err.message || 'Falha de conexão com Evolution API');
+                resultado = { nome: itemNome, success: false, error: errorMessage.slice(0, 300) };
+              } finally {
+                window.clearTimeout(requestTimeout);
+              }
+
+              if (response?.ok) {
+                sucessoCount++;
+                resultado = { nome: itemNome, success: true, sentAt: new Date().toISOString() };
+              } else if (response) {
+                erroCount++;
+                let errText = '';
+                try { errText = await response.text(); } catch { /* usa o status HTTP como fallback */ }
+                resultado = { nome: itemNome, success: false, error: (errText || `Evolution API retornou HTTP ${response.status}`).slice(0, 300) };
+              }
             }
 
-            // Atualiza progresso da campanha em tempo real no Firebase (config/campanhas)
-            try {
-              await update(ref(db, `config/campanhas/${campanhaId}`), {
-                sucesso: sucessoCount,
-                erro: erroCount,
-                [`resultados/${itemKey}`]: resultados[itemKey]
-              });
-            } catch (errUpd) {
-              console.warn('Aviso: Atualização de progresso ignorada:', errUpd?.message);
+            // Salva o resultado de todo contato antes de iniciar o próximo envio.
+            processados++;
+            const checkpointTime = resultado?.sentAt || new Date().toISOString();
+            await update(campanhaRef, {
+              sucesso: sucessoCount,
+              erro: erroCount,
+              processados,
+              atualizadaEm: checkpointTime,
+              [`resultados/${itemKey}`]: resultado
+            });
+
+            if (resultado?.success) {
+              const sentAt = resultado.sentAt;
+              const sideEffects = isLeads
+                ? [
+                    update(ref(db, `leads/${item.id}`), { ultimoContato: sentAt, ultimaCampanhaEm: sentAt }),
+                    push(ref(db, `leads/${item.id}/messages`), { type: 'campanha_whatsapp', number: cleaned, success: true, text: textoEnviado, sentAt })
+                  ]
+                : [set(ref(db, `config/cerimonialistas/${item.slug}/ultimoContato`), sentAt)];
+              const sideEffectResults = await Promise.allSettled(sideEffects);
+              if (sideEffectResults.some(task => task.status === 'rejected')) {
+                console.warn('Mensagem enviada; falha ao atualizar dados auxiliares do destinatário.');
+              }
             }
 
             setProgresso({
@@ -729,7 +706,7 @@ export default function CampanhasManager() {
               status: `Enviado para ${itemNome}! (${i + 1}/${targetList.length})`
             });
 
-            // 4. Jitter delay humanizado entre envios (4s a 7s)
+            // Intervalo configurado para proteger a qualidade e a entrega das mensagens.
             if (i < targetList.length - 1) {
               setProgresso(prev => ({
                 ...prev,
@@ -750,23 +727,36 @@ export default function CampanhasManager() {
             }
           }
 
-          // Finaliza campanha no Firebase
-          try {
-            await update(ref(db, `config/campanhas/${campanhaId}`), {
-              status: 'concluida',
-              concluidaEm: new Date().toISOString()
-            });
-          } catch (errFin) {
-            console.warn('Aviso: Finalização no Firebase ignorada:', errFin?.message);
-          }
+          await update(campanhaRef, {
+            status: 'concluida',
+            sucesso: sucessoCount,
+            erro: erroCount,
+            processados,
+            concluidaEm: new Date().toISOString(),
+            atualizadaEm: new Date().toISOString()
+          });
 
           showToast(`Campanha finalizada! ${sucessoCount} enviadas com sucesso, ${erroCount} falhas.`, 'success');
         } catch (err) {
           console.error('Erro no disparo:', err);
-          showToast(`Erro ao disparar campanha: ${err.message}`, 'error');
+          if (campanhaCriada) {
+            try {
+              await update(campanhaRef, {
+                status: 'interrompida',
+                sucesso: sucessoCount,
+                erro: erroCount,
+                processados,
+                erroExecucao: (err.message || 'Falha ao salvar o progresso').slice(0, 300),
+                atualizadaEm: new Date().toISOString()
+              });
+            } catch (checkpointError) {
+              console.error('Não foi possível salvar o estado interrompido:', checkpointError);
+            }
+          }
+          showToast(`Campanha interrompida após ${processados} de ${count} contatos. ${err.message || 'Não foi possível salvar o progresso.'}`, 'error');
         } finally {
           setDisparando(false);
-          setProgresso({ total: 0, sucesso: 0, erro: 0, status: '' });
+          setActiveCampaignId(null);
         }
       },
       `Disparar para ${count} ${publicoLabel}`
@@ -1693,6 +1683,14 @@ export default function CampanhasManager() {
                 : 'Data não informada';
 
               const isLeadCampaign = camp.publico === 'leads';
+              const processadosCampanha = Number(camp.processados ?? ((camp.sucesso || 0) + (camp.erro || 0)));
+              const campanhaStatus = camp.status === 'concluida'
+                ? 'Concluída'
+                : camp.status === 'interrompida' || (camp.status === 'em_andamento' && activeCampaignId !== camp.id)
+                  ? 'Interrompida'
+                  : 'Em andamento';
+              const statusConcluido = campanhaStatus === 'Concluída';
+              const statusInterrompido = campanhaStatus === 'Interrompida';
 
               return (
                 <div
@@ -1742,6 +1740,7 @@ export default function CampanhasManager() {
                       <span style={{ color: '#4CAF50', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <FiCheckCircle size={14} /> {camp.sucesso || 0} enviados
                       </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{processadosCampanha}/{camp.total || processadosCampanha} processados</span>
                       {(camp.erro || 0) > 0 && (
                         <span style={{ color: '#F44336', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <FiXCircle size={14} /> {camp.erro} erros
@@ -1752,10 +1751,10 @@ export default function CampanhasManager() {
                         borderRadius: '6px',
                         fontSize: '0.72rem',
                         fontWeight: 600,
-                        background: camp.status === 'concluida' ? 'rgba(76, 175, 80, 0.15)' : 'rgba(255, 193, 7, 0.15)',
-                        color: camp.status === 'concluida' ? '#4CAF50' : '#FFC107'
+                        background: statusConcluido ? 'rgba(76, 175, 80, 0.15)' : statusInterrompido ? 'rgba(244, 67, 54, 0.14)' : 'rgba(255, 193, 7, 0.15)',
+                        color: statusConcluido ? '#4CAF50' : statusInterrompido ? '#F44336' : '#FFC107'
                       }}>
-                        {camp.status === 'concluida' ? 'Concluída' : 'Em andamento'}
+                        {campanhaStatus}
                       </span>
                     </div>
                   </div>
@@ -1772,6 +1771,21 @@ export default function CampanhasManager() {
                   }}>
                     {camp.mensagem}
                   </div>
+
+                  {camp.resultados && Object.keys(camp.resultados).length > 0 && (
+                    <details className="admin-campaign-results">
+                      <summary>Ver resultados salvos ({Object.keys(camp.resultados).length})</summary>
+                      <div className="admin-campaign-results-list">
+                        {Object.entries(camp.resultados).map(([resultId, result]) => (
+                          <div className="admin-campaign-result" key={resultId}>
+                            <span className={result.success ? 'is-success' : 'is-error'}>{result.success ? 'Enviado' : 'Falhou'}</span>
+                            <span>{result.nome || resultId}</span>
+                            {result.error && <small>{result.error}</small>}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               );
             })}

@@ -5,11 +5,12 @@ import { db } from '@/lib/firebase';
 import { firebaseObjToArray, arrayToFirebaseObj } from '@/lib/utils';
 import { CUSTOS_CATEGORIAS_DEFAULT } from '@/lib/constants';
 import { useToast } from '@/hooks/useToast';
+import Toast from '@/components/ui/Toast';
 
 const ConfigsContext = createContext(null);
 
 export function ConfigsProvider({ children }) {
-  const { toast } = useToast();
+  const { toast, showToast, hideToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -127,10 +128,10 @@ export function ConfigsProvider({ children }) {
         await set(ref(db, 'avaliacoes'), arrayToFirebaseObj(avaliacoes));
       }
 
-      toast.success('Configurações salvas com sucesso!');
+      showToast('Alterações salvas com sucesso.', 'success');
     } catch (err) {
       console.error('Erro ao salvar:', err);
-      toast.error('Erro ao salvar as configurações.');
+      showToast('Não foi possível salvar. Verifique sua conexão e tente novamente.', 'error');
     } finally {
       setSaving(false);
     }
@@ -156,6 +157,7 @@ export function ConfigsProvider({ children }) {
   return (
     <ConfigsContext.Provider value={value}>
       {children}
+      <Toast toast={toast} onClose={hideToast} />
     </ConfigsContext.Provider>
   );
 }

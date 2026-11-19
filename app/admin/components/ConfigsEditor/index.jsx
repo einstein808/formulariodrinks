@@ -60,104 +60,79 @@ function ConfigsEditorContent() {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '40px' }}>
+    <div className="admin-settings-page">
       
       {/* ── HEADER ── */}
-      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="admin-header admin-settings-header">
         <div>
-          <h1 style={{ fontSize: '1.8rem', margin: '0 0 6px 0', fontFamily: 'Cinzel, serif', color: 'var(--primary)' }}>
+          <h1>
             Configurações do Sistema
           </h1>
-          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
-            Gerencie o cardápio, regras comerciais, integrações e identidade da sua empresa.
+          <p>
+            Organize as informações por área. Salve cada seção após editar.
           </p>
         </div>
 
-        <button 
-          className={`btn btn--primary ${saving ? 'btn--loading' : ''}`} 
-          onClick={() => saveSection(activeTab)} 
-          disabled={saving}
-          style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontWeight: 'bold' }}
-        >
-          {saving ? (
-            <div className="btn__spinner" />
-          ) : (
-            <>
-              <FiSave size={16} /> Salvar Alterações
-            </>
-          )}
-        </button>
       </div>
 
       {/* ── GRUPOS PRINCIPAIS (LEVEL 1) ── */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '12px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', scrollbarWidth: 'none' }}>
+      <nav className="admin-settings-groups" aria-label="Áreas de configuração">
         {groups.map(group => {
           const isSelected = activeGroup === group.id;
           return (
             <button
               key={group.id}
               onClick={() => handleGroupChange(group.id)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                background: isSelected ? 'var(--primary)' : 'rgba(255, 255, 255, 0.04)',
-                color: isSelected ? '#000' : 'var(--text-secondary)',
-                border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                fontWeight: isSelected ? 'bold' : '500',
-                cursor: 'pointer',
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                transition: 'all 0.15s ease'
-              }}
+              className={`admin-settings-group ${isSelected ? 'is-active' : ''}`}
+              aria-current={isSelected ? 'page' : undefined}
             >
               {group.label}
             </button>
           );
         })}
-      </div>
+      </nav>
 
-      {/* ── SUB-ABAS DO GRUPO ATIVO (LEVEL 2) ── */}
-      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '8px', marginBottom: '24px', scrollbarWidth: 'none' }}>
+      {/* Uma área por vez; os detalhes relacionados ficam agrupados na mesma tela. */}
+      <div className="admin-settings-sections" role="region" aria-label={`Seções de ${groups.find(group => group.id === activeGroup)?.label.replace(/^\S+\s/, '') || 'configuração'}`}>
         {tabsByGroup[activeGroup]?.map(tab => {
           const isActive = activeTab === tab.id;
           return (
-            <button
+            <details
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '20px',
-                background: isActive ? 'rgba(203,161,83,0.18)' : 'transparent',
-                color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                border: isActive ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                fontSize: '0.82rem',
-                fontWeight: isActive ? 'bold' : 'normal',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                transition: 'all 0.15s ease'
+              className="admin-settings-accordion"
+              open={isActive}
+              onToggle={event => {
+                if (event.currentTarget.open && activeTab !== tab.id) setActiveTab(tab.id);
+                if (!event.currentTarget.open && activeTab === tab.id) setActiveTab('');
               }}
             >
-              {tab.label}
-            </button>
+              <summary>{tab.label}</summary>
+              {isActive && (
+                <div className="admin-settings-content">
+                  {activeTab === 'drinks' && <TabDrinks />}
+                  {activeTab === 'pacotes' && <TabPacotes />}
+                  {activeTab === 'abTesting' && <TabAbTesting />}
+                  {activeTab === 'scripts' && <TabScripts />}
+                  {activeTab === 'evolutionApi' && <TabEvolutionApi />}
+                  {activeTab === 'geral' && <TabGeral />}
+                  {activeTab === 'galeria' && <TabGaleria />}
+                  {activeTab === 'shopping' && <TabShopping />}
+                  {activeTab === 'eventos' && <TabEventos />}
+                  {activeTab === 'financeiro' && <TabFinanceiro />}
+                  {activeTab === 'avaliacoes' && <TabAvaliacoes />}
+                  <button
+                    type="button"
+                    className={`btn btn--primary admin-settings-save ${saving ? 'btn--loading' : ''}`}
+                    onClick={() => saveSection(tab.id)}
+                    disabled={saving}
+                  >
+                    {saving ? <><span className="btn__spinner" /> Salvando…</> : <><FiSave size={16} /> Salvar {tab.label.replace(/^\S+\s/, '')}</>}
+                  </button>
+                </div>
+              )}
+            </details>
           );
         })}
-      </div>
-
-      {/* ── CONTEÚDO DA ABA (LAZY LOADED) ── */}
-      <div style={{ minHeight: '400px' }}>
-        {activeTab === 'drinks' && <TabDrinks />}
-        {activeTab === 'pacotes' && <TabPacotes />}
-        {activeTab === 'abTesting' && <TabAbTesting />}
-        {activeTab === 'scripts' && <TabScripts />}
-        {activeTab === 'evolutionApi' && <TabEvolutionApi />}
-        {activeTab === 'geral' && <TabGeral />}
-        {activeTab === 'galeria' && <TabGaleria />}
-        {activeTab === 'shopping' && <TabShopping />}
-        {activeTab === 'eventos' && <TabEventos />}
-        {activeTab === 'financeiro' && <TabFinanceiro />}
-        {activeTab === 'avaliacoes' && <TabAvaliacoes />}
       </div>
 
     </div>
