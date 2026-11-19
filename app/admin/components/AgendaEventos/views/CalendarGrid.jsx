@@ -12,18 +12,14 @@ export default function CalendarGrid({
   onSelectEvento
 }) {
   return (
-    <div style={{ 
+    <div className="admin-calendar-grid" style={{
       background: 'var(--bg-input)', 
       borderRadius: '12px', 
       border: '1px solid var(--border-color)', 
-      overflowX: 'auto',
-      WebkitOverflowScrolling: 'touch',
-      scrollbarWidth: 'thin',
-      scrollbarColor: 'rgba(203, 161, 83, 0.25) transparent'
+      overflow: 'hidden'
     }}>
-      <div style={{ minWidth: '640px' }}>
         {/* Cabeçalho dos dias da semana */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="admin-calendar-weekdays" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
           {daysOfWeek.map(day => (
             <div key={day} className="admin-calendar-day-label" style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>
               {day}
@@ -32,7 +28,7 @@ export default function CalendarGrid({
         </div>
 
         {/* Células dos dias */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(110px, auto)' }}>
+        <div className="admin-calendar-days" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
         
         {/* Espaços vazios do mês anterior */}
         {Array.from({ length: firstDayOfMonth }).map((_, index) => (
@@ -79,13 +75,23 @@ export default function CalendarGrid({
               </div>
 
               {/* Lista de eventos do dia */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, overflowY: 'auto' }}>
+              <div className="admin-calendar-events" style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, overflowY: 'auto' }}>
                 {eventosDoDia.map(evento => {
                   const isRealizado = evento.status === 'realizado';
                   return (
                     <div 
                       key={evento.id} 
                       onClick={() => onSelectEvento(evento)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onSelectEvento(evento);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      className="admin-calendar-event"
+                      title={`${evento.nome} · ${evento.pacote || 'Sem pacote'} · ${evento.cidade || 'Cidade não informada'}`}
                       style={{ 
                         background: isRealizado ? 'rgba(0, 229, 255, 0.04)' : 'rgba(255,255,255,0.05)', 
                         borderLeft: `3px solid ${isRealizado ? '#00E5FF' : '#4CAF50'}`,
@@ -125,12 +131,12 @@ export default function CalendarGrid({
                     </div>
                   );
                 })}
+                {eventosDoDia.length > 2 && <span className="admin-calendar-more">+{eventosDoDia.length - 2} eventos</span>}
               </div>
             </div>
           );
         })}
       </div>
     </div>
-  </div>
 );
 }

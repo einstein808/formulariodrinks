@@ -29,6 +29,7 @@ export default function LeadCard({
         e.currentTarget.style.opacity = '1';
       }}
       onClick={() => onSelectLead(lead)}
+      className="admin-lead-card"
       style={{
         background: 'var(--bg-card)',
         padding: '16px',

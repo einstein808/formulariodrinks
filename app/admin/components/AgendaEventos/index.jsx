@@ -40,12 +40,6 @@ export default function AgendaEventos() {
   const [modoVisao, setModoVisao] = useState('grade');
   const modalOpenRef = useRef(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      setModoVisao('lista');
-    }
-  }, []);
-
   // Sync selectedEvento with browser history for mobile back button
   useEffect(() => {
     if (selectedEvento && !modalOpenRef.current) {
@@ -112,6 +106,7 @@ export default function AgendaEventos() {
           <div style={{ display: 'flex', background: 'var(--bg-input)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '4px', flexShrink: 0 }}>
             <button 
               onClick={() => setModoVisao('grade')} 
+              aria-pressed={modoVisao === 'grade'}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: modoVisao === 'grade' ? 'bold' : 'normal',
                 background: modoVisao === 'grade' ? 'var(--primary)' : 'transparent', color: modoVisao === 'grade' ? '#000' : 'var(--text-secondary)',
@@ -122,6 +117,7 @@ export default function AgendaEventos() {
             </button>
             <button 
               onClick={() => setModoVisao('lista')} 
+              aria-pressed={modoVisao === 'lista'}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: modoVisao === 'lista' ? 'bold' : 'normal',
                 background: modoVisao === 'lista' ? 'var(--primary)' : 'transparent', color: modoVisao === 'lista' ? '#000' : 'var(--text-secondary)',

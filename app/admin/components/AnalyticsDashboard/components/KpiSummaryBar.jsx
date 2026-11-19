@@ -11,7 +11,7 @@ const cardStyle = {
 
 function KpiCard({ label, value, detail, color = 'var(--text-primary)', accent = 'var(--primary)', help }) {
   return (
-    <div style={{ ...cardStyle, borderTop: `3px solid ${accent}` }} title={help}>
+    <div className="admin-kpi-card" style={{ ...cardStyle, borderTop: `3px solid ${accent}` }} title={help}>
       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 7 }}>
         {label}
       </div>

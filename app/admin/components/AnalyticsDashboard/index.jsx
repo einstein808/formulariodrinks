@@ -146,14 +146,7 @@ export default function AnalyticsDashboard() {
       />
 
       {/* ── NAVIGATION TABS ── */}
-      <div style={{
-        display: 'flex',
-        gap: '4px',
-        borderBottom: '1px solid var(--border-color)',
-        marginBottom: '24px',
-        overflowX: 'auto',
-        scrollbarWidth: 'none'
-      }}>
+      <nav className="admin-analytics-tabs" aria-label="Seções de métricas">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -161,28 +154,15 @@ export default function AnalyticsDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 18px',
-                background: isActive ? 'rgba(203,161,83,0.1)' : 'transparent',
-                border: 'none',
-                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
-                color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                fontWeight: isActive ? 'bold' : '500',
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
+              className={`admin-analytics-tab ${isActive ? 'is-active' : ''}`}
+              aria-pressed={isActive}
             >
               <Icon size={16} />
               <span>{tab.label}</span>
             </button>
           );
         })}
-      </div>
+      </nav>
 
       {/* ── TAB CONTENT (LAZY LOADED) ── */}
       {activeTab === 'geral' && (
