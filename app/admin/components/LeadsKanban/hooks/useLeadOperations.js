@@ -1,6 +1,7 @@
 import { ref, push, update, remove } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { logMessageToLead } from '@/lib/whatsappService';
+import { getLeadEventIdentity } from '@/lib/leadDeduplication';
 
 export function useLeadOperations({
   leads,
@@ -42,6 +43,23 @@ export function useLeadOperations({
       showToast('Nome e Telefone são obrigatórios.', 'warning');
       return;
     }
+
+    const identity = getLeadEventIdentity(newLeadData);
+    const existingMatch = identity && leads.find(lead => !lead.mergedInto && getLeadEventIdentity(lead) === identity);
+    if (existingMatch) {
+      const existingName = `${existingMatch.nome || ''} ${existingMatch.sobrenome || ''}`.trim() || 'este cliente';
+      showConfirm(
+        `Já existe um lead para ${existingName} com este telefone e a mesma data de evento (${newLeadData.dataEvento}). Abra o registro existente para revisar e evitar uma duplicidade?`,
+        () => {
+          setIsAddingManual(false);
+          setSelectedLead(existingMatch);
+          showToast('Registro existente aberto para revisão.', 'info');
+        },
+        'Possível lead duplicado'
+      );
+      return;
+    }
+
     try {
       const dataToSave = {
         ...newLeadData,

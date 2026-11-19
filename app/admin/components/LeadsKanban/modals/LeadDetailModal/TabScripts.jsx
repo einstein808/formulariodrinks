@@ -1,10 +1,11 @@
 import React from 'react';
-import { FiPhone, FiFileText } from 'react-icons/fi';
+import { FiPhone, FiFileText, FiCopy } from 'react-icons/fi';
 
 export default function TabScripts({
   selectedLead,
   sendingScript,
   handleResendQuote,
+  handlePrepareManualQuote,
   handleSendEvolution
 }) {
   return (
@@ -16,6 +17,21 @@ export default function TabScripts({
           Disparador de Mensagens
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => handlePrepareManualQuote(selectedLead)}
+            disabled={sendingScript}
+            style={{
+              textAlign: 'left', fontSize: '0.85rem', padding: '10px 14px',
+              color: 'var(--text-primary)', background: 'rgba(255,255,255,0.025)',
+              border: '1px solid rgba(203, 161, 83, 0.28)', cursor: sendingScript ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
+              borderRadius: '8px', minHeight: 46
+            }}
+          >
+            <FiCopy size={14} /> Copiar orçamento para envio manual
+          </button>
+
           {/* Reenviar Orçamento */}
           <button 
             onClick={() => handleResendQuote(selectedLead)}
@@ -28,7 +44,7 @@ export default function TabScripts({
               borderRadius: '8px', minHeight: 46
             }}
           >
-            <FiPhone size={14} /> Reenviar PDF de Orçamento (Completo)
+            <FiPhone size={14} /> Reenviar orçamento completo
           </button>
 
           {/* Enviar Contrato */}

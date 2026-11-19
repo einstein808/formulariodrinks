@@ -3,6 +3,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ref, onValue, update } from 'firebase/database';
 import { db } from '../../lib/firebase';
+import { isMergedLead } from '../../lib/leadDeduplication';
 import { 
   FiCalendar, FiChevronLeft, FiChevronRight, FiMapPin, 
   FiPackage, FiX, FiCheck, FiUser, FiSearch, 
@@ -61,7 +62,7 @@ function CalendarioContent() {
     const unsubLeads = onValue(leadsRef, (snap) => {
       if (snap.exists()) {
         const data = snap.val();
-        const arr = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        const arr = Object.entries(data).map(([id, val]) => ({ id, ...val })).filter(lead => !isMergedLead(lead));
         setLeads(arr);
       } else {
         setLeads([]);

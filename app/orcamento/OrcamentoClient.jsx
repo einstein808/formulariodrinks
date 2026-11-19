@@ -10,6 +10,7 @@ import { BiDrink, BiParty } from 'react-icons/bi'
 import { MdCelebration } from 'react-icons/md'
 import { calculatePackagePrice, getMinTierPrice, DEFAULT_MAO_DE_OBRA_TIERS } from '../../lib/pricingUtils'
 import { sendWhatsAppQuote } from '../../lib/whatsappService'
+import { choosePrimaryLead, getLeadEventIdentity, mergeLeadData } from '../../lib/leadDeduplication'
 import BackgroundEffects from '../../components/BackgroundEffects'
 
 
@@ -487,8 +488,39 @@ export default function OrcamentoClient() {
         try { await savePromiseRef.current; } catch (_) {}
       }
 
-      // Persiste cada etapa no mesmo lead antes de permitir avançar.
-      await saveLeadToFirebase(baseData, leadIdRef.current);
+      // Quando já há data do evento, reaproveita um cadastro idêntico por telefone + data completa.
+      // Datas em anos diferentes são identidades distintas (ex.: aniversário anual).
+      const eventIdentity = getLeadEventIdentity(baseData);
+      let matchedLead = null;
+      if (eventIdentity) {
+        const leadsSnapshot = await get(ref(db, 'leads'));
+        if (leadsSnapshot.exists()) {
+          const matches = Object.entries(leadsSnapshot.val())
+            .map(([id, lead]) => ({ id, ...lead }))
+            .filter(lead => !lead.mergedInto && lead.id !== leadIdRef.current && getLeadEventIdentity(lead) === eventIdentity);
+          matchedLead = choosePrimaryLead(matches);
+        }
+      }
+
+      if (matchedLead) {
+        const currentLeadId = leadIdRef.current;
+        const canonicalData = mergeLeadData(matchedLead, baseData);
+        canonicalData.status = matchedLead.status || baseData.status;
+        canonicalData.criadoEm = matchedLead.criadoEm || baseData.criadoEm;
+        canonicalData.atualizadoEm = new Date().toISOString();
+        const writes = { [`leads/${matchedLead.id}`]: canonicalData };
+        if (currentLeadId && currentLeadId !== matchedLead.id) {
+          writes[`leads/${currentLeadId}/mergedInto`] = matchedLead.id;
+          writes[`leads/${currentLeadId}/mergedAt`] = new Date().toISOString();
+        }
+        await update(ref(db), writes);
+        leadIdRef.current = matchedLead.id;
+        setCurrentLeadId(matchedLead.id);
+        try { localStorage.setItem('CURRENT_LEAD_ID', matchedLead.id); } catch (_) {}
+      } else {
+        // Persiste cada etapa no mesmo lead antes de permitir avançar.
+        await saveLeadToFirebase(baseData, leadIdRef.current);
+      }
 
       setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
       if (typeof window !== 'undefined') {
@@ -575,6 +607,12 @@ export default function OrcamentoClient() {
 
       let finalLeadId = leadIdRef.current
       if (finalLeadId) {
+        const existingLeadSnap = await get(ref(db, `leads/${finalLeadId}`));
+        if (existingLeadSnap.exists()) {
+          const existingLead = existingLeadSnap.val();
+          leadDataToSave.status = existingLead.status || leadDataToSave.status;
+          if (existingLead.criadoEm) leadDataToSave.criadoEm = existingLead.criadoEm;
+        }
         await saveLeadToFirebase(leadDataToSave, finalLeadId);
       } else {
         finalLeadId = await saveLeadToFirebase(leadDataToSave);

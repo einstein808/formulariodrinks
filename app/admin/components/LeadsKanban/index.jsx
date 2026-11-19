@@ -1,6 +1,10 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { FiColumns, FiList, FiPlus, FiCalendar, FiMapPin } from 'react-icons/fi';
+import { FiColumns, FiList, FiPlus, FiCalendar, FiMapPin, FiCopy, FiExternalLink, FiX } from 'react-icons/fi';
+import { ref, update } from 'firebase/database';
+import { db } from '../../../../lib/firebase';
+import { cleanPhoneForWhatsApp } from '../../../../lib/utils';
+import { choosePrimaryLead, findLeadDuplicateGroups, mergeLeadData } from '../../../../lib/leadDeduplication';
 import { COLUMNS } from '../../../../lib/constants';
 import { filterLeads, hasCustosLancados } from './filters';
 import { useToast } from '../../../../hooks/useToast';
@@ -20,7 +24,7 @@ import TableView from './views/TableView';
 import LeadDetailModal from './modals/LeadDetailModal';
 import AddLeadModal from './modals/AddLeadModal';
 import MediaPreviewModal from './modals/MediaPreviewModal';
-import { sendWhatsAppQuote, logMessageToLead } from '../../../../lib/whatsappService';
+import { sendWhatsAppQuote, generateWhatsAppQuote, logMessageToLead } from '../../../../lib/whatsappService';
 
 export default function LeadsKanban() {
   const { toast, showToast, hideToast } = useToast();
@@ -51,6 +55,9 @@ export default function LeadsKanban() {
   const [isEditingLead, setIsEditingLead] = useState(false);
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
+  const [showDuplicateReview, setShowDuplicateReview] = useState(false);
+  const [manualQuote, setManualQuote] = useState(null);
+  const [manualQuoteCopied, setManualQuoteCopied] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState('20');
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -200,10 +207,15 @@ export default function LeadsKanban() {
       setSendingScript(true);
       try {
         const result = await sendWhatsAppQuote(lead, pacotes, lead.id);
-        if (result) {
+        if (result?.success) {
           showToast("Orçamento reenviado com sucesso!", "success");
         } else {
-          showToast("Falha ao reenviar o orçamento. Verifique as configurações da API WhatsApp.", "error");
+          if (result?.message) {
+            setManualQuote({ lead, message: result.message, error: result.error || 'A API não concluiu o envio.', status: 'failed' });
+            setManualQuoteCopied(false);
+          } else {
+            showToast("Falha ao gerar a mensagem do orçamento. Tente novamente.", "error");
+          }
         }
       } catch (err) {
         console.error("Erro ao reenviar orçamento:", err);
@@ -212,6 +224,40 @@ export default function LeadsKanban() {
         setSendingScript(false);
       }
     }, "Reenviar Orçamento");
+  };
+
+  const handlePrepareManualQuote = async (lead) => {
+    setSendingScript(true);
+    try {
+      const result = await generateWhatsAppQuote(lead, pacotes);
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(result.message);
+        copied = true;
+      } catch (clipboardError) {
+        console.warn('Clipboard indisponível; mensagem mostrada para cópia manual.', clipboardError);
+      }
+      setManualQuote({ lead, message: result.message, status: 'ready' });
+      setManualQuoteCopied(copied);
+      showToast(copied ? 'Orçamento copiado. Você já pode colar no WhatsApp.' : 'Orçamento pronto. Toque em “Copiar mensagem” ou selecione o texto.', copied ? 'success' : 'info');
+    } catch (error) {
+      console.error('Erro ao preparar orçamento para envio manual:', error);
+      showToast('Não foi possível preparar a mensagem do orçamento.', 'error');
+    } finally {
+      setSendingScript(false);
+    }
+  };
+
+  const handleCopyManualQuote = async () => {
+    if (!manualQuote?.message) return;
+    try {
+      await navigator.clipboard.writeText(manualQuote.message);
+      setManualQuoteCopied(true);
+      showToast('Mensagem do orçamento copiada.', 'success');
+    } catch (error) {
+      console.error('Falha ao copiar orçamento:', error);
+      showToast('Não foi possível copiar automaticamente. Selecione o texto e copie.', 'error');
+    }
   };
 
   const handleSendShoppingListViaApi = async (lead) => {
@@ -263,6 +309,41 @@ export default function LeadsKanban() {
     filterMaxVal,
     filterSemCustos
   });
+  const duplicateGroups = findLeadDuplicateGroups(leads);
+
+  const handleMergeDuplicateGroup = (group) => {
+    const primary = choosePrimaryLead(group.leads);
+    if (!primary) return;
+    const secondaryLeads = group.leads.filter(lead => lead.id !== primary.id);
+    const names = secondaryLeads.map(lead => `${lead.nome || ''} ${lead.sobrenome || ''}`.trim()).filter(Boolean);
+
+    showConfirm(
+      `Manteremos “${primary.nome || 'Lead principal'}” como registro principal, juntaremos os históricos e dados financeiros e marcaremos ${secondaryLeads.length} registro(s) como incorporado(s). Os IDs antigos serão preservados para não quebrar links e documentos.`,
+      async () => {
+        try {
+          const merged = secondaryLeads.reduce((current, lead) => mergeLeadData(current, lead), primary);
+          merged.atualizadoEm = new Date().toISOString();
+          const updates = { [`leads/${primary.id}`]: merged };
+          const mergedAt = new Date().toISOString();
+          secondaryLeads.forEach(lead => {
+            updates[`leads/${lead.id}/mergedInto`] = primary.id;
+            updates[`leads/${lead.id}/mergedAt`] = mergedAt;
+          });
+
+          await update(ref(db), updates);
+          setLeads(current => [
+            ...current.filter(lead => !secondaryLeads.some(secondary => secondary.id === lead.id) && lead.id !== primary.id),
+            { ...primary, ...merged }
+          ]);
+          showToast(`${secondaryLeads.length} duplicata(s) consolidada(s)${names.length ? `: ${names.join(', ')}` : ''}.`, 'success');
+        } catch (error) {
+          console.error('Erro ao consolidar duplicatas:', error);
+          showToast('Não foi possível consolidar estes leads. Nenhum registro foi removido.', 'error');
+        }
+      },
+      'Consolidar leads duplicados'
+    );
+  };
 
   const getLeadsByStatus = (statusId) => {
     let filtered = leads.filter(l => (l.status || 'novo') === statusId);
@@ -353,6 +434,43 @@ export default function LeadsKanban() {
           </div>
         </div>
       </div>
+
+      {duplicateGroups.length > 0 && (
+        <section className="admin-duplicate-review" aria-label="Revisão de possíveis leads duplicados">
+          <div className="admin-duplicate-review-header">
+            <div>
+              <h2>Possíveis duplicados <span>{duplicateGroups.length}</span></h2>
+              <p>Mesmo telefone e mesma data completa do evento. Eventos em outros anos ficam separados.</p>
+            </div>
+            <button type="button" className="btn btn--outline" onClick={() => setShowDuplicateReview(value => !value)} aria-expanded={showDuplicateReview}>
+              {showDuplicateReview ? 'Fechar revisão' : 'Revisar leads'}
+            </button>
+          </div>
+          {showDuplicateReview && (
+            <div className="admin-duplicate-review-list">
+              {duplicateGroups.map(group => {
+                const primary = choosePrimaryLead(group.leads);
+                return (
+                  <article className="admin-duplicate-group" key={group.identity}>
+                    <div className="admin-duplicate-group-records">
+                      {group.leads.map(lead => (
+                        <div key={lead.id} className="admin-duplicate-record">
+                          <strong>{lead.nome} {lead.sobrenome || ''}</strong>
+                          <span>{lead.telefone} · {lead.dataEvento}</span>
+                          <small>{lead.status || 'novo'}{lead.pacote ? ` · ${lead.pacote}` : ''}{lead.id === primary?.id ? ' · registro principal sugerido' : ''}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" className="btn btn--primary" onClick={() => handleMergeDuplicateGroup(group)}>
+                      Consolidar {group.leads.length - 1} duplicata(s)
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* PRÓXIMOS EVENTOS WIDGET */}
       {(() => {
@@ -663,6 +781,7 @@ export default function LeadsKanban() {
         // Shopping list & quotes
         handleSendShoppingListViaApi={handleSendShoppingListViaApi}
         handleResendQuote={handleResendQuote}
+        handlePrepareManualQuote={handlePrepareManualQuote}
         handleSendEvolution={waActions.handleSendEvolution}
         aiFollowupLoading={waActions.aiFollowupLoading}
         aiFollowupResult={waActions.aiFollowupResult}
@@ -708,6 +827,50 @@ export default function LeadsKanban() {
         onClose={() => setPreviewUrl(null)}
         showToast={showToast}
       />
+
+      {manualQuote && (
+        <div className="admin-manual-quote-overlay" onMouseDown={event => { if (event.target === event.currentTarget) setManualQuote(null); }}>
+          <section className="admin-manual-quote-dialog" role="dialog" aria-modal="true" aria-labelledby="manual-quote-title">
+            <header>
+              <div>
+                <span className="admin-manual-quote-eyebrow">Envio manual</span>
+                <h2 id="manual-quote-title">Revisar e copiar orçamento</h2>
+              </div>
+              <button type="button" className="admin-manual-quote-close" onClick={() => setManualQuote(null)} aria-label="Fechar">
+                <FiX size={20} />
+              </button>
+            </header>
+            <p className="admin-manual-quote-recipient">
+              Para <strong>{manualQuote.lead.nome} {manualQuote.lead.sobrenome || ''}</strong> · {manualQuote.lead.telefone || 'telefone não informado'}
+            </p>
+            {manualQuote.status === 'failed' ? (
+              <div className="admin-manual-quote-error" role="status">
+                O envio automático falhou. O pedido e o texto do orçamento estão preservados; copie a mensagem e envie-a pelo WhatsApp.
+                {manualQuote.error && <small>{manualQuote.error.slice(0, 220)}</small>}
+              </div>
+            ) : (
+              <p className="admin-manual-quote-ready">A mensagem foi preparada sem usar a API. Confira o texto, copie ou abra a conversa com o cliente.</p>
+            )}
+            <label className="sr-only" htmlFor="manual-quote-message">Mensagem completa do orçamento</label>
+            <textarea id="manual-quote-message" value={manualQuote.message} readOnly rows={12} onFocus={event => event.target.select()} />
+            <div className="admin-manual-quote-actions">
+              <button type="button" className="btn btn--outline" onClick={handleCopyManualQuote}>
+                <FiCopy size={16} /> {manualQuoteCopied ? 'Copiado' : 'Copiar mensagem'}
+              </button>
+              {cleanPhoneForWhatsApp(manualQuote.lead.telefone).length >= 10 ? (
+                <a
+                  className="btn btn--primary"
+                  href={`https://wa.me/${cleanPhoneForWhatsApp(manualQuote.lead.telefone)}?text=${encodeURIComponent(manualQuote.message)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FiExternalLink size={16} /> Abrir conversa com cliente
+                </a>
+              ) : <span className="admin-manual-quote-no-phone">Confira o telefone do lead para abrir o WhatsApp.</span>}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* NOTIFICATIONS & OVERLAYS */}
       <Toast toast={toast} onClose={hideToast} />

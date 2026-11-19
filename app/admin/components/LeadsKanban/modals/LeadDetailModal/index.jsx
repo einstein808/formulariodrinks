@@ -50,6 +50,7 @@ export default function LeadDetailModal({
   handleSendHelperFinalConfirmation,
   handleSendShoppingListViaApi,
   handleResendQuote,
+  handlePrepareManualQuote,
   handleSendEvolution,
   aiFollowupLoading,
   aiFollowupResult,
@@ -395,6 +396,7 @@ export default function LeadDetailModal({
               selectedLead={selectedLead}
               sendingScript={sendingScript}
               handleResendQuote={handleResendQuote}
+              handlePrepareManualQuote={handlePrepareManualQuote}
               handleSendEvolution={handleSendEvolution}
             />
           )}

@@ -3,6 +3,7 @@ import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { getCustoValor, parseCriadoEm, detectCategoryByDescription } from '@/lib/utils';
 import { EVENT_TYPE_COLORS, EVENT_TYPE_EMOJIS, CUSTOS_CATEGORIAS_DEFAULT } from '@/lib/constants';
+import { isMergedLead } from '@/lib/leadDeduplication';
 
 export const COLORS = ['#00E5FF', '#FFD54F', '#4CAF50', '#F44336', '#9C27B0', '#FF9800'];
 
@@ -72,7 +73,7 @@ export function useDashboardData(filters = {}) {
     const unsubLeads = onValue(leadsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        setLeads(Object.entries(data).map(([id, val]) => ({ id, ...val })));
+        setLeads(Object.entries(data).map(([id, val]) => ({ id, ...val })).filter(lead => !isMergedLead(lead)));
       } else {
         setLeads([]);
       }

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, set, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { cleanPhoneForWhatsApp } from '../../../lib/utils';
+import { isMergedLead } from '../../../lib/leadDeduplication';
 import { 
   FiSend, FiImage, FiInstagram, FiFileText, FiClock, FiAlertCircle, 
   FiCheckCircle, FiXCircle, FiUsers, FiCheck, FiX, FiZap, FiSearch,
@@ -20,6 +21,10 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function isMessagingRestriction(status, message = '') {
+  return [401, 403, 429].includes(status) || /rate.?limit|too many requests|temporar(?:y|ily) (?:blocked|banned|restricted)|account.{0,20}(?:blocked|banned|restricted)|spam restriction|message.?limit|limite de mensagens|muitas mensagens|bloqueio tempor[aá]rio|conta restrita|conta bloqueada/i.test(message);
 }
 
 function diasDesde(isoString) {
@@ -273,7 +278,7 @@ export default function CampanhasManager() {
       (snap) => {
         if (snap.exists()) {
           const data = snap.val();
-          const list = Object.entries(data).map(([id, item]) => ({ id, ...item }));
+          const list = Object.entries(data).map(([id, item]) => ({ id, ...item })).filter(lead => !isMergedLead(lead));
           list.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
           setLeads(list);
         } else {
@@ -560,6 +565,8 @@ export default function CampanhasManager() {
         let erroCount = 0;
         let processados = 0;
         let campanhaCriada = false;
+        let restrictionDetected = false;
+        let restrictionReason = '';
 
         try {
           const evUrl = evolutionApi?.url || process.env.NEXT_PUBLIC_WPP_API_URL || 'https://api.gabryelamaro.com';
@@ -671,6 +678,10 @@ export default function CampanhasManager() {
                 let errText = '';
                 try { errText = await response.text(); } catch { /* usa o status HTTP como fallback */ }
                 resultado = { nome: itemNome, success: false, error: (errText || `Evolution API retornou HTTP ${response.status}`).slice(0, 300) };
+                if (isMessagingRestriction(response.status, errText)) {
+                  restrictionDetected = true;
+                  restrictionReason = `HTTP ${response.status}: ${(errText || 'restrição de envio').slice(0, 220)}`;
+                }
               }
             }
 
@@ -703,8 +714,10 @@ export default function CampanhasManager() {
               total: targetList.length,
               sucesso: sucessoCount,
               erro: erroCount,
-              status: `Enviado para ${itemNome}! (${i + 1}/${targetList.length})`
+              status: restrictionDetected ? 'Restrição detectada. Campanha pausada e progresso salvo.' : `Processado ${itemNome} (${i + 1}/${targetList.length})`
             });
+
+            if (restrictionDetected) break;
 
             // Intervalo configurado para proteger a qualidade e a entrega das mensagens.
             if (i < targetList.length - 1) {
@@ -728,15 +741,20 @@ export default function CampanhasManager() {
           }
 
           await update(campanhaRef, {
-            status: 'concluida',
+            status: restrictionDetected ? 'interrompida_restricao' : 'concluida',
             sucesso: sucessoCount,
             erro: erroCount,
             processados,
-            concluidaEm: new Date().toISOString(),
+            ...(restrictionDetected ? { motivoInterrupcao: restrictionReason } : {}),
+            ...(restrictionDetected ? { interrompidaEm: new Date().toISOString() } : { concluidaEm: new Date().toISOString() }),
             atualizadaEm: new Date().toISOString()
           });
 
-          showToast(`Campanha finalizada! ${sucessoCount} enviadas com sucesso, ${erroCount} falhas.`, 'success');
+          if (restrictionDetected) {
+            showToast(`A API recusou a continuidade após ${processados} contatos. O restante foi pausado; confira o status da instância antes de retomar.`, 'error');
+          } else {
+            showToast(`Campanha finalizada! ${sucessoCount} enviadas com sucesso, ${erroCount} falhas.`, 'success');
+          }
         } catch (err) {
           console.error('Erro no disparo:', err);
           if (campanhaCriada) {
@@ -1686,11 +1704,13 @@ export default function CampanhasManager() {
               const processadosCampanha = Number(camp.processados ?? ((camp.sucesso || 0) + (camp.erro || 0)));
               const campanhaStatus = camp.status === 'concluida'
                 ? 'Concluída'
-                : camp.status === 'interrompida' || (camp.status === 'em_andamento' && activeCampaignId !== camp.id)
+                : camp.status === 'interrompida_restricao'
+                  ? 'Pausada pela API'
+                  : camp.status === 'interrompida' || (camp.status === 'em_andamento' && activeCampaignId !== camp.id)
                   ? 'Interrompida'
                   : 'Em andamento';
               const statusConcluido = campanhaStatus === 'Concluída';
-              const statusInterrompido = campanhaStatus === 'Interrompida';
+              const statusInterrompido = campanhaStatus !== 'Concluída' && campanhaStatus !== 'Em andamento';
 
               return (
                 <div
@@ -1771,6 +1791,7 @@ export default function CampanhasManager() {
                   }}>
                     {camp.mensagem}
                   </div>
+                  {camp.motivoInterrupcao && <p className="admin-campaign-stop-reason">Motivo registrado: {camp.motivoInterrupcao}</p>}
 
                   {camp.resultados && Object.keys(camp.resultados).length > 0 && (
                     <details className="admin-campaign-results">

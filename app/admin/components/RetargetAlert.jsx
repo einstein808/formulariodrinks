@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, update } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+import { isMergedLead } from '../../../lib/leadDeduplication';
 import { FiBell, FiSend, FiX } from 'react-icons/fi';
 
 export default function RetargetAlert() {
@@ -57,7 +58,7 @@ export default function RetargetAlert() {
     const unsubscribeLeads = onValue(leadsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        setLeads(Object.entries(data).map(([id, val]) => ({ id, ...val })));
+        setLeads(Object.entries(data).map(([id, val]) => ({ id, ...val })).filter(lead => !isMergedLead(lead)));
       } else {
         setLeads([]);
       }

@@ -3,6 +3,7 @@ import { ref, onValue, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { firebaseObjToArray } from '@/lib/utils';
 import { CUSTOS_CATEGORIAS_DEFAULT } from '@/lib/constants';
+import { isMergedLead } from '@/lib/leadDeduplication';
 
 export function useLeadsData() {
   const [leads, setLeads] = useState([]);
@@ -25,7 +26,9 @@ export function useLeadsData() {
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.val();
-          const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+          const leadsArray = Object.entries(data)
+            .map(([id, val]) => ({ id, ...val }))
+            .filter(lead => !isMergedLead(lead));
           leadsArray.sort((a, b) => {
             const timeA = new Date(a.criadoEm || a.atualizadoEm || 0).getTime();
             const timeB = new Date(b.criadoEm || b.atualizadoEm || 0).getTime();

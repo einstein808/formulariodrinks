@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, push } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { isMergedLead } from '../../../lib/leadDeduplication';
 import { calculatePackagePrice, DEFAULT_MAO_DE_OBRA_TIERS } from '../../../lib/pricingUtils';
 import { getRecommendation } from '../../../lib/utils';
 import { FiUser, FiCalendar, FiBookOpen, FiArrowRight, FiArrowLeft, FiSend, FiCheckCircle, FiSearch, FiFileText } from 'react-icons/fi';
@@ -65,7 +66,7 @@ export default function GeradorContrato() {
     const unsubscribeLeads = onValue(leadsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        const leadsArray = Object.entries(data).map(([id, val]) => ({ id, ...val })).filter(lead => !isMergedLead(lead));
         leadsArray.sort((a, b) => new Date(b.dataEvento || 0) - new Date(a.dataEvento || 0));
         setLeads(leadsArray);
       }

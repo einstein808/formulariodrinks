@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ref, onValue, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { isMergedLead } from '@/lib/leadDeduplication';
 
 export function useAgendaData() {
   const [eventos, setEventos] = useState([]);
@@ -17,7 +18,7 @@ export function useAgendaData() {
     const unsubscribeLeads = onValue(leadsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const todosLeads = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        const todosLeads = Object.entries(data).map(([id, val]) => ({ id, ...val })).filter(lead => !isMergedLead(lead));
         
         // Filtra apenas leads fechados ou realizados que possuem dataEvento
         const eventosFechados = todosLeads.filter(
