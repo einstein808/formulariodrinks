@@ -350,6 +350,32 @@ export default function OrcamentoClient() {
     }
   }, [])
 
+  // A seleção do pacote é uma alteração importante do lead: persiste no registro
+  // existente assim que o cliente escolhe, mesmo antes de enviar o orçamento.
+  useEffect(() => {
+    if (currentStep !== 2 || !formData.pacote || !leadIdRef.current) return;
+
+    const leadId = leadIdRef.current;
+    const selectedPackage = formData.pacote;
+    let active = true;
+    const persistSelection = async () => {
+      try {
+        await update(ref(db, `leads/${leadId}`), {
+          pacote: selectedPackage,
+          atualizadoEm: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('Erro ao salvar pacote escolhido:', err);
+        if (active) setSaveError('Não foi possível salvar sua escolha de pacote. Tente novamente ou avance para salvar os dados.');
+      }
+    };
+    persistSelection();
+
+    return () => {
+      active = false;
+    };
+  }, [currentStep, formData.pacote, currentLeadId]);
+
   // Auto-captura parcial: salva lead assim que campos mínimos do step 0 são preenchidos
   // Não espera o usuário clicar "Próximo" — garante captura mesmo em abandono
   useEffect(() => {
@@ -488,38 +514,42 @@ export default function OrcamentoClient() {
         try { await savePromiseRef.current; } catch (_) {}
       }
 
-      // Quando já há data do evento, reaproveita um cadastro idêntico por telefone + data completa.
-      // Datas em anos diferentes são identidades distintas (ex.: aniversário anual).
-      const eventIdentity = getLeadEventIdentity(baseData);
-      let matchedLead = null;
-      if (eventIdentity) {
-        const leadsSnapshot = await get(ref(db, 'leads'));
-        if (leadsSnapshot.exists()) {
-          const matches = Object.entries(leadsSnapshot.val())
-            .map(([id, lead]) => ({ id, ...lead }))
-            .filter(lead => !lead.mergedInto && lead.id !== leadIdRef.current && getLeadEventIdentity(lead) === eventIdentity);
-          matchedLead = choosePrimaryLead(matches);
-        }
-      }
+      // Salva primeiro no mesmo lead, para que uma falha na consulta de duplicidade
+      // não impeça o cliente de avançar. A busca ampla em /leads pode ser negada
+      // pelas regras do Firebase ou falhar em conexões instáveis.
+      const savedLeadId = await saveLeadToFirebase(baseData, leadIdRef.current);
 
-      if (matchedLead) {
-        const currentLeadId = leadIdRef.current;
-        const canonicalData = mergeLeadData(matchedLead, baseData);
-        canonicalData.status = matchedLead.status || baseData.status;
-        canonicalData.criadoEm = matchedLead.criadoEm || baseData.criadoEm;
-        canonicalData.atualizadoEm = new Date().toISOString();
-        const writes = { [`leads/${matchedLead.id}`]: canonicalData };
-        if (currentLeadId && currentLeadId !== matchedLead.id) {
-          writes[`leads/${currentLeadId}/mergedInto`] = matchedLead.id;
-          writes[`leads/${currentLeadId}/mergedAt`] = new Date().toISOString();
+      // Quando já há data do evento, tenta reaproveitar cadastro idêntico por
+      // telefone + data completa. Datas de anos diferentes permanecem distintas.
+      const eventIdentity = getLeadEventIdentity(baseData);
+      if (eventIdentity) {
+        try {
+          const leadsSnapshot = await get(ref(db, 'leads'));
+          if (leadsSnapshot.exists()) {
+            const matches = Object.entries(leadsSnapshot.val())
+              .map(([id, lead]) => ({ id, ...lead }))
+              .filter(lead => !lead.mergedInto && lead.id !== savedLeadId && getLeadEventIdentity(lead) === eventIdentity);
+            const matchedLead = choosePrimaryLead(matches);
+
+            if (matchedLead) {
+              const canonicalData = mergeLeadData(matchedLead, baseData);
+              canonicalData.status = matchedLead.status || baseData.status;
+              canonicalData.criadoEm = matchedLead.criadoEm || baseData.criadoEm;
+              canonicalData.atualizadoEm = new Date().toISOString();
+              const writes = { [`leads/${matchedLead.id}`]: canonicalData };
+              if (savedLeadId && savedLeadId !== matchedLead.id) {
+                writes[`leads/${savedLeadId}/mergedInto`] = matchedLead.id;
+                writes[`leads/${savedLeadId}/mergedAt`] = new Date().toISOString();
+              }
+              await update(ref(db), writes);
+              leadIdRef.current = matchedLead.id;
+              setCurrentLeadId(matchedLead.id);
+              try { localStorage.setItem('CURRENT_LEAD_ID', matchedLead.id); } catch (_) {}
+            }
+          }
+        } catch (dedupError) {
+          console.warn('Não foi possível verificar leads duplicados nesta etapa:', dedupError);
         }
-        await update(ref(db), writes);
-        leadIdRef.current = matchedLead.id;
-        setCurrentLeadId(matchedLead.id);
-        try { localStorage.setItem('CURRENT_LEAD_ID', matchedLead.id); } catch (_) {}
-      } else {
-        // Persiste cada etapa no mesmo lead antes de permitir avançar.
-        await saveLeadToFirebase(baseData, leadIdRef.current);
       }
 
       setCurrentStep(s => Math.min(s + 1, STEPS.length - 1));
@@ -528,7 +558,14 @@ export default function OrcamentoClient() {
       }
     } catch (err) {
       console.error('Erro ao salvar etapa do formulário:', err);
-      setSaveError('Não foi possível salvar seus dados. Verifique sua conexão e tente novamente.');
+      const code = String(err?.code || '').toLowerCase();
+      if (code.includes('permission_denied') || code.includes('permission-denied')) {
+        setSaveError('O Firebase não autorizou salvar seus dados. Tente novamente em instantes ou fale com nossa equipe.');
+      } else if (code.includes('network') || code.includes('unavailable') || code.includes('timeout')) {
+        setSaveError('A conexão oscilou e seus dados ainda não foram salvos. Verifique a internet e tente novamente.');
+      } else {
+        setSaveError('Não foi possível salvar seus dados agora. Tente novamente; suas informações preenchidas continuam nesta tela.');
+      }
     } finally {
       setIsSavingStep(false);
       isNavigatingRef.current = false;
