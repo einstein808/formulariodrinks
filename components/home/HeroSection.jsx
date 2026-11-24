@@ -1,68 +1,68 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
-import { FiStar } from 'react-icons/fi';
+import { FiArrowRight, FiMapPin, FiStar } from 'react-icons/fi';
+
+const highlights = [
+  { icon: '✦', text: 'Frutas frescas e preparo na hora' },
+  { icon: '✦', text: 'Estrutura completa para sua festa' },
+  { icon: '✦', text: 'Atendimento de 30 a 150 convidados' },
+];
 
 export default function HeroSection({ general }) {
+  const city = general?.companyCity || 'Juiz de Fora';
 
   return (
-    <header style={{ position: 'relative', zIndex: 10, padding: '24px 20px 12px', textAlign: 'center', maxWidth: 760, margin: '0 auto' }}>
-      {/* 1. Logo */}
-      <div style={{ display: 'inline-block', marginBottom: 16 }}>
-        <Image 
-          src={general?.logoUrl || "/logo.webp"} 
-          alt={`Logo ${general?.companyName || "Laboratório de Drinks"} - Barman em ${general?.companyCity || "Juiz de Fora"}`} 
-          width={130}
-          height={130}
-          priority
-          sizes="130px"
-          style={{ width: 'clamp(90px, 24vw, 125px)', height: 'auto', filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))' }} 
-        />
+    <header className="home-hero">
+      <div className="home-hero__copy">
+        <div className="home-hero__eyebrow">
+          <span className="home-hero__eyebrow-icon"><FiMapPin size={13} /></span>
+          Coquetelaria para eventos · {city} e região
+        </div>
+
+        <h1 className="home-hero__title">
+          Um bar especial muda <span>o clima da festa.</span>
+        </h1>
+        <p className="home-hero__description">
+          Drinks preparados na hora, ingredientes frescos e um bar que combina com a sua celebração — sem complicar a organização.
+        </p>
+
+        <div className="home-hero__actions">
+          <a href="/orcamento" className="home-hero__primary">
+            Monte seu orçamento <FiArrowRight size={17} aria-hidden="true" />
+          </a>
+          <a href="/menu" className="home-hero__secondary">Conheça os drinks</a>
+        </div>
+
+        <div className="home-hero__trust">
+          <div className="home-hero__rating" aria-label="Avaliação 5 de 5 no Google">
+            <span className="home-hero__rating-stars"><FiStar size={14} fill="currentColor" /> 5.0</span>
+            <span>no Google</span>
+          </div>
+          <span className="home-hero__trust-divider" />
+          <span>Orçamento rápido e personalizado</span>
+        </div>
+
+        <ul className="home-hero__highlights" aria-label="Diferenciais">
+          {highlights.map(item => <li key={item.text}><span aria-hidden="true">{item.icon}</span>{item.text}</li>)}
+        </ul>
       </div>
 
-      {/* 2. Badge de Localização & Prova Social */}
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 999, background: 'rgba(203, 161, 83, 0.08)', border: '1px solid rgba(203, 161, 83, 0.25)', marginBottom: 12 }}>
-        <span style={{ display: 'flex', color: 'var(--primary)', alignItems: 'center', gap: 4, fontSize: '0.8rem', fontWeight: 600 }}>
-          <FiStar size={13} style={{ fill: 'var(--primary)' }} /> 5.0 no Google
-        </span>
-        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>•</span>
-        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-          {general?.companyCity || "Juiz de Fora"} & Região
-        </span>
-      </div>
-
-      {/* Subtítulo Discreto e Elegante */}
-      <p style={{ 
-        fontSize: 'clamp(0.98rem, 2.2vw, 1.15rem)', 
-        color: 'var(--text-secondary)', 
-        maxWidth: '560px', 
-        margin: '0 auto 16px', 
-        lineHeight: 1.5,
-        fontWeight: 400
-      }}>
-        Bar profissional de coquetelaria para casamentos e eventos de <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>30 a 150 convidados</strong>.
-      </p>
-
-      {/* CTA Principal de Conversão */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <a
-          href="/orcamento"
-          className="btn btn--primary"
-          style={{ 
-            fontSize: '0.98rem', 
-            padding: '13px 28px', 
-            textDecoration: 'none',
-            color: '#0a100d',
-            fontWeight: 700,
-            boxShadow: '0 4px 20px rgba(203, 161, 83, 0.3)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            borderRadius: 12
-          }}
-        >
-          Calcule seu orçamento em menos de 1 minuto →
-        </a>
+      <div className="home-hero__visual" aria-label="Drinks preparados para eventos">
+        <div className="home-hero__visual-glow" />
+        <div className="home-hero__photo home-hero__photo--back home-hero__photo--left">
+          <Image src="/drinks/aperol-spritz.jpg" alt="Aperol spritz com laranja" fill priority sizes="(max-width: 760px) 28vw, 210px" />
+          <span>Aperol Spritz</span>
+        </div>
+        <div className="home-hero__photo home-hero__photo--main">
+          <Image src="/drinks/mojito.jpg" alt="Mojito com hortelã e limão" fill priority sizes="(max-width: 760px) 52vw, 340px" />
+          <span>Feitos na hora, com cuidado</span>
+        </div>
+        <div className="home-hero__photo home-hero__photo--back home-hero__photo--right">
+          <Image src="/drinks/caipirinha.jpg" alt="Caipirinha preparada com limão" fill priority sizes="(max-width: 760px) 28vw, 210px" />
+          <span>Clássicos e autorais</span>
+        </div>
+        <div className="home-hero__visual-note"><FiStar size={15} fill="currentColor" /><span>Um brinde<br />ao seu momento</span></div>
       </div>
     </header>
   );
